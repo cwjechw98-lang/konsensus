@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import CopyButton from "@/components/CopyButton";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
 
 export default async function DisputePage({
   params,
@@ -17,9 +19,7 @@ export default async function DisputePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const { data: dispute } = await supabase
     .from("disputes")
@@ -27,31 +27,36 @@ export default async function DisputePage({
     .eq("id", id)
     .single<Dispute>();
 
-  if (!dispute) {
-    notFound();
-  }
+  if (!dispute) notFound();
 
   const isCreator = dispute.creator_id === user.id;
   const isOpponent = dispute.opponent_id === user.id;
   const isParticipant = isCreator || isOpponent;
 
-  if (!isParticipant && dispute.status !== "open") {
-    notFound();
-  }
+  if (!isParticipant && dispute.status !== "open") notFound();
 
-  // Fetch participant names
   const participantIds = [dispute.creator_id, dispute.opponent_id].filter(
     Boolean
   ) as string[];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .in("id", participantIds)
-    .returns<Pick<Profile, "id" | "display_name">[]>();
 
-  const getName = (id: string | null) => {
-    if (!id) return null;
-    return profiles?.find((p) => p.id === id)?.display_name ?? "Пользователь";
+  const [{ data: profiles }, { data: args }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", participantIds)
+      .returns<Pick<Profile, "id" | "display_name">[]>(),
+    supabase
+      .from("arguments")
+      .select("*")
+      .eq("dispute_id", id)
+      .order("round", { ascending: true })
+      .order("created_at", { ascending: true })
+      .returns<ArgumentRow[]>(),
+  ]);
+
+  const getName = (pid: string | null) => {
+    if (!pid) return null;
+    return profiles?.find((p) => p.id === pid)?.display_name ?? "Пользователь";
   };
 
   const statusLabels: Record<string, string> = {
@@ -72,6 +77,8 @@ export default async function DisputePage({
       "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     closed: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
   };
+
+  const rounds = Array.from({ length: dispute.max_rounds }, (_, i) => i + 1);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
@@ -106,9 +113,7 @@ export default async function DisputePage({
           <div>
             <span className="text-xs text-gray-400">Оппонент</span>
             <p className="font-medium">
-              {dispute.opponent_id
-                ? getName(dispute.opponent_id)
-                : "Ожидает..."}
+              {dispute.opponent_id ? getName(dispute.opponent_id) : "Ожидает..."}
             </p>
           </div>
           <div>
@@ -118,25 +123,80 @@ export default async function DisputePage({
         </div>
       </div>
 
-      {/* Invite section — only for open disputes */}
+      {/* Invite section */}
       {dispute.status === "open" && isCreator && (
         <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 mb-6">
-          <h2 className="text-sm font-semibold mb-2">
-            Пригласите оппонента
-          </h2>
+          <h2 className="text-sm font-semibold mb-2">Пригласите оппонента</h2>
           <p className="text-sm text-gray-500 mb-3">
-            Отправьте этот код вашему оппоненту, чтобы он мог присоединиться к
-            спору.
+            Отправьте этот код оппоненту, чтобы он присоединился.
           </p>
           <div className="flex items-center gap-3">
             <code className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-md font-mono text-lg tracking-widest">
               {dispute.invite_code}
             </code>
+            <CopyButton text={dispute.invite_code} />
           </div>
         </div>
       )}
 
-      {/* Actions based on status */}
+      {/* Arguments by round */}
+      {args && args.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 mb-4">
+            Аргументы
+          </h2>
+          <div className="flex flex-col gap-6">
+            {rounds.map((round) => {
+              const roundArgs = args.filter((a) => a.round === round);
+              if (roundArgs.length === 0) return null;
+              return (
+                <div key={round}>
+                  <p className="text-xs text-gray-400 mb-3">
+                    Раунд {round} из {dispute.max_rounds}
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {roundArgs.map((arg) => {
+                      const isMe = arg.author_id === user.id;
+                      return (
+                        <div
+                          key={arg.id}
+                          className={`border rounded-lg p-4 ${
+                            isMe
+                              ? "border-blue-200 dark:border-blue-900"
+                              : "border-gray-200 dark:border-gray-800"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">
+                              {getName(arg.author_id)}
+                              {isMe && (
+                                <span className="ml-2 text-xs text-blue-500">
+                                  (вы)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <p className="font-medium mb-1">{arg.position}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                            {arg.reasoning}
+                          </p>
+                          {arg.evidence && (
+                            <p className="text-xs text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">
+                              Доказательства: {arg.evidence}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
       {dispute.status === "in_progress" && isParticipant && (
         <div className="flex gap-3">
           <Link
@@ -155,6 +215,17 @@ export default async function DisputePage({
             className="bg-purple-600 text-white px-5 py-2 rounded-md font-medium hover:opacity-90"
           >
             Посмотреть анализ ИИ
+          </Link>
+        </div>
+      )}
+
+      {dispute.status === "resolved" && isParticipant && (
+        <div className="flex gap-3">
+          <Link
+            href={`/dispute/${dispute.id}/mediation`}
+            className="bg-green-600 text-white px-5 py-2 rounded-md font-medium hover:opacity-90"
+          >
+            Результат медиации
           </Link>
         </div>
       )}
