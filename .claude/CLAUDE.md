@@ -95,17 +95,22 @@ src/
 
 ## Текущий статус
 
-**Фаза:** Инициализация проекта
+**Фаза:** Фаза 1 (Фундамент) — почти завершена
 **Дата:** 2026-03-12
 
 ### Сделано
 - [x] Создана структура проекта
-- [x] Настроен Git-репозиторий
-- [x] Написана документация (concept, roadmap, architecture)
-- [x] Настроен CLAUDE.md
-- [x] Инициализирован Next.js с TypeScript + Tailwind
+- [x] Настроен Git-репозиторий + GitHub
+- [x] Документация (concept, roadmap, architecture, status)
+- [x] CLAUDE.md + skill /log
+- [x] Next.js 16 + TypeScript (strict) + Tailwind CSS
+- [x] Supabase подключён (клиент, auth, миграция)
+- [x] Схема БД: profiles, disputes, arguments, mediations, resolutions
+- [x] RLS-политики для всех таблиц
+- [x] Аутентификация (login, register, signout, callback)
+- [x] Базовый layout с header и навигацией
+- [x] Landing page + Dashboard
 
 ### В процессе
-- [ ] Настройка Supabase
-- [ ] Создание схемы базы данных
-- [ ] Базовые страницы (landing, auth)
+- [ ] Страница профиля
+- [ ] Фаза 2: Споры (создание, просмотр, инвайты)
