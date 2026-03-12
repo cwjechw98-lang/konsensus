@@ -221,16 +221,17 @@ export async function triggerMediation(formData: FormData) {
     ].join("\n");
   }).join("\n\n---\n\n");
 
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const Groq = (await import("groq-sdk")).default;
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
     max_tokens: 1500,
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "user",
-        content: `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON без markdown-обёртки.
+        content: `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON.
 
 Спор: ${dispute.title}
 Описание: ${dispute.description}
@@ -250,14 +251,12 @@ ${roundsText}
     ],
   });
 
-  const content = response.content[0];
   let analysis: Record<string, unknown> = {};
-  if (content.type === "text") {
-    try {
-      analysis = JSON.parse(content.text);
-    } catch {
-      analysis = { raw: content.text };
-    }
+  const text = response.choices[0]?.message?.content ?? "";
+  try {
+    analysis = JSON.parse(text);
+  } catch {
+    analysis = { raw: text };
   }
 
   await supabase.from("mediations").insert({
