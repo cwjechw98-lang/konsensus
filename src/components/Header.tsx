@@ -23,6 +23,12 @@ export async function Header() {
               >
                 Мои споры
               </Link>
+              <Link
+                href="/profile"
+                className="text-sm hover:underline underline-offset-4"
+              >
+                Профиль
+              </Link>
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"

@@ -6,7 +6,12 @@ import type { Database } from "@/types/database";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorMsg } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,13 +40,27 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold">
           Привет, {profile?.display_name ?? "пользователь"}
         </h1>
-        <Link
-          href="/dispute/new"
-          className="bg-foreground text-background px-4 py-2 rounded-md text-sm font-medium hover:opacity-90"
-        >
-          Новый спор
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/dispute/join"
+            className="border border-gray-300 dark:border-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
+          >
+            Инвайт-код
+          </Link>
+          <Link
+            href="/dispute/new"
+            className="bg-foreground text-background px-4 py-2 rounded-md text-sm font-medium hover:opacity-90"
+          >
+            Новый спор
+          </Link>
+        </div>
       </div>
+
+      {errorMsg && (
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm p-3 rounded-md mb-4">
+          {errorMsg}
+        </div>
+      )}
 
       {!disputes || disputes.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
