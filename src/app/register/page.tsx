@@ -22,6 +22,7 @@ export default function RegisterPage({
         data: {
           display_name: displayName,
         },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
       },
     });
 
