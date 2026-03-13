@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { triggerMediation } from "@/lib/actions";
+import MediationClient from "@/components/MediationClient";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type Mediation = Database["public"]["Tables"]["mediations"]["Row"];
+type Resolution = Database["public"]["Tables"]["resolutions"]["Row"];
 
 export default async function MediationPage({
   params,
@@ -41,6 +44,18 @@ export default async function MediationPage({
     .eq("dispute_id", id)
     .single<Mediation>();
 
+  // Fetch current resolution (graceful fallback)
+  let resolution: Resolution | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("resolutions")
+      .select("*")
+      .eq("dispute_id", id)
+      .single<Resolution>();
+    resolution = data;
+  } catch { /* table may not have data */ }
+
   const analysis = mediation?.analysis as {
     summary_a?: string;
     summary_b?: string;
@@ -49,6 +64,8 @@ export default async function MediationPage({
     recommendation?: string;
     raw?: string;
   } | null;
+
+  const solutions = Array.isArray(analysis?.solutions) ? (analysis.solutions as string[]) : [];
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -87,25 +104,34 @@ export default async function MediationPage({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          {/* AI unavailable fallback */}
+          {!analysis?.summary_a && analysis?.raw && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-2">
+              <p className="text-sm text-yellow-400">{analysis.raw}</p>
+            </div>
+          )}
+
           {/* Positions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {analysis?.summary_a && (
-              <div className="glass rounded-xl p-4">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Позиция инициатора
-                </h2>
-                <p className="text-sm text-gray-300">{analysis.summary_a}</p>
-              </div>
-            )}
-            {analysis?.summary_b && (
-              <div className="glass rounded-xl p-4">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Позиция оппонента
-                </h2>
-                <p className="text-sm text-gray-300">{analysis.summary_b}</p>
-              </div>
-            )}
-          </div>
+          {(analysis?.summary_a || analysis?.summary_b) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {analysis?.summary_a && (
+                <div className="glass rounded-xl p-4">
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Позиция инициатора
+                  </h2>
+                  <p className="text-sm text-gray-300">{analysis.summary_a}</p>
+                </div>
+              )}
+              {analysis?.summary_b && (
+                <div className="glass rounded-xl p-4">
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Позиция оппонента
+                  </h2>
+                  <p className="text-sm text-gray-300">{analysis.summary_b}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Common ground */}
           {analysis?.common_ground && (
@@ -117,25 +143,22 @@ export default async function MediationPage({
             </div>
           )}
 
-          {/* Solutions */}
-          {Array.isArray(analysis?.solutions) &&
-            analysis.solutions.length > 0 && (
-              <div className="glass rounded-xl p-5">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                  Предложенные решения
-                </h2>
-                <ol className="flex flex-col gap-3">
-                  {(analysis.solutions as string[]).map((s, i) => (
-                    <li key={i} className="flex gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center text-xs font-semibold border border-purple-500/20">
-                        {i + 1}
-                      </span>
-                      <p className="text-sm text-gray-300">{s}</p>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
+          {/* Solutions with acceptance UI */}
+          {solutions.length > 0 && (
+            <MediationClient
+              disputeId={id}
+              solutions={solutions}
+              userId={user.id}
+              creatorId={dispute.creator_id}
+              opponentId={dispute.opponent_id}
+              initialResolution={resolution ? {
+                id: resolution.id,
+                chosen_solution: resolution.chosen_solution,
+                accepted_by: resolution.accepted_by as string[],
+                status: resolution.status,
+              } : null}
+            />
+          )}
 
           {/* Recommendation */}
           {analysis?.recommendation && (
@@ -144,15 +167,6 @@ export default async function MediationPage({
                 ✦ Рекомендация медиатора
               </h2>
               <p className="text-sm text-gray-300">{analysis.recommendation}</p>
-            </div>
-          )}
-
-          {/* Raw fallback */}
-          {!analysis?.summary_a && analysis?.raw && (
-            <div className="glass rounded-xl p-4">
-              <pre className="whitespace-pre-wrap text-sm text-gray-400">
-                {analysis.raw}
-              </pre>
             </div>
           )}
 

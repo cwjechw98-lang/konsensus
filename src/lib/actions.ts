@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { generateRoundInsights } from "@/lib/ai";
+import { generateRoundInsights, generateWaitingInsight } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 
@@ -22,10 +22,32 @@ export async function createDispute(formData: FormData) {
     redirect("/login");
   }
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
+  const title = ((formData.get("title") as string) ?? "").trim();
+  const description = ((formData.get("description") as string) ?? "").trim();
   const maxRounds = Math.min(20, Math.max(1, parseInt(formData.get("max_rounds") as string) || 3));
   const opponentEmail = ((formData.get("opponent_email") as string) ?? "").trim().toLowerCase();
+
+  // Input validation
+  if (!title || title.length < 3) {
+    redirect("/dispute/new?error=" + encodeURIComponent("Название спора должно содержать минимум 3 символа"));
+  }
+  if (title.length > 200) {
+    redirect("/dispute/new?error=" + encodeURIComponent("Название спора не должно превышать 200 символов"));
+  }
+  if (!description || description.length < 5) {
+    redirect("/dispute/new?error=" + encodeURIComponent("Добавьте описание спора (минимум 5 символов)"));
+  }
+
+  // Rate limiting: max 5 active disputes per user
+  const { count: activeCount } = await supabase
+    .from("disputes")
+    .select("*", { count: "exact", head: true })
+    .eq("creator_id", user.id)
+    .in("status", ["open", "in_progress"]);
+
+  if ((activeCount ?? 0) >= 5) {
+    redirect("/dashboard?error=" + encodeURIComponent("У вас уже 5 активных споров. Завершите или закройте существующие."));
+  }
 
   // Direct challenge: look up opponent by email
   let opponentId: string | null = null;
@@ -186,9 +208,9 @@ export async function submitArgument(formData: FormData) {
 
   const { data: existingArgs } = await supabase
     .from("arguments")
-    .select("author_id, round")
+    .select("author_id, round, position, reasoning, evidence")
     .eq("dispute_id", disputeId)
-    .returns<Pick<ArgumentRow, "author_id" | "round">[]>();
+    .returns<Pick<ArgumentRow, "author_id" | "round" | "position" | "reasoning" | "evidence">[]>();
 
   const myArgs = existingArgs?.filter((a) => a.author_id === user.id) ?? [];
   const opponentArgs =
@@ -293,6 +315,39 @@ export async function submitArgument(formData: FormData) {
     }
   } catch { /* email — non-critical */ }
 
+  // Fetch profiles for AI calls (needed for both waiting insight and round insight)
+  type ProfilePick = { id: string; display_name: string | null };
+  let allProfiles: ProfilePick[] = [];
+  if (dispute.opponent_id) {
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", [dispute.creator_id, dispute.opponent_id])
+      .returns<ProfilePick[]>();
+    allProfiles = profilesData ?? [];
+  }
+
+  // AI-инсайт для ожидающего: сразу после подачи аргумента
+  if (!opponentDoneThisRound && dispute.opponent_id) {
+    try {
+      await generateWaitingInsight(
+        {
+          id: disputeId,
+          title: dispute.title,
+          description: dispute.description,
+          creator_id: dispute.creator_id,
+          opponent_id: dispute.opponent_id,
+          max_rounds: dispute.max_rounds,
+        },
+        user.id,
+        { author_id: user.id, round: currentRound, position, reasoning, evidence: evidence ?? "" },
+        currentRound,
+        existingArgs ?? [],
+        allProfiles
+      );
+    } catch { /* AI — non-critical */ }
+  }
+
   // AI-анализ: оба подали аргумент
   if (opponentDoneThisRound && dispute.opponent_id) {
     const { data: fullArgs } = await supabase
@@ -300,13 +355,6 @@ export async function submitArgument(formData: FormData) {
       .select("author_id, round, position, reasoning, evidence")
       .eq("dispute_id", disputeId)
       .returns<{ author_id: string; round: number; position: string; reasoning: string; evidence: string | null }[]>();
-
-    type ProfilePick = { id: string; display_name: string | null };
-    const { data: allProfiles } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", [dispute.creator_id, dispute.opponent_id])
-      .returns<ProfilePick[]>();
 
     try {
       await generateRoundInsights(
@@ -320,7 +368,7 @@ export async function submitArgument(formData: FormData) {
         },
         currentRound,
         fullArgs ?? [],
-        allProfiles ?? []
+        allProfiles
       );
     } catch { /* AI — non-critical */ }
   }
@@ -410,14 +458,16 @@ export async function triggerMediation(formData: FormData) {
   const Groq = (await import("groq-sdk")).default;
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 1500,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "user",
-        content: `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON.
+  let analysis: Record<string, unknown> = {};
+  try {
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 1500,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON.
 
 Спор: ${dispute.title}
 Описание: ${dispute.description}
@@ -433,16 +483,23 @@ ${roundsText}
   "solutions": ["решение 1", "решение 2", "решение 3"],
   "recommendation": "рекомендация медиатора"
 }`,
-      },
-    ],
-  });
-
-  let analysis: Record<string, unknown> = {};
-  const text = response.choices[0]?.message?.content ?? "";
-  try {
-    analysis = JSON.parse(text);
+        },
+      ],
+    });
+    const text = response.choices[0]?.message?.content ?? "";
+    try {
+      analysis = JSON.parse(text);
+    } catch {
+      analysis = { raw: text };
+    }
   } catch {
-    analysis = { raw: text };
+    // AI unavailable — store fallback so mediation still completes
+    analysis = {
+      raw: "ИИ-медиатор временно недоступен. Все аргументы сохранены — попробуйте запустить медиацию позже.",
+      summary_a: "",
+      summary_b: "",
+      solutions: [],
+    };
   }
 
   await supabase.from("mediations").insert({
@@ -554,6 +611,62 @@ export async function declineEarlyEnd(formData: FormData) {
     .from("disputes")
     .update({ early_end_proposed_by: null } as never)
     .eq("id", disputeId);
+}
+
+export async function acceptSolution(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = formData.get("dispute_id") as string;
+  const solutionIndex = parseInt(formData.get("solution_index") as string);
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("creator_id, opponent_id, status")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "creator_id" | "opponent_id" | "status">>();
+
+  if (!dispute) return;
+  if (dispute.status !== "resolved" && dispute.status !== "mediation") return;
+  if (dispute.creator_id !== user.id && dispute.opponent_id !== user.id) return;
+
+  // Use admin client to bypass RLS
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("resolutions")
+    .select("*")
+    .eq("dispute_id", disputeId)
+    .single();
+
+  if (!existing) {
+    await admin.from("resolutions").insert({
+      dispute_id: disputeId,
+      chosen_solution: solutionIndex,
+      accepted_by: [user.id],
+      status: "proposed",
+    } as never);
+  } else if (existing.chosen_solution === solutionIndex) {
+    const currentAccepted = (existing.accepted_by as string[]) ?? [];
+    const newAccepted = [...new Set([...currentAccepted, user.id])];
+    const opponentId = dispute.creator_id === user.id ? dispute.opponent_id : dispute.creator_id;
+    const bothAccepted = opponentId ? newAccepted.includes(opponentId) : false;
+
+    await admin.from("resolutions").update({
+      accepted_by: newAccepted,
+      status: bothAccepted ? "accepted" : "proposed",
+    } as never).eq("id", existing.id);
+  } else {
+    // Different solution — reset
+    await admin.from("resolutions").update({
+      chosen_solution: solutionIndex,
+      accepted_by: [user.id],
+      status: "proposed",
+    } as never).eq("id", existing.id);
+  }
+
+  redirect(`/dispute/${disputeId}/mediation`);
 }
 
 // Helper: check and award dispute milestone achievements

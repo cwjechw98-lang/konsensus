@@ -86,6 +86,27 @@ export default async function DisputePage({
     insights = [];
   }
 
+  // Waiting insight: shown when user has submitted but opponent hasn't responded yet
+  let waitingInsight = "";
+  try {
+    const myArgs = (args ?? []).filter((a) => a.author_id === user.id);
+    const opponentId = dispute.creator_id === user.id ? dispute.opponent_id : dispute.creator_id;
+    const opponentArgs = (args ?? []).filter((a) => a.author_id === opponentId);
+    const isWaiting = myArgs.length > opponentArgs.length;
+
+    if (isWaiting && myArgs.length > 0) {
+      const currentRound = myArgs.length;
+      const { data: wiData } = await supabase
+        .from("waiting_insights")
+        .select("content")
+        .eq("dispute_id", id)
+        .eq("round", currentRound)
+        .eq("recipient_id", user.id)
+        .single<{ content: string }>();
+      waitingInsight = wiData?.content ?? "";
+    }
+  } catch { waitingInsight = ""; }
+
   // heat_level from dispute_analysis (graceful fallback)
   let heatLevel = 0;
   try {
@@ -226,6 +247,7 @@ export default async function DisputePage({
         )}
         heatLevel={heatLevel}
         earlyEndProposedBy={dispute.early_end_proposed_by}
+        waitingInsight={waitingInsight}
       />
     </div>
   );

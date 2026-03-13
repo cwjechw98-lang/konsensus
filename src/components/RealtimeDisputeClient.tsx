@@ -76,6 +76,7 @@ export default function RealtimeDisputeClient({
   roundInsights,
   heatLevel: initialHeatLevel = 0,
   earlyEndProposedBy: initialEarlyEndProposedBy = null,
+  waitingInsight: initialWaitingInsight = "",
 }: {
   initialArgs: Arg[];
   initialStatus: string;
@@ -87,6 +88,7 @@ export default function RealtimeDisputeClient({
   roundInsights: Record<number, string>;
   heatLevel?: number;
   earlyEndProposedBy?: string | null;
+  waitingInsight?: string;
 }) {
   const router = useRouter();
   const [args, setArgs] = useState<Arg[]>(initialArgs);
@@ -95,6 +97,7 @@ export default function RealtimeDisputeClient({
   const [insights, setInsights] = useState<Record<number, string>>(roundInsights);
   const [heatLevel, setHeatLevel] = useState(initialHeatLevel);
   const [earlyEndProposedBy, setEarlyEndProposedBy] = useState<string | null>(initialEarlyEndProposedBy);
+  const [currentWaitingInsight, setCurrentWaitingInsight] = useState(initialWaitingInsight);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -173,6 +176,8 @@ export default function RealtimeDisputeClient({
             setNewArgFlash("Оппонент ответил");
             notify("Konsensus", "Оппонент подал аргумент — ваш ход");
             setTimeout(() => setNewArgFlash(null), 4000);
+            // Clear waiting insight — opponent has now responded
+            setCurrentWaitingInsight("");
           }
           scrollToBottom();
         }
@@ -209,10 +214,31 @@ export default function RealtimeDisputeClient({
       )
       .subscribe();
 
+    // Waiting insights: shown while user is waiting for opponent
+    const waitingChannel = supabase
+      .channel(`waiting-${dispute.id}-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "waiting_insights",
+          filter: `dispute_id=eq.${dispute.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { round: number; recipient_id: string; content: string };
+          if (row.recipient_id === userId) {
+            setCurrentWaitingInsight(row.content);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(insightsChannel);
       supabase.removeChannel(analysisChannel);
+      supabase.removeChannel(waitingChannel);
     };
   }, [dispute.id, userId, scrollToBottom, router, status]);
 
@@ -384,6 +410,17 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Все ваши аргументы поданы. Ждём оппонента...
               </div>
+              {currentWaitingInsight && (
+                <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
+                  <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
+                    <span>🤖</span>
+                    <span>Пока оппонент думает...</span>
+                  </p>
+                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    {currentWaitingInsight}
+                  </p>
+                </div>
+              )}
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />
@@ -402,6 +439,17 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Раунд {myArgCount} — ждём ответа оппонента...
               </div>
+              {currentWaitingInsight && (
+                <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
+                  <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
+                    <span>🤖</span>
+                    <span>Пока оппонент думает...</span>
+                  </p>
+                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    {currentWaitingInsight}
+                  </p>
+                </div>
+              )}
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />

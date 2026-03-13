@@ -227,6 +227,27 @@ export interface Database {
           updated_at?: string;
         };
       };
+      waiting_insights: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          round: number;
+          recipient_id: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          round: number;
+          recipient_id: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
       user_achievements: {
         Row: {
           id: string;

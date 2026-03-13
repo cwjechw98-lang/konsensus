@@ -161,6 +161,88 @@ export async function generateRoundInsights(
   }
 }
 
+export async function generateWaitingInsight(
+  dispute: DisputeContext,
+  submitterId: string,
+  submitterArg: ArgumentRow,
+  currentRound: number,
+  previousArgs: ArgumentRow[],
+  profiles: Profile[]
+): Promise<void> {
+  const admin = createAdminClient();
+
+  // Check if insight already exists for this round
+  const { data: existing } = await admin
+    .from("waiting_insights")
+    .select("id")
+    .eq("dispute_id", dispute.id)
+    .eq("round", currentRound)
+    .eq("recipient_id", submitterId)
+    .single();
+
+  if (existing) return;
+
+  const Groq = (await import("groq-sdk")).default;
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const getName = (id: string) =>
+    profiles.find((p) => p.id === id)?.display_name ?? "Участник";
+
+  const submitterName = getName(submitterId);
+  const opponentId = submitterId === dispute.creator_id ? dispute.opponent_id : dispute.creator_id;
+  const opponentName = getName(opponentId);
+
+  const prevRoundsText = previousArgs.length > 0
+    ? "Previous rounds:\n" + Array.from(new Set(previousArgs.map((a) => a.round))).sort().map((r) => {
+        const cA = previousArgs.find((a) => a.round === r && a.author_id === dispute.creator_id);
+        const cB = previousArgs.find((a) => a.round === r && a.author_id === dispute.opponent_id);
+        return `Round ${r}: ${getName(dispute.creator_id)}: "${cA?.position ?? "—"}" | ${getName(dispute.opponent_id)}: "${cB?.position ?? "—"}"`;
+      }).join("\n") + "\n"
+    : "";
+
+  const prompt = `You are an AI mediator giving private coaching. Respond in Russian. Return JSON only.
+
+Dispute: "${dispute.title}"${dispute.description ? `\nDescription: "${dispute.description}"` : ""}
+
+${prevRoundsText}${submitterName} just submitted Round ${currentRound}:
+Position: "${submitterArg.position}"
+Reasoning: "${submitterArg.reasoning}"
+
+${submitterName} is now waiting for ${opponentName} to respond. Give ${submitterName} a brief private coaching hint:
+- Explain why ${opponentName} likely holds their position (based on the dispute context and prior arguments)
+- Help ${submitterName} understand ${opponentName}'s perspective
+- Be empathetic and diplomatic — never say who is right
+- 2-3 sentences max
+- This is private — only ${submitterName} will see this
+
+Return JSON:
+{
+  "insight": "coaching message in Russian for ${submitterName}"
+}`;
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    max_tokens: 250,
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  let content = "";
+  try {
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    content = (result.insight as string) ?? "";
+  } catch { content = ""; }
+
+  if (!content) return;
+
+  await admin.from("waiting_insights").upsert({
+    dispute_id: dispute.id,
+    round: currentRound,
+    recipient_id: submitterId,
+    content,
+  } as never, { onConflict: "dispute_id,round,recipient_id" });
+}
+
 async function saveInsights(
   admin: ReturnType<typeof createAdminClient>,
   disputeId: string,
