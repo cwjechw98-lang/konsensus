@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd } from "@/lib/actions";
+import WaitingTips from "@/components/WaitingTips";
 
 type Arg = {
   id: string;
@@ -434,6 +435,7 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Все ваши аргументы поданы. Ждём оппонента...
               </div>
+              <WaitingTips />
               {currentWaitingInsight && (
                 <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
                   <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
@@ -463,6 +465,7 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Раунд {myArgCount} — ждём ответа оппонента...
               </div>
+              <WaitingTips />
               {currentWaitingInsight && (
                 <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
                   <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
