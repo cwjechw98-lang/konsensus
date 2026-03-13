@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { triggerMediation } from "@/lib/actions";
 import MediationClient from "@/components/MediationClient";
+import SubmitButton from "@/components/SubmitButton";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -94,12 +95,12 @@ export default async function MediationPage({
           </p>
           <form action={triggerMediation}>
             <input type="hidden" name="dispute_id" value={id} />
-            <button
-              type="submit"
-              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+            <SubmitButton
+              pendingText="Анализируем аргументы..."
+              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Запустить медиацию
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : (
