@@ -96,7 +96,11 @@ export async function submitArgument(formData: FormData) {
   const disputeId = formData.get("dispute_id") as string;
   const position = formData.get("position") as string;
   const reasoning = formData.get("reasoning") as string;
-  const evidence = (formData.get("evidence") as string)?.trim() || null;
+  const evidenceLinks = formData
+    .getAll("evidence")
+    .map((v) => (v as string).trim())
+    .filter(Boolean);
+  const evidence = evidenceLinks.length > 0 ? evidenceLinks.join("\n") : null;
 
   const { data: dispute } = await supabase
     .from("disputes")
@@ -214,10 +218,16 @@ export async function triggerMediation(formData: FormData) {
     );
     const aName = getName(dispute.creator_id);
     const bName = getName(dispute.opponent_id!);
+    const aEvidence = aArg?.evidence
+      ? `\nДоказательства: ${aArg.evidence}`
+      : "";
+    const bEvidence = bArg?.evidence
+      ? `\nДоказательства: ${bArg.evidence}`
+      : "";
     return [
       `Раунд ${round}:`,
-      `${aName}: ${aArg?.position ?? "—"}\n${aArg?.reasoning ?? ""}`,
-      `${bName}: ${bArg?.position ?? "—"}\n${bArg?.reasoning ?? ""}`,
+      `${aName}: ${aArg?.position ?? "—"}\n${aArg?.reasoning ?? ""}${aEvidence}`,
+      `${bName}: ${bArg?.position ?? "—"}\n${bArg?.reasoning ?? ""}${bEvidence}`,
     ].join("\n");
   }).join("\n\n---\n\n");
 

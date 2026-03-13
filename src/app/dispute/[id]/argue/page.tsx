@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { submitArgument } from "@/lib/actions";
+import EvidenceFields from "@/components/EvidenceFields";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -63,6 +64,15 @@ export default async function ArguePage({
         &larr; К спору
       </Link>
 
+      {/* Суть спора */}
+      <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 mb-6 bg-gray-50 dark:bg-gray-900/50">
+        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Предмет спора</p>
+        <p className="font-semibold mb-1">{dispute.title}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+          {dispute.description}
+        </p>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Раунд {displayRound}</h1>
         <span className="text-sm text-gray-500">из {dispute.max_rounds}</span>
@@ -110,20 +120,7 @@ export default async function ArguePage({
               />
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium">
-                Доказательства{" "}
-                <span className="text-gray-400 font-normal">
-                  (необязательно)
-                </span>
-              </span>
-              <input
-                name="evidence"
-                type="text"
-                className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-transparent"
-                placeholder="Ссылки, факты, источники..."
-              />
-            </label>
+            <EvidenceFields />
 
             <div className="flex gap-3 mt-2">
               <button
