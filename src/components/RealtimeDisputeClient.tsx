@@ -250,6 +250,14 @@ export default function RealtimeDisputeClient({
   const rounds = Array.from({ length: dispute.max_rounds }, (_, i) => i + 1);
 
   const opponentId = isCreator ? dispute.opponent_id : dispute.creator_id;
+
+  const completedRounds = dispute.opponent_id
+    ? rounds.filter(
+        (r) =>
+          args.some((a) => a.author_id === dispute.creator_id && a.round === r) &&
+          args.some((a) => a.author_id === dispute.opponent_id && a.round === r)
+      ).length
+    : 0;
   const myArgCount = args.filter((a) => a.author_id === userId).length;
   const opponentArgCount = args.filter((a) => a.author_id === opponentId).length;
   const isWaiting = myArgCount > opponentArgCount;
@@ -316,6 +324,22 @@ export default function RealtimeDisputeClient({
               Отменить
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Round progress bar */}
+      {status === "in_progress" && isParticipant && completedRounds > 0 && (
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-gray-600 mb-1.5">
+            <span>Раундов завершено</span>
+            <span>{completedRounds} / {dispute.max_rounds}</span>
+          </div>
+          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-purple-500/50 rounded-full transition-all duration-700"
+              style={{ width: `${(completedRounds / dispute.max_rounds) * 100}%` }}
+            />
+          </div>
         </div>
       )}
 

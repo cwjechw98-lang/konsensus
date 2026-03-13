@@ -89,9 +89,16 @@ export default async function DashboardPage({
                   </h3>
                   <StatusBadge status={dispute.status} />
                 </div>
-                <p className="text-sm text-gray-500 line-clamp-1">
-                  {dispute.description}
-                </p>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-sm text-gray-500 line-clamp-1 flex-1">
+                    {dispute.description}
+                  </p>
+                  {dispute.status === "in_progress" && (
+                    <span className="flex-shrink-0 text-xs text-gray-600">
+                      {dispute.max_rounds} раунд{dispute.max_rounds === 1 ? "" : dispute.max_rounds < 5 ? "а" : "ов"}
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
