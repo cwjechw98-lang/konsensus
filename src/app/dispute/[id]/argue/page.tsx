@@ -175,9 +175,9 @@ export default async function ArguePage({
             </div>
           )}
 
-          {/* Последний аргумент оппонента */}
+          {/* Последний аргумент оппонента — sticky чтобы видеть при печати */}
           {lastOpponentArg && (
-            <div className="flex justify-start">
+            <div className="flex justify-start sticky top-4 z-10">
               <div className="max-w-[85%] flex flex-col gap-1">
                 <span className="text-xs text-gray-500 px-1">
                   {getName(opponentId)} · Раунд {lastOpponentArg.round}

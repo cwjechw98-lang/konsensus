@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/url";
 import ShareInviteButton from "@/components/ShareInviteButton";
 import RealtimeDisputeClient from "@/components/RealtimeDisputeClient";
 import type { Database } from "@/types/database";
@@ -85,13 +86,28 @@ export default async function DisputePage({
     insights = [];
   }
 
+  // heat_level from dispute_analysis (graceful fallback)
+  let heatLevel = 0;
+  try {
+    const { data: analysisData } = await supabase
+      .from("dispute_analysis")
+      .select("heat_level")
+      .eq("dispute_id", id)
+      .single<{ heat_level: number }>();
+    heatLevel = analysisData?.heat_level ?? 0;
+  } catch {
+    heatLevel = 0;
+  }
+
   const getName = (pid: string | null) => {
     if (!pid) return null;
     return profiles?.find((p) => p.id === pid)?.display_name ?? "Участник";
   };
 
-  // Анонимный пользователь (гость)
   const isGuest = user.is_anonymous ?? false;
+  const appUrl = await getAppUrl();
+  const inviteUrl = `${appUrl}/dispute/join?code=${dispute.invite_code}`;
+  const creatorName = getName(dispute.creator_id) ?? "Участник";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -171,7 +187,9 @@ export default async function DisputePage({
             Отправьте ссылку — оппонент перейдёт сразу в спор.
           </p>
           <ShareInviteButton
-            inviteUrl={`${process.env.NEXT_PUBLIC_APP_URL}/dispute/join?code=${dispute.invite_code}`}
+            inviteUrl={inviteUrl}
+            disputeTitle={dispute.title}
+            creatorName={creatorName}
           />
         </div>
       )}
@@ -206,6 +224,8 @@ export default async function DisputePage({
           (acc, i) => { acc[i.round] = i.content; return acc; },
           {}
         )}
+        heatLevel={heatLevel}
+        earlyEndProposedBy={dispute.early_end_proposed_by}
       />
     </div>
   );

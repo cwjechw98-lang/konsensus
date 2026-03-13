@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendArgumentNotification, sendMediationReadyNotification } from "@/lib/email";
+import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
 import { generateRoundInsights } from "@/lib/ai";
+import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
@@ -23,13 +24,33 @@ export async function createDispute(formData: FormData) {
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const maxRounds = parseInt(formData.get("max_rounds") as string) || 3;
+  const maxRounds = Math.min(20, Math.max(1, parseInt(formData.get("max_rounds") as string) || 3));
+  const opponentEmail = ((formData.get("opponent_email") as string) ?? "").trim().toLowerCase();
+
+  // Direct challenge: look up opponent by email
+  let opponentId: string | null = null;
+  let initialStatus: DisputeRow["status"] = "open";
+
+  if (opponentEmail) {
+    try {
+      const admin = createAdminClient();
+      const { data: userList } = await admin.auth.admin.listUsers();
+      const found = userList?.users?.find(
+        (u) => u.email?.toLowerCase() === opponentEmail && !u.is_anonymous
+      );
+      if (found && found.id !== user.id) {
+        opponentId = found.id;
+        initialStatus = "in_progress";
+      }
+    } catch { /* non-critical */ }
+  }
 
   const row: DisputeInsert = {
     title,
     description,
     max_rounds: maxRounds,
     creator_id: user.id,
+    ...(opponentId ? { opponent_id: opponentId, status: initialStatus } : {}),
   };
 
   const { data, error } = await supabase
@@ -41,6 +62,41 @@ export async function createDispute(formData: FormData) {
   if (error || !data) {
     redirect("/dashboard?error=" + encodeURIComponent(error?.message ?? "Ошибка создания спора"));
   }
+
+  // Award first_dispute achievement
+  try {
+    const admin = createAdminClient();
+    const { count } = await supabase
+      .from("disputes")
+      .select("*", { count: "exact", head: true })
+      .eq("creator_id", user.id);
+
+    if ((count ?? 0) <= 1) {
+      await awardAchievement(user.id, "first_dispute", admin);
+    }
+
+    // Award milestone achievements based on total disputes
+    await checkDisputeMilestones(user.id, admin);
+
+    // Send direct challenge email
+    if (opponentId && opponentEmail) {
+      const myProfile = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single<{ display_name: string | null }>();
+      const opponentUser = await admin.auth.admin.getUserById(opponentId);
+      if (opponentUser.data.user?.email) {
+        await sendDirectChallengeEmail({
+          toEmail: opponentUser.data.user.email,
+          toName: opponentUser.data.user.user_metadata?.display_name ?? "Участник",
+          fromName: myProfile.data?.display_name ?? "Участник",
+          disputeTitle: title,
+          disputeId: data.id,
+        });
+      }
+    }
+  } catch { /* achievements are non-critical */ }
 
   redirect(`/dispute/${data.id}`);
 }
@@ -84,6 +140,13 @@ export async function joinDispute(formData: FormData) {
     if (joinError) {
       redirect("/dashboard?error=" + encodeURIComponent(joinError.message));
     }
+
+    // Award accepted_invite + milestone achievements
+    try {
+      const admin = createAdminClient();
+      await awardAchievement(user.id, "accepted_invite", admin);
+      await checkDisputeMilestones(user.id, admin);
+    } catch { /* non-critical */ }
   }
 
   redirect(`/dispute/${dispute.id}`);
@@ -134,7 +197,6 @@ export async function submitArgument(formData: FormData) {
 
   if (currentRound > dispute.max_rounds) redirect(`/dispute/${disputeId}`);
 
-  // Нельзя подавать следующий раунд пока оппонент не ответил на предыдущий
   if (myArgs.length > opponentArgs.length) {
     redirect(
       `/dispute/${disputeId}/argue?error=${encodeURIComponent("Дождитесь ответа оппонента перед следующим раундом")}`
@@ -160,7 +222,38 @@ export async function submitArgument(formData: FormData) {
     (a) => a.round === currentRound
   );
 
-  // Отправляем email оппоненту (огибаем ошибки — email не критичен)
+  // Award argument-related achievements
+  try {
+    const admin = createAdminClient();
+
+    // first_argument: check total args across all disputes
+    const { count: totalMyArgs } = await supabase
+      .from("arguments")
+      .select("*", { count: "exact", head: true })
+      .eq("author_id", user.id);
+    if ((totalMyArgs ?? 0) <= 1) {
+      await awardAchievement(user.id, "first_argument", admin);
+    }
+
+    // attached_evidence
+    if (evidence) {
+      await awardAchievement(user.id, "attached_evidence", admin);
+    }
+
+    // three_rounds: both players completed round 3+
+    if (opponentDoneThisRound && currentRound >= 3) {
+      await awardAchievement(user.id, "three_rounds", admin);
+      await awardAchievement(opponentId, "three_rounds", admin);
+    }
+
+    // reached_mediation + resolution milestones
+    if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
+      await awardAchievement(user.id, "reached_mediation", admin);
+      await awardAchievement(opponentId, "reached_mediation", admin);
+    }
+  } catch { /* non-critical */ }
+
+  // Отправляем email оппоненту
   try {
     const admin = createAdminClient();
     const { data: { user: opponentUser } } = await admin.auth.admin.getUserById(opponentId);
@@ -172,7 +265,6 @@ export async function submitArgument(formData: FormData) {
 
     if (opponentUser?.email && !opponentUser.is_anonymous) {
       if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
-        // Последний раунд — уведомляем обоих о готовности медиации
         const creatorUser = await admin.auth.admin.getUserById(dispute.creator_id);
         await sendMediationReadyNotification({
           toEmail: opponentUser.email,
@@ -199,20 +291,10 @@ export async function submitArgument(formData: FormData) {
         });
       }
     }
-  } catch {
-    // Email — приятный бонус, не блокируем основной флоу
-  }
+  } catch { /* email — non-critical */ }
 
-  // Оба подали аргумент в этом раунде → запускаем AI-анализ (оркестратор + инсайты)
+  // AI-анализ: оба подали аргумент
   if (opponentDoneThisRound && dispute.opponent_id) {
-    const allArgs = existingArgs
-      ? [
-          ...existingArgs,
-          { author_id: user.id, round: currentRound } as typeof existingArgs[number],
-        ]
-      : [];
-
-    // Подгружаем все аргументы раунда для AI
     const { data: fullArgs } = await supabase
       .from("arguments")
       .select("author_id, round, position, reasoning, evidence")
@@ -240,9 +322,7 @@ export async function submitArgument(formData: FormData) {
         fullArgs ?? [],
         allProfiles ?? []
       );
-    } catch {
-      // AI-инсайты — приятный бонус, не блокируем основной флоу
-    }
+    } catch { /* AI — non-critical */ }
   }
 
   if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
@@ -376,5 +456,116 @@ ${roundsText}
     .update({ status: "resolved" } as never)
     .eq("id", disputeId);
 
+  // Award resolution achievement to both participants
+  try {
+    const admin = createAdminClient();
+    await awardAchievement(dispute.creator_id, "resolution", admin);
+    if (dispute.opponent_id) {
+      await awardAchievement(dispute.opponent_id, "resolution", admin);
+    }
+  } catch { /* non-critical */ }
+
   redirect(`/dispute/${disputeId}/mediation`);
+}
+
+export async function sendDisputeInviteEmail(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const toEmail = formData.get("to_email") as string;
+  const inviteUrl = formData.get("invite_url") as string;
+  const disputeTitle = formData.get("dispute_title") as string;
+  const creatorName = formData.get("creator_name") as string;
+
+  if (!toEmail || !inviteUrl) return;
+
+  try {
+    await sendInviteEmail({ toEmail, disputeTitle, creatorName, inviteUrl });
+  } catch { /* non-critical */ }
+}
+
+export async function proposeEarlyEnd(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = formData.get("dispute_id") as string;
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("status, creator_id, opponent_id")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "status" | "creator_id" | "opponent_id">>();
+
+  if (!dispute || dispute.status !== "in_progress") return;
+
+  const isParticipant = dispute.creator_id === user.id || dispute.opponent_id === user.id;
+  if (!isParticipant) return;
+
+  await supabase
+    .from("disputes")
+    .update({ early_end_proposed_by: user.id } as never)
+    .eq("id", disputeId);
+}
+
+export async function acceptEarlyEnd(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = formData.get("dispute_id") as string;
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("status, creator_id, opponent_id, early_end_proposed_by")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "status" | "creator_id" | "opponent_id" | "early_end_proposed_by">>();
+
+  if (!dispute || dispute.status !== "in_progress") return;
+  if (dispute.early_end_proposed_by === user.id) return; // Can't accept own proposal
+  if (dispute.creator_id !== user.id && dispute.opponent_id !== user.id) return;
+
+  await supabase
+    .from("disputes")
+    .update({ status: "mediation", early_end_proposed_by: null } as never)
+    .eq("id", disputeId);
+
+  // Award reached_mediation to both
+  try {
+    const admin = createAdminClient();
+    await awardAchievement(dispute.creator_id, "reached_mediation", admin);
+    if (dispute.opponent_id) {
+      await awardAchievement(dispute.opponent_id, "reached_mediation", admin);
+    }
+  } catch { /* non-critical */ }
+
+  redirect(`/dispute/${disputeId}/mediation`);
+}
+
+export async function declineEarlyEnd(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const disputeId = formData.get("dispute_id") as string;
+
+  await supabase
+    .from("disputes")
+    .update({ early_end_proposed_by: null } as never)
+    .eq("id", disputeId);
+}
+
+// Helper: check and award dispute milestone achievements
+async function checkDisputeMilestones(userId: string, admin: ReturnType<typeof createAdminClient>) {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("disputes")
+    .select("*", { count: "exact", head: true })
+    .or(`creator_id.eq.${userId},opponent_id.eq.${userId}`);
+
+  const total = count ?? 0;
+  if (total >= 3) await awardAchievement(userId, "three_disputes", admin);
+  if (total >= 5) await awardAchievement(userId, "five_disputes", admin);
+  if (total >= 10) await awardAchievement(userId, "ten_disputes", admin);
 }

@@ -45,6 +45,7 @@ export interface Database {
           opponent_id: string | null;
           invite_code: string;
           max_rounds: number;
+          early_end_proposed_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -57,6 +58,7 @@ export interface Database {
           opponent_id?: string | null;
           invite_code?: string;
           max_rounds?: number;
+          early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -69,6 +71,7 @@ export interface Database {
           opponent_id?: string | null;
           invite_code?: string;
           max_rounds?: number;
+          early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -134,6 +137,7 @@ export interface Database {
           dispute_id: string;
           plane: string;
           tone_level: number;
+          heat_level: number;
           core_tension: string | null;
           plane_prompt: string | null;
           patterns: Json;
@@ -144,6 +148,7 @@ export interface Database {
           dispute_id: string;
           plane?: string;
           tone_level?: number;
+          heat_level?: number;
           core_tension?: string | null;
           plane_prompt?: string | null;
           patterns?: Json;
@@ -152,6 +157,7 @@ export interface Database {
         Update: {
           plane?: string;
           tone_level?: number;
+          heat_level?: number;
           core_tension?: string | null;
           plane_prompt?: string | null;
           patterns?: Json;
@@ -202,6 +208,43 @@ export interface Database {
           accepted_by?: string[];
           status?: ResolutionStatus;
           created_at?: string;
+        };
+      };
+      user_points: {
+        Row: {
+          user_id: string;
+          total: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          total?: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          total?: number;
+          updated_at?: string;
+        };
+      };
+      user_achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_id: string;
+          earned_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          achievement_id: string;
+          earned_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          achievement_id?: string;
+          earned_at?: string;
         };
       };
     };

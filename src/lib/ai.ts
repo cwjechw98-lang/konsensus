@@ -55,14 +55,12 @@ export async function generateRoundInsights(
   const creatorName = getName(dispute.creator_id);
   const opponentName = getName(dispute.opponent_id);
 
-  // Текущий раунд аргументов
   const roundArgs = allArgs.filter((a) => a.round === currentRound);
   const creatorArg = roundArgs.find((a) => a.author_id === dispute.creator_id);
   const opponentArg = roundArgs.find((a) => a.author_id === dispute.opponent_id);
 
   if (!creatorArg || !opponentArg) return;
 
-  // Проверяем существующий анализ спора
   const { data: existingAnalysis } = await admin
     .from("dispute_analysis")
     .select("*")
@@ -74,6 +72,7 @@ export async function generateRoundInsights(
 
   let plane = existingAnalysis?.plane ?? "general";
   let toneLevel = existingAnalysis?.tone_level ?? 3;
+  let heatLevel = existingAnalysis?.heat_level ?? 3;
   let coreTension = existingAnalysis?.core_tension ?? "";
 
   // --- ПЕРВЫЙ РАУНД: категоризация + инсайты ---
@@ -96,21 +95,21 @@ export async function generateRoundInsights(
 
     plane = (result.plane as string) ?? "general";
     toneLevel = Math.min(5, Math.max(1, Number(result.tone_level) || 3));
+    heatLevel = Math.min(5, Math.max(1, Number(result.heat_level) || 3));
     coreTension = (result.core_tension as string) ?? "";
 
     const planePrompt = buildPlaneSystemPrompt(plane, toneLevel);
 
-    // Сохраняем категоризацию — это оркестрационная запись
     await admin.from("dispute_analysis").insert({
       dispute_id: dispute.id,
       plane,
       tone_level: toneLevel,
+      heat_level: heatLevel,
       core_tension: coreTension,
       plane_prompt: planePrompt,
       patterns: {},
     } as never);
 
-    // Сохраняем инсайты из первого вызова
     const insightCreator = (result.insight_for_creator as string) ?? "";
     const insightOpponent = (result.insight_for_opponent as string) ?? "";
 
@@ -123,7 +122,7 @@ export async function generateRoundInsights(
     }
   }
 
-  // --- ПОСЛЕДУЮЩИЕ РАУНДЫ: только инсайты, плоскость уже известна ---
+  // --- ПОСЛЕДУЮЩИЕ РАУНДЫ: инсайты + обновление heat_level ---
   const insightsPrompt = buildInsightsPrompt(
     dispute, currentRound, allArgs, profiles,
     plane, toneLevel, coreTension,
@@ -141,6 +140,15 @@ export async function generateRoundInsights(
   try {
     result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
   } catch { result = {}; }
+
+  // Обновляем heat_level если AI вернул его
+  if (result.heat_level) {
+    const newHeat = Math.min(5, Math.max(1, Number(result.heat_level)));
+    await admin
+      .from("dispute_analysis")
+      .update({ heat_level: newHeat } as never)
+      .eq("dispute_id", dispute.id);
+  }
 
   const insightCreator = (result.insight_for_creator as string) ?? "";
   const insightOpponent = (result.insight_for_opponent as string) ?? "";
@@ -188,10 +196,13 @@ ${opponentName}: "${opponentArg.position}. ${opponentArg.reasoning}"
 Determine:
 1. The plane of this dispute
 2. The tone level appropriate for it
-3. The core tension (why they can't hear each other)
-4. A personalized insight for each participant
+3. The heat level (emotional intensity)
+4. The core tension (why they can't hear each other)
+5. A personalized insight for each participant
 
 ${TONE_GUIDE}
+
+heat_level guide (1-5): 1 = very calm, 2 = mild, 3 = moderate tension, 4 = heated, 5 = very intense
 
 Planes: ${Object.entries(PLANE_DESCRIPTIONS).map(([k, v]) => `${k} = ${v}`).join("; ")}
 
@@ -199,6 +210,7 @@ Return JSON:
 {
   "plane": "one of: casual|legal|family|scientific|religious|business|political|general",
   "tone_level": 1-5,
+  "heat_level": 1-5,
   "core_tension": "one sentence: what makes them incompatible",
   "insight_for_creator": "Personal message for ${creatorName}: explain WHY ${opponentName} thinks this way, from their perspective. Be diplomatic. Match the tone_level. 3-4 sentences max. Never say who is right.",
   "insight_for_opponent": "Personal message for ${opponentName}: explain WHY ${creatorName} thinks this way, from their perspective. Be diplomatic. Match the tone_level. 3-4 sentences max. Never say who is right."
@@ -218,7 +230,6 @@ function buildInsightsPrompt(
   creatorArg: ArgumentRow,
   opponentArg: ArgumentRow
 ): string {
-  // Краткая история предыдущих раундов
   const prevRounds = Array.from({ length: currentRound - 1 }, (_, i) => {
     const r = i + 1;
     const ca = allArgs.find((a) => a.author_id === dispute.creator_id && a.round === r);
@@ -237,10 +248,13 @@ Round ${currentRound}:
 ${creatorName}: "${creatorArg.position}. ${creatorArg.reasoning}"
 ${opponentName}: "${opponentArg.position}. ${opponentArg.reasoning}"
 
-Generate personalized insights for round ${currentRound}. Reference how positions evolved from previous rounds if relevant.
+Generate personalized insights and update heat level for round ${currentRound}.
+
+heat_level guide (1-5): 1 = very calm, 2 = mild, 3 = moderate tension, 4 = heated, 5 = very intense
 
 Return JSON:
 {
+  "heat_level": 1-5,
   "insight_for_creator": "Personal message for ${creatorName}: explain WHY ${opponentName} argues this way in round ${currentRound}. What drove this response? Be diplomatic, tone_level ${toneLevel}. 3-4 sentences.",
   "insight_for_opponent": "Personal message for ${opponentName}: explain WHY ${creatorName} argues this way in round ${currentRound}. What drove this response? Be diplomatic, tone_level ${toneLevel}. 3-4 sentences."
 }`;

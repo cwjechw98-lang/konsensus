@@ -1,7 +1,55 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { createDispute } from "@/lib/actions";
 
+const ROUND_PRESETS = [1, 3, 5, 10];
+
+function RoundsSelector() {
+  const [rounds, setRounds] = useState(3);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2 flex-wrap">
+        {ROUND_PRESETS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setRounds(p)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              rounds === p
+                ? "bg-purple-600 text-white"
+                : "glass text-gray-400 hover:text-white"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        <span className="text-xs text-gray-600 self-center ml-1">или</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <input
+          name="max_rounds"
+          type="number"
+          min={1}
+          max={20}
+          value={rounds}
+          onChange={(e) => {
+            const v = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
+            setRounds(v);
+          }}
+          className="border border-white/10 bg-white/5 rounded-lg px-3 py-2 text-white w-24 focus:outline-none focus:border-purple-500/50 transition-colors"
+        />
+        <span className="text-xs text-gray-500">раунд(ов), макс. 20</span>
+      </div>
+    </div>
+  );
+}
+
 export default function NewDisputePage() {
+  const [showOpponentField, setShowOpponentField] = useState(false);
+
   return (
     <div className="max-w-lg mx-auto px-4 py-10">
       <Link
@@ -45,21 +93,37 @@ export default function NewDisputePage() {
             />
           </label>
 
-          <label className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-300">
               Количество раундов
             </span>
-            <select
-              name="max_rounds"
-              defaultValue="3"
-              className="border border-white/10 bg-[#0d0d14] rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+            <RoundsSelector />
+          </div>
+
+          {/* Прямой вызов: необязательное поле */}
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowOpponentField((v) => !v)}
+              className="text-left text-sm text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1.5"
             >
-              <option value="1">1 раунд</option>
-              <option value="2">2 раунда</option>
-              <option value="3">3 раунда</option>
-              <option value="5">5 раундов</option>
-            </select>
-          </label>
+              <span className={`transition-transform ${showOpponentField ? "rotate-90" : ""}`}>▶</span>
+              {showOpponentField ? "Скрыть" : "Пригласить конкретного оппонента (необязательно)"}
+            </button>
+            {showOpponentField && (
+              <div className="flex flex-col gap-1.5 mt-1">
+                <input
+                  name="opponent_email"
+                  type="email"
+                  className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+                  placeholder="email оппонента (если уже зарегистрирован)"
+                />
+                <p className="text-xs text-gray-600">
+                  Если пользователь найден — спор сразу начнётся для него. Иначе — создаётся обычная ссылка-приглашение.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-3 mt-2">
             <button

@@ -96,24 +96,8 @@ body {
   overflow: hidden;
 }
 
-.btn-ripple::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: width 0.5s ease, height 0.5s ease, opacity 0.5s ease;
-  opacity: 0;
-}
-
-.btn-ripple:hover::before {
-  width: 320px;
-  height: 320px;
-  opacity: 0;
+@keyframes rippleClick {
+  to { transform: scale(4); opacity: 0; }
 }
 
 /* ── Gradient top border on cards ──────────────── */

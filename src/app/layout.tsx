@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import CursorGlow from "@/components/CursorGlow";
+import RippleEffect from "@/components/RippleEffect";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="ru">
       <body className="antialiased min-h-screen flex flex-col">
         <CursorGlow />
+        <RippleEffect />
         <Header />
         <main className="flex-1 pt-14">{children}</main>
       </body>
