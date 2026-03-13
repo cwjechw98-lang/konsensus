@@ -4,7 +4,9 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM = "Konsensus <noreply@konsensus.app>";
+// Без верифицированного домена используем тестовый адрес Resend.
+// После верификации домена заменить на: "Konsensus <noreply@YOUR_DOMAIN>"
+const FROM = "Konsensus <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus.app";
 
 export async function sendArgumentNotification({
