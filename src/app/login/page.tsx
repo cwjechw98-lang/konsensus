@@ -27,17 +27,27 @@ export default function LoginPage({
   }
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-20">
-      <h1 className="text-2xl font-bold mb-6 text-center">Вход</h1>
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold gradient-text">Войти</h1>
+          <p className="text-gray-500 text-sm mt-2">Добро пожаловать обратно</p>
+        </div>
 
-      <LoginForm action={signIn} searchParams={searchParams} />
+        <div className="glass rounded-2xl p-8">
+          <LoginForm action={signIn} searchParams={searchParams} />
+        </div>
 
-      <p className="text-sm text-center text-gray-500 mt-6">
-        Нет аккаунта?{" "}
-        <Link href="/register" className="underline underline-offset-4">
-          Зарегистрироваться
-        </Link>
-      </p>
+        <p className="text-sm text-center text-gray-500 mt-6">
+          Нет аккаунта?{" "}
+          <Link
+            href="/register"
+            className="text-purple-400 hover:text-purple-300 transition-colors"
+          >
+            Зарегистрироваться
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
@@ -54,37 +64,37 @@ async function LoginForm({
   return (
     <form action={action} className="flex flex-col gap-4">
       {message && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm p-3 rounded-md">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">
           {message}
         </div>
       )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Email</span>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-gray-300">Email</span>
         <input
           name="email"
           type="email"
           required
-          className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-transparent"
+          className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
           placeholder="email@example.com"
         />
       </label>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-sm font-medium">Пароль</span>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-gray-300">Пароль</span>
         <input
           name="password"
           type="password"
           required
           minLength={6}
-          className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-transparent"
+          className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
           placeholder="Минимум 6 символов"
         />
       </label>
 
       <button
         type="submit"
-        className="bg-foreground text-background rounded-md py-2 font-medium hover:opacity-90 mt-2"
+        className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors mt-2"
       >
         Войти
       </button>

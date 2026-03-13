@@ -9,43 +9,54 @@ export default async function JoinDisputePage({
   const { code } = await searchParams;
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-2 text-center">
-        Присоединиться к спору
-      </h1>
-      {code && (
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Вас пригласили. Нажмите «Присоединиться».
-        </p>
-      )}
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <p className="text-4xl mb-4">🔗</p>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Присоединиться к спору
+          </h1>
+          {code ? (
+            <p className="text-sm text-green-400">
+              Вас пригласили. Нажмите «Присоединиться».
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500">Введите инвайт-код</p>
+          )}
+        </div>
 
-      <form action={joinDispute} className="flex flex-col gap-4 mt-6">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Инвайт-код</span>
-          <input
-            name="code"
-            type="text"
-            required
-            defaultValue={code ?? ""}
-            className="border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 bg-transparent text-center font-mono text-lg tracking-widest"
-            placeholder="abc123def456"
-          />
-        </label>
+        <div className="glass rounded-2xl p-8">
+          <form action={joinDispute} className="flex flex-col gap-5">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-gray-300">
+                Инвайт-код
+              </span>
+              <input
+                name="code"
+                type="text"
+                required
+                defaultValue={code ?? ""}
+                className="border border-white/10 bg-white/5 rounded-lg px-3 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors text-center font-mono text-lg tracking-widest"
+                placeholder="abc123def456"
+              />
+            </label>
 
-        <button
-          type="submit"
-          className="bg-foreground text-background px-5 py-2 rounded-md font-medium hover:opacity-90 mt-2"
-        >
-          Присоединиться
-        </button>
+            <button
+              type="submit"
+              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
+            >
+              Присоединиться
+            </button>
 
-        <Link
-          href="/dashboard"
-          className="text-sm text-center text-gray-500 hover:underline"
-        >
-          Назад к моим спорам
-        </Link>
-      </form>
+            <Link
+              href="/dashboard"
+              className="text-sm text-center text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              Назад к моим спорам
+            </Link>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
