@@ -131,6 +131,13 @@ export async function submitArgument(formData: FormData) {
 
   if (currentRound > dispute.max_rounds) redirect(`/dispute/${disputeId}`);
 
+  // Нельзя подавать следующий раунд пока оппонент не ответил на предыдущий
+  if (myArgs.length > opponentArgs.length) {
+    redirect(
+      `/dispute/${disputeId}/argue?error=${encodeURIComponent("Дождитесь ответа оппонента перед следующим раундом")}`
+    );
+  }
+
   const { error } = await supabase.from("arguments").insert({
     dispute_id: disputeId,
     author_id: user.id,

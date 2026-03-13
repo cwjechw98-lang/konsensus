@@ -194,16 +194,36 @@ export default async function DisputePage({
       )}
 
       {/* Actions */}
-      {dispute.status === "in_progress" && isParticipant && (
-        <div className="flex gap-3">
+      {dispute.status === "in_progress" && isParticipant && (() => {
+        const myArgCount = args?.filter((a) => a.author_id === user.id).length ?? 0;
+        const opponentId = isCreator ? dispute.opponent_id : dispute.creator_id;
+        const opponentArgCount = args?.filter((a) => a.author_id === opponentId).length ?? 0;
+        const isWaiting = myArgCount > opponentArgCount;
+        const allDone = myArgCount >= dispute.max_rounds;
+
+        if (allDone && isWaiting) {
+          return (
+            <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center text-sm text-gray-500">
+              Все ваши аргументы поданы. Ожидаем последний ответ оппонента...
+            </div>
+          );
+        }
+        if (isWaiting) {
+          return (
+            <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center text-sm text-gray-500">
+              Раунд {myArgCount} — ждём ответа оппонента...
+            </div>
+          );
+        }
+        return (
           <Link
             href={`/dispute/${dispute.id}/argue`}
-            className="bg-foreground text-background px-5 py-2 rounded-md font-medium hover:opacity-90"
+            className="inline-block bg-foreground text-background px-5 py-2 rounded-md font-medium hover:opacity-90"
           >
-            Написать аргумент
+            Написать аргумент · Раунд {myArgCount + 1}
           </Link>
-        </div>
-      )}
+        );
+      })()}
 
       {dispute.status === "mediation" && isParticipant && (
         <div className="flex gap-3">

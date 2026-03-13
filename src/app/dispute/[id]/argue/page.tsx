@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { submitArgument } from "@/lib/actions";
 import EvidenceFields from "@/components/EvidenceFields";
+import SubmitButton from "@/components/SubmitButton";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -123,12 +124,9 @@ export default async function ArguePage({
             <EvidenceFields />
 
             <div className="flex gap-3 mt-2">
-              <button
-                type="submit"
-                className="bg-foreground text-background px-5 py-2 rounded-md font-medium hover:opacity-90"
-              >
+              <SubmitButton pendingText="Отправляем...">
                 Подать аргумент
-              </button>
+              </SubmitButton>
               <Link
                 href={`/dispute/${id}`}
                 className="border border-gray-300 dark:border-gray-700 px-5 py-2 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-gray-900"
