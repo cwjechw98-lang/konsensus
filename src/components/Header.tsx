@@ -8,31 +8,34 @@ export async function Header() {
   } = await supabase.auth.getUser();
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
+    <header className="glass fixed top-0 left-0 right-0 z-50 border-b border-white/8">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="text-lg font-semibold">
+        <Link
+          href="/"
+          className="text-lg font-bold gradient-text logo-pulse select-none"
+        >
           Konsensus
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-5">
           {user ? (
             <>
               <Link
                 href="/dashboard"
-                className="text-sm hover:underline underline-offset-4"
+                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
               >
                 Мои споры
               </Link>
               <Link
                 href="/profile"
-                className="text-sm hover:underline underline-offset-4"
+                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
               >
                 Профиль
               </Link>
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="text-sm text-gray-500 hover:text-foreground"
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   Выйти
                 </button>
@@ -42,13 +45,13 @@ export async function Header() {
             <>
               <Link
                 href="/login"
-                className="text-sm hover:underline underline-offset-4"
+                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
               >
                 Войти
               </Link>
               <Link
                 href="/register"
-                className="text-sm bg-foreground text-background px-3 py-1.5 rounded-md hover:opacity-90"
+                className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-md font-medium transition-colors"
               >
                 Регистрация
               </Link>
