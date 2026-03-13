@@ -156,7 +156,7 @@ export default async function ProfilePage({
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-xs text-purple-400 font-semibold">+{ach.points} очков</span>
                         {earnedAt && (
-                          <span className="text-xs text-gray-600">{formatDate(earnedAt)}</span>
+                          <span className="text-xs text-gray-600" suppressHydrationWarning>{formatDate(earnedAt)}</span>
                         )}
                       </div>
                     ) : (
@@ -185,7 +185,7 @@ export default async function ProfilePage({
           {createdAt && (
             <div>
               <span className="text-xs text-gray-500">Зарегистрирован</span>
-              <p className="text-sm font-medium text-white mt-0.5">
+              <p className="text-sm font-medium text-white mt-0.5" suppressHydrationWarning>
                 {createdAt}
               </p>
             </div>
