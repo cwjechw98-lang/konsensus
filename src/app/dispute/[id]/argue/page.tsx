@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { submitArgument } from "@/lib/actions";
 import EvidenceFields from "@/components/EvidenceFields";
+import CharacterCountTextarea from "@/components/CharacterCountTextarea";
 import SubmitButton from "@/components/SubmitButton";
 import type { Database } from "@/types/database";
 
@@ -139,11 +140,11 @@ export default async function ArguePage({
               <span className="text-sm font-medium text-gray-300">
                 Аргументы и обоснование
               </span>
-              <textarea
+              <CharacterCountTextarea
                 name="reasoning"
                 required
                 rows={6}
-                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-y"
+                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-y w-full"
                 placeholder="Подробно объясните свою позицию..."
               />
             </label>
@@ -212,7 +213,7 @@ export default async function ArguePage({
                 <input type="hidden" name="position" value="Ответ" />
 
                 <div className="bg-purple-600/15 border border-purple-500/20 rounded-2xl rounded-tr-sm px-4 py-3">
-                  <textarea
+                  <CharacterCountTextarea
                     name="reasoning"
                     required
                     rows={4}
