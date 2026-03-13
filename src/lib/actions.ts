@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendArgumentNotification, sendMediationReadyNotification } from "@/lib/email";
 import type { Database } from "@/types/database";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
@@ -156,6 +158,50 @@ export async function submitArgument(formData: FormData) {
   const opponentDoneThisRound = opponentArgs.some(
     (a) => a.round === currentRound
   );
+
+  // Отправляем email оппоненту (огибаем ошибки — email не критичен)
+  try {
+    const admin = createAdminClient();
+    const { data: { user: opponentUser } } = await admin.auth.admin.getUserById(opponentId);
+    const myProfile = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>();
+
+    if (opponentUser?.email && !opponentUser.is_anonymous) {
+      if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
+        // Последний раунд — уведомляем обоих о готовности медиации
+        const creatorUser = await admin.auth.admin.getUserById(dispute.creator_id);
+        await sendMediationReadyNotification({
+          toEmail: opponentUser.email,
+          toName: opponentUser.user_metadata?.display_name ?? "Участник",
+          disputeTitle: dispute.title,
+          disputeId,
+        });
+        if (creatorUser.data.user?.email && !creatorUser.data.user.is_anonymous) {
+          await sendMediationReadyNotification({
+            toEmail: creatorUser.data.user.email,
+            toName: creatorUser.data.user.user_metadata?.display_name ?? "Участник",
+            disputeTitle: dispute.title,
+            disputeId,
+          });
+        }
+      } else {
+        await sendArgumentNotification({
+          toEmail: opponentUser.email,
+          toName: opponentUser.user_metadata?.display_name ?? "Участник",
+          fromName: myProfile.data?.display_name ?? "Участник",
+          disputeTitle: dispute.title,
+          round: currentRound,
+          disputeId,
+        });
+      }
+    }
+  } catch {
+    // Email — приятный бонус, не блокируем основной флоу
+  }
+
   if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
     await supabase
       .from("disputes")

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ShareInviteButton from "@/components/ShareInviteButton";
+import RealtimeDisputeClient from "@/components/RealtimeDisputeClient";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -72,22 +73,15 @@ export default async function DisputePage({
 
   const getName = (pid: string | null) => {
     if (!pid) return null;
-    return profiles?.find((p) => p.id === pid)?.display_name ?? "Пользователь";
+    return profiles?.find((p) => p.id === pid)?.display_name ?? "Участник";
   };
 
-  const rounds = Array.from({ length: dispute.max_rounds }, (_, i) => i + 1);
-
-  // Action state
-  const myArgCount = args?.filter((a) => a.author_id === user.id).length ?? 0;
-  const opponentId = isCreator ? dispute.opponent_id : dispute.creator_id;
-  const opponentArgCount =
-    args?.filter((a) => a.author_id === opponentId).length ?? 0;
-  const isWaiting = myArgCount > opponentArgCount;
-  const allDone = myArgCount >= dispute.max_rounds;
+  // Анонимный пользователь (гость)
+  const isGuest = user.is_anonymous ?? false;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      {/* Back */}
+      {/* Назад */}
       <Link
         href="/dashboard"
         className="text-sm text-gray-500 hover:text-gray-300 transition-colors mb-6 inline-block"
@@ -95,7 +89,7 @@ export default async function DisputePage({
         &larr; Мои споры
       </Link>
 
-      {/* Header */}
+      {/* Заголовок */}
       <div className="flex items-start justify-between gap-4 mb-2">
         <h1 className="text-xl font-bold text-white">{dispute.title}</h1>
         <span
@@ -111,8 +105,8 @@ export default async function DisputePage({
         {dispute.description}
       </p>
 
-      {/* Participants */}
-      <div className="glass rounded-xl p-4 mb-6 flex gap-8">
+      {/* Участники */}
+      <div className="glass rounded-xl p-4 mb-6 flex gap-8 flex-wrap">
         <div>
           <span className="text-xs text-gray-500">Инициатор</span>
           <p className="text-sm font-medium text-white mt-0.5">
@@ -133,7 +127,27 @@ export default async function DisputePage({
         </div>
       </div>
 
-      {/* Invite */}
+      {/* Баннер для гостя */}
+      {isGuest && isParticipant && (
+        <div className="glass border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm font-medium text-yellow-400">
+              Вы участвуете как гость
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Создайте аккаунт — сохраните историю всех споров
+            </p>
+          </div>
+          <Link
+            href="/register"
+            className="flex-shrink-0 text-xs bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/20 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Создать аккаунт
+          </Link>
+        </div>
+      )}
+
+      {/* Приглашение */}
       {dispute.status === "open" && isCreator && (
         <div className="border border-dashed border-white/10 rounded-xl p-4 mb-6">
           <h2 className="text-sm font-semibold text-white mb-1">
@@ -148,119 +162,33 @@ export default async function DisputePage({
         </div>
       )}
 
-      {/* ── CHAT ARGUMENTS ───────────────────────────── */}
-      {args && args.length > 0 && (
-        <div className="mb-6">
-          <div className="flex flex-col gap-1">
-            {rounds.map((round) => {
-              const roundArgs = args.filter((a) => a.round === round);
-              if (roundArgs.length === 0) return null;
-
-              return (
-                <div key={round}>
-                  {/* Round divider */}
-                  <div className="flex items-center gap-3 my-5">
-                    <div className="flex-1 h-px bg-white/6" />
-                    <span className="text-xs text-gray-600 px-2">
-                      Раунд {round} из {dispute.max_rounds}
-                    </span>
-                    <div className="flex-1 h-px bg-white/6" />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {roundArgs.map((arg) => {
-                      const isMe = arg.author_id === user.id;
-                      return (
-                        <div
-                          key={arg.id}
-                          className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                        >
-                          <div className={`max-w-[85%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-1`}>
-                            {/* Name label */}
-                            <span className="text-xs text-gray-500 px-1">
-                              {getName(arg.author_id)}
-                              {isMe && (
-                                <span className="text-purple-500 ml-1">(вы)</span>
-                              )}
-                            </span>
-
-                            {/* Bubble */}
-                            <div
-                              className={`rounded-2xl px-4 py-3 ${
-                                isMe
-                                  ? "bg-purple-600/25 border border-purple-500/30 rounded-tr-sm"
-                                  : "glass border-white/8 rounded-tl-sm"
-                              }`}
-                            >
-                              <p className="font-semibold text-white text-sm mb-1">
-                                {arg.position}
-                              </p>
-                              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                {arg.reasoning}
-                              </p>
-                              {arg.evidence && (
-                                <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/8">
-                                  📎 {arg.evidence}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── ACTIONS ──────────────────────────────────── */}
-      {dispute.status === "in_progress" &&
-        isParticipant &&
-        (() => {
-          if (allDone && isWaiting) {
-            return (
-              <div className="glass rounded-xl p-4 text-center text-sm text-gray-500">
-                Все ваши аргументы поданы. Ожидаем последний ответ оппонента...
-              </div>
-            );
-          }
-          if (isWaiting) {
-            return (
-              <div className="glass rounded-xl p-4 text-center text-sm text-gray-500">
-                Раунд {myArgCount} — ждём ответа оппонента...
-              </div>
-            );
-          }
-          return (
-            <Link
-              href={`/dispute/${dispute.id}/argue`}
-              className="btn-ripple inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
-            >
-              Написать аргумент · Раунд {myArgCount + 1}
-            </Link>
-          );
-        })()}
-
-      {dispute.status === "mediation" && isParticipant && (
-        <Link
-          href={`/dispute/${dispute.id}/mediation`}
-          className="btn-ripple inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
-        >
-          🤖 Посмотреть анализ ИИ
-        </Link>
-      )}
-
-      {dispute.status === "resolved" && isParticipant && (
-        <Link
-          href={`/dispute/${dispute.id}/mediation`}
-          className="btn-ripple inline-block bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
-        >
-          ✓ Результат медиации
-        </Link>
-      )}
+      {/* Realtime чат + кнопки действий */}
+      <RealtimeDisputeClient
+        initialArgs={(args ?? []).map((a) => ({
+          id: a.id,
+          dispute_id: a.dispute_id,
+          author_id: a.author_id,
+          round: a.round,
+          position: a.position,
+          reasoning: a.reasoning,
+          evidence: a.evidence,
+        }))}
+        initialStatus={dispute.status}
+        dispute={{
+          id: dispute.id,
+          max_rounds: dispute.max_rounds,
+          creator_id: dispute.creator_id,
+          opponent_id: dispute.opponent_id,
+          status: dispute.status,
+        }}
+        userId={user.id}
+        profiles={(profiles ?? []).map((p) => ({
+          id: p.id,
+          display_name: p.display_name,
+        }))}
+        isParticipant={isParticipant}
+        isCreator={isCreator}
+      />
     </div>
   );
 }
