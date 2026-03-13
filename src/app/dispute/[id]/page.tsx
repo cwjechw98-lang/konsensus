@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import CopyButton from "@/components/CopyButton";
+import ShareInviteButton from "@/components/ShareInviteButton";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -128,14 +128,11 @@ export default async function DisputePage({
         <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 mb-6">
           <h2 className="text-sm font-semibold mb-2">Пригласите оппонента</h2>
           <p className="text-sm text-gray-500 mb-3">
-            Отправьте этот код оппоненту, чтобы он присоединился.
+            Отправьте ссылку — оппонент перейдёт сразу в спор.
           </p>
-          <div className="flex items-center gap-3">
-            <code className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-md font-mono text-lg tracking-widest">
-              {dispute.invite_code}
-            </code>
-            <CopyButton text={dispute.invite_code} />
-          </div>
+          <ShareInviteButton
+            inviteUrl={`${process.env.NEXT_PUBLIC_APP_URL}/dispute/join?code=${dispute.invite_code}`}
+          />
         </div>
       )}
 
