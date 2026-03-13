@@ -2,6 +2,18 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+const translateError = (msg: string): string => {
+  if (msg.includes("User already registered") || msg.includes("already been registered"))
+    return "Пользователь с таким email уже зарегистрирован.";
+  if (msg.includes("Password should be at least"))
+    return "Пароль должен быть не менее 6 символов.";
+  if (msg.includes("Unable to validate email"))
+    return "Укажите корректный email.";
+  if (msg.includes("Too many requests"))
+    return "Слишком много попыток — подождите немного.";
+  return msg;
+};
+
 export default function RegisterPage({
   searchParams,
 }: {
@@ -25,12 +37,17 @@ export default function RegisterPage({
     });
 
     if (error) {
-      redirect("/register?message=" + encodeURIComponent(error.message));
+      redirect(
+        "/register?message=" + encodeURIComponent(translateError(error.message))
+      );
     }
 
+    // Красивое инфо-сообщение на странице логина
     redirect(
-      "/login?message=" +
-        encodeURIComponent("Проверьте email для подтверждения аккаунта")
+      "/login?info=" +
+        encodeURIComponent(
+          "Подтвердите адрес почты — письмо уже на пути к вам."
+        )
     );
   }
 
@@ -74,7 +91,7 @@ async function RegisterForm({
   return (
     <form action={action} className="flex flex-col gap-4">
       {message && (
-        <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm p-3 rounded-lg">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">
           {message}
         </div>
       )}

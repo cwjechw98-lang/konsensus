@@ -2,10 +2,23 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+// Переводим английские ошибки Supabase на русский
+const translateError = (msg: string): string => {
+  if (msg.includes("Email not confirmed"))
+    return "Сначала подтвердите email — письмо уже у вас в почте.";
+  if (msg.includes("Invalid login credentials"))
+    return "Неверный email или пароль.";
+  if (msg.includes("Too many requests"))
+    return "Слишком много попыток — подождите немного.";
+  if (msg.includes("User not found"))
+    return "Пользователь с таким email не найден.";
+  return msg;
+};
+
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; info?: string }>;
 }) {
   async function signIn(formData: FormData) {
     "use server";
@@ -20,7 +33,9 @@ export default function LoginPage({
     });
 
     if (error) {
-      redirect("/login?message=" + encodeURIComponent(error.message));
+      redirect(
+        "/login?message=" + encodeURIComponent(translateError(error.message))
+      );
     }
 
     redirect("/dashboard");
@@ -57,12 +72,26 @@ async function LoginForm({
   searchParams,
 }: {
   action: (formData: FormData) => void;
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; info?: string }>;
 }) {
-  const { message } = await searchParams;
+  const { message, info } = await searchParams;
 
   return (
     <form action={action} className="flex flex-col gap-4">
+      {/* Инфо-сообщение (напр. после регистрации) */}
+      {info && (
+        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex gap-3 items-start">
+          <span className="text-xl flex-shrink-0">✉️</span>
+          <div>
+            <p className="text-green-400 font-medium text-sm">
+              Письмо отправлено!
+            </p>
+            <p className="text-gray-400 text-xs mt-0.5">{info}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Сообщение об ошибке */}
       {message && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">
           {message}
