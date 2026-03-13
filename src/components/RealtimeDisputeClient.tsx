@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Arg = {
@@ -24,6 +25,18 @@ type DisputeSnap = {
   status: string;
 };
 
+function notify(title: string, body?: string) {
+  if (typeof window === "undefined") return;
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      tag: "konsensus",
+    });
+  }
+}
+
 export default function RealtimeDisputeClient({
   initialArgs,
   initialStatus,
@@ -32,6 +45,7 @@ export default function RealtimeDisputeClient({
   profiles,
   isParticipant,
   isCreator,
+  roundInsights,
 }: {
   initialArgs: Arg[];
   initialStatus: string;
@@ -40,15 +54,53 @@ export default function RealtimeDisputeClient({
   profiles: Profile[];
   isParticipant: boolean;
   isCreator: boolean;
+  roundInsights: Record<number, string>;
 }) {
+  const router = useRouter();
   const [args, setArgs] = useState<Arg[]>(initialArgs);
   const [status, setStatus] = useState(initialStatus);
   const [newArgFlash, setNewArgFlash] = useState<string | null>(null);
+  const [insights, setInsights] = useState<Record<number, string>>(roundInsights);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Запрашиваем разрешение на уведомления
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  }, []);
 
   // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
+
+    // Подписка на новые инсайты для этого пользователя
+    const insightsChannel = supabase
+      .channel(`insights-${dispute.id}-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "round_insights",
+          filter: `dispute_id=eq.${dispute.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { round: number; recipient_id: string; content: string };
+          if (row.recipient_id === userId) {
+            setInsights((prev) => ({ ...prev, [row.round]: row.content }));
+            notify("Konsensus", "ИИ подготовил для вас комментарий");
+            scrollToBottom();
+          }
+        }
+      )
+      .subscribe();
 
     const channel = supabase
       .channel(`dispute-${dispute.id}`)
@@ -67,17 +119,16 @@ export default function RealtimeDisputeClient({
             if (prev.some((a) => a.id === newArg.id)) return prev;
             return [...prev, newArg];
           });
-          // Flash уведомление если аргумент не наш
+          // Flash + push-уведомление если аргумент не наш
           if (newArg.author_id !== userId) {
             setNewArgFlash("Оппонент ответил");
+            notify("Konsensus", "Оппонент подал аргумент — ваш ход");
             setTimeout(() => setNewArgFlash(null), 4000);
           }
-          setTimeout(() => {
-            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-          }, 150);
+          scrollToBottom();
         }
       )
-      // Изменение статуса спора
+      // Изменение статуса или оппонента
       .on(
         "postgres_changes",
         {
@@ -87,9 +138,21 @@ export default function RealtimeDisputeClient({
           filter: `id=eq.${dispute.id}`,
         },
         (payload) => {
-          setStatus(payload.new.status as string);
-          if (payload.new.status === "mediation") {
+          const newStatus = payload.new.status as string;
+          const prevStatus = status;
+          setStatus(newStatus);
+
+          // Оппонент присоединился — перерисовываем серверную часть
+          if (prevStatus === "open" && newStatus === "in_progress") {
+            setNewArgFlash("Оппонент присоединился!");
+            notify("Konsensus", "Оппонент принял вызов — спор начался!");
+            setTimeout(() => setNewArgFlash(null), 4000);
+            router.refresh(); // перезагрузить серверные данные (имя оппонента, invite-секция скроется)
+          }
+
+          if (newStatus === "mediation") {
             setNewArgFlash("Все раунды завершены — ИИ готов к анализу");
+            notify("Konsensus", "Раунды завершены — ИИ готовит анализ");
           }
         }
       )
@@ -97,8 +160,9 @@ export default function RealtimeDisputeClient({
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(insightsChannel);
     };
-  }, [dispute.id, userId]);
+  }, [dispute.id, userId, scrollToBottom, router, status]);
 
   const getName = (pid: string | null) => {
     if (!pid) return "Участник";
@@ -188,6 +252,21 @@ export default function RealtimeDisputeClient({
                       );
                     })}
                   </div>
+
+                  {/* Персональный AI-инсайт после раунда (только если оба ответили) */}
+                  {roundArgs.length === 2 && insights[round] && (
+                    <div className="mx-auto max-w-[90%] mt-3">
+                      <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
+                        <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
+                          <span>🤖</span>
+                          <span>Только для вас</span>
+                        </p>
+                        <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {insights[round]}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

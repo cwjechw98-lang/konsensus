@@ -71,6 +71,20 @@ export default async function DisputePage({
       .returns<ArgumentRow[]>(),
   ]);
 
+  // round_insights: graceful fallback до запуска миграции
+  let insights: { round: number; content: string }[] = [];
+  try {
+    const { data: insightsData } = await supabase
+      .from("round_insights")
+      .select("round, content")
+      .eq("dispute_id", id)
+      .eq("recipient_id", user.id)
+      .returns<{ round: number; content: string }[]>();
+    insights = insightsData ?? [];
+  } catch {
+    insights = [];
+  }
+
   const getName = (pid: string | null) => {
     if (!pid) return null;
     return profiles?.find((p) => p.id === pid)?.display_name ?? "Участник";
@@ -188,6 +202,10 @@ export default async function DisputePage({
         }))}
         isParticipant={isParticipant}
         isCreator={isCreator}
+        roundInsights={insights.reduce<Record<number, string>>(
+          (acc, i) => { acc[i.round] = i.content; return acc; },
+          {}
+        )}
       />
     </div>
   );

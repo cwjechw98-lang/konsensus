@@ -128,6 +128,56 @@ export interface Database {
           created_at?: string;
         };
       };
+      dispute_analysis: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          plane: string;
+          tone_level: number;
+          core_tension: string | null;
+          plane_prompt: string | null;
+          patterns: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          plane?: string;
+          tone_level?: number;
+          core_tension?: string | null;
+          plane_prompt?: string | null;
+          patterns?: Json;
+          created_at?: string;
+        };
+        Update: {
+          plane?: string;
+          tone_level?: number;
+          core_tension?: string | null;
+          plane_prompt?: string | null;
+          patterns?: Json;
+        };
+      };
+      round_insights: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          round: number;
+          recipient_id: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          round: number;
+          recipient_id: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
       resolutions: {
         Row: {
           id: string;

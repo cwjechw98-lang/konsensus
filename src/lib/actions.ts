@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification } from "@/lib/email";
+import { generateRoundInsights } from "@/lib/ai";
 import type { Database } from "@/types/database";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
@@ -200,6 +201,48 @@ export async function submitArgument(formData: FormData) {
     }
   } catch {
     // Email — приятный бонус, не блокируем основной флоу
+  }
+
+  // Оба подали аргумент в этом раунде → запускаем AI-анализ (оркестратор + инсайты)
+  if (opponentDoneThisRound && dispute.opponent_id) {
+    const allArgs = existingArgs
+      ? [
+          ...existingArgs,
+          { author_id: user.id, round: currentRound } as typeof existingArgs[number],
+        ]
+      : [];
+
+    // Подгружаем все аргументы раунда для AI
+    const { data: fullArgs } = await supabase
+      .from("arguments")
+      .select("author_id, round, position, reasoning, evidence")
+      .eq("dispute_id", disputeId)
+      .returns<{ author_id: string; round: number; position: string; reasoning: string; evidence: string | null }[]>();
+
+    type ProfilePick = { id: string; display_name: string | null };
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", [dispute.creator_id, dispute.opponent_id])
+      .returns<ProfilePick[]>();
+
+    try {
+      await generateRoundInsights(
+        {
+          id: disputeId,
+          title: dispute.title,
+          description: dispute.description,
+          creator_id: dispute.creator_id,
+          opponent_id: dispute.opponent_id,
+          max_rounds: dispute.max_rounds,
+        },
+        currentRound,
+        fullArgs ?? [],
+        allProfiles ?? []
+      );
+    } catch {
+      // AI-инсайты — приятный бонус, не блокируем основной флоу
+    }
   }
 
   if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
