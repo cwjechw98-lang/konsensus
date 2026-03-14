@@ -158,6 +158,7 @@ export default async function MediationPage({
                 accepted_by: resolution.accepted_by as string[],
                 status: resolution.status,
               } : null}
+              commonGround={analysis?.common_ground}
             />
           )}
 
