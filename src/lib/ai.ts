@@ -243,6 +243,43 @@ Return JSON:
   } as never, { onConflict: "dispute_id,round,recipient_id" });
 }
 
+export async function generateChatComment(
+  disputeTitle: string,
+  recentComments: { author_name: string; content: string }[]
+): Promise<string> {
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const chatHistory = recentComments
+      .map((c) => `${c.author_name}: "${c.content}"`)
+      .join("\n");
+
+    const prompt = `Ты — «Всезнающий Сурок», остроумный ИИ-наблюдатель интернет-споров.
+Ты комментируешь происходящее в чате зрителей публичного спора.
+Твой стиль: ироничный, немного занудный, но незлобный. Короткие реплики.
+Никогда не переходи на личности. Пиши на русском.
+
+Спор называется: «${disputeTitle}»
+
+Последние сообщения в чате зрителей:
+${chatHistory}
+
+Напиши ONE короткий комментарий (1-2 предложения) — наблюдение о происходящем в чате или о споре в целом.
+Можно с лёгкой иронией. Без хэштегов и эмодзи.`;
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 120,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return response.choices[0]?.message?.content?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
 async function saveInsights(
   admin: ReturnType<typeof createAdminClient>,
   disputeId: string,

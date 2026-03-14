@@ -671,6 +671,120 @@ export async function acceptSolution(formData: FormData) {
   redirect(`/dispute/${disputeId}/mediation`);
 }
 
+// ─── Reactions ───────────────────────────────────────────────────────────────
+
+export async function toggleReaction(
+  disputeId: string,
+  emoji: string,
+  sessionId: string
+): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("dispute_reactions")
+    .select("id")
+    .eq("dispute_id", disputeId)
+    .eq("emoji", emoji)
+    .eq("session_id", sessionId)
+    .single();
+
+  if (existing) {
+    await admin.from("dispute_reactions").delete().eq("id", existing.id);
+  } else {
+    await admin.from("dispute_reactions").insert({
+      dispute_id: disputeId,
+      emoji,
+      session_id: sessionId,
+    } as never);
+  }
+}
+
+// ─── Observer chat ────────────────────────────────────────────────────────────
+
+export async function addComment(
+  disputeId: string,
+  content: string,
+  authorName: string,
+  sessionId: string
+): Promise<{ error?: string }> {
+  const trimmed = content.trim();
+  if (!trimmed || trimmed.length > 500) return { error: "Недопустимая длина" };
+
+  const admin = createAdminClient();
+
+  // Rate limit: max 1 message per 5 seconds per session
+  const { data: recent } = await admin
+    .from("dispute_comments")
+    .select("created_at")
+    .eq("dispute_id", disputeId)
+    .eq("author_name", authorName)
+    .eq("is_ai", false)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (recent) {
+    const diff = Date.now() - new Date(recent.created_at).getTime();
+    if (diff < 5000) return { error: "Подождите немного перед следующим сообщением" };
+  }
+
+  // Insert user comment
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  await admin.from("dispute_comments").insert({
+    dispute_id: disputeId,
+    content: trimmed,
+    author_name: authorName,
+    author_id: user?.id ?? null,
+    is_ai: false,
+  } as never);
+
+  // Check if AI should chime in (every 5th human comment)
+  const { count } = await admin
+    .from("dispute_comments")
+    .select("*", { count: "exact", head: true })
+    .eq("dispute_id", disputeId)
+    .eq("is_ai", false);
+
+  if ((count ?? 0) % 5 === 0 && (count ?? 0) > 0) {
+    // Get dispute title + recent comments for AI context
+    const { data: dispute } = await admin
+      .from("disputes")
+      .select("title")
+      .eq("id", disputeId)
+      .single<{ title: string }>();
+
+    const { data: recentComments } = await admin
+      .from("dispute_comments")
+      .select("author_name, content")
+      .eq("dispute_id", disputeId)
+      .eq("is_ai", false)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .returns<{ author_name: string; content: string }[]>();
+
+    if (dispute && recentComments) {
+      const { generateChatComment } = await import("@/lib/ai");
+      const aiText = await generateChatComment(
+        dispute.title,
+        recentComments.reverse()
+      );
+      if (aiText) {
+        await admin.from("dispute_comments").insert({
+          dispute_id: disputeId,
+          content: aiText,
+          author_name: "Всезнающий Сурок",
+          author_id: null,
+          is_ai: true,
+        } as never);
+      }
+    }
+  }
+
+  return {};
+}
+
 // Helper: check and award dispute milestone achievements
 async function checkDisputeMilestones(userId: string, admin: ReturnType<typeof createAdminClient>) {
   const supabase = await createClient();

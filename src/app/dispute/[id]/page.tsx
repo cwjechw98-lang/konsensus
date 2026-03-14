@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
 import ShareInviteButton from "@/components/ShareInviteButton";
 import RealtimeDisputeClient from "@/components/RealtimeDisputeClient";
+import DisputeReactions from "@/components/DisputeReactions";
+import DisputeChat from "@/components/DisputeChat";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -215,6 +217,13 @@ export default async function DisputePage({
         </div>
       )}
 
+      {/* Реакции (публичные споры) */}
+      {dispute.is_public && (
+        <div className="mb-6">
+          <DisputeReactions disputeId={dispute.id} />
+        </div>
+      )}
+
       {/* Realtime чат + кнопки действий */}
       <RealtimeDisputeClient
         initialArgs={(args ?? []).map((a) => ({
@@ -249,6 +258,11 @@ export default async function DisputePage({
         earlyEndProposedBy={dispute.early_end_proposed_by}
         waitingInsight={waitingInsight}
       />
+
+      {/* Чат наблюдателей (публичные споры) */}
+      {dispute.is_public && (
+        <DisputeChat disputeId={dispute.id} />
+      )}
     </div>
   );
 }
