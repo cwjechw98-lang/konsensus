@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient();
@@ -43,8 +42,7 @@ export async function generateTelegramToken(): Promise<void> {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  const admin = createAdminClient();
-  await admin
+  await supabase
     .from("profiles")
     .update({ telegram_link_token: token } as never)
     .eq("id", user.id);
@@ -57,8 +55,7 @@ export async function disconnectTelegram(): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const admin = createAdminClient();
-  await admin
+  await supabase
     .from("profiles")
     .update({ telegram_chat_id: null, telegram_link_token: null } as never)
     .eq("id", user.id);
