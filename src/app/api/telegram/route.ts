@@ -5,11 +5,21 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus.app";
 
-// Persistent bottom keyboard — shown to all linked users
+// Persistent bottom keyboard — shown to linked users
 const MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }, { text: "📋 Споры" }],
-    [{ text: "👤 Профиль" }],
+    [{ text: "👤 Профиль" }, { text: "🔓 Отвязать" }],
+  ],
+  resize_keyboard: true,
+  persistent: true,
+};
+
+// Keyboard for unlinked users
+const UNLINKED_KEYBOARD = {
+  keyboard: [
+    [{ text: "⚔️ Вызовы" }],
+    [{ text: "🔗 Привязать аккаунт" }],
   ],
   resize_keyboard: true,
   persistent: true,
@@ -36,7 +46,7 @@ async function sendMessage(
   });
 }
 
-// Sends with persistent menu + optional inline button
+// Sends with persistent menu + optional inline button (for linked users)
 async function reply(
   chatId: number,
   text: string,
@@ -46,6 +56,18 @@ async function reply(
     ? [[{ text: inlineUrl.label, url: inlineUrl.url }]]
     : undefined;
   await sendMessage(chatId, text, { keyboard: MAIN_KEYBOARD, ...(inline ? { inline } : {}) });
+}
+
+// Sends with unlinked keyboard + optional inline button
+async function replyUnlinked(
+  chatId: number,
+  text: string,
+  inlineUrl?: { label: string; url: string }
+) {
+  const inline: InlineKeyboard | undefined = inlineUrl
+    ? [[{ text: inlineUrl.label, url: inlineUrl.url }]]
+    : undefined;
+  await sendMessage(chatId, text, { keyboard: UNLINKED_KEYBOARD, ...(inline ? { inline } : {}) });
 }
 
 export async function POST(req: NextRequest) {
@@ -84,10 +106,9 @@ export async function POST(req: NextRequest) {
 
   if (tokenMatch) {
     if (me) {
-      await sendMessage(
+      await reply(
         chatId,
-        `✅ Этот Telegram уже привязан к аккаунту <b>${me.display_name ?? "участник"}</b>!`,
-        { keyboard: MAIN_KEYBOARD }
+        `✅ Этот Telegram уже привязан к аккаунту <b>${me.display_name ?? "участник"}</b>!\n\nЧтобы перепривязать — сначала нажмите «🔓 Отвязать».`
       );
       return NextResponse.json({ ok: true });
     }
@@ -99,10 +120,10 @@ export async function POST(req: NextRequest) {
       .single<{ id: string; display_name: string | null }>();
 
     if (!profile) {
-      await sendMessage(
+      await replyUnlinked(
         chatId,
-        "❌ Код не найден или уже использован. Получите новый в профиле.",
-        { inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]] }
+        "❌ Код не найден или уже использован.\n\nНажмите «Подключить Telegram» в профиле на сайте, чтобы получить новый код.",
+        { label: "Открыть профиль →", url: `${APP_URL}/profile` }
       );
       return NextResponse.json({ ok: true });
     }
@@ -120,20 +141,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // ── 🔓 Отвязать / /unlink ────────────────────────────────────────────────
+  if (text === "/unlink" || text === "🔓 Отвязать") {
+    if (!me) {
+      await replyUnlinked(chatId, "ℹ️ Аккаунт не привязан. Нечего отвязывать.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await admin
+      .from("profiles")
+      .update({ telegram_chat_id: null, telegram_link_token: null } as never)
+      .eq("id", me.id);
+
+    await sendMessage(
+      chatId,
+      `🔓 Аккаунт <b>${me.display_name ?? "участник"}</b> отвязан.\n\nВы больше не будете получать уведомления.\nЧтобы привязать снова — нажмите «Подключить Telegram» в профиле на сайте.`,
+      {
+        keyboard: UNLINKED_KEYBOARD,
+        inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]],
+      }
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── 🔗 Привязать аккаунт ──────────────────────────────────────────────────
+  if (text === "🔗 Привязать аккаунт") {
+    if (me) {
+      await reply(chatId, `✅ Вы уже привязаны как <b>${me.display_name ?? "участник"}</b>!`);
+      return NextResponse.json({ ok: true });
+    }
+    await replyUnlinked(
+      chatId,
+      "🔗 Чтобы привязать аккаунт:\n\n1. Откройте профиль на сайте\n2. Нажмите «Подключить Telegram»\n3. Код отправится автоматически — или вставьте его сюда",
+      { label: "Открыть профиль →", url: `${APP_URL}/profile` }
+    );
+    return NextResponse.json({ ok: true });
+  }
+
   // ── /start without token ──────────────────────────────────────────────────
   if (text === "/start") {
     if (me) {
-      await sendMessage(
+      await reply(
         chatId,
-        `👋 Привет, <b>${me.display_name ?? "участник"}</b>! Ты уже привязан к Konsensus.\n\nИспользуй кнопки меню ниже 👇`,
-        { keyboard: MAIN_KEYBOARD }
+        `👋 Привет, <b>${me.display_name ?? "участник"}</b>! Ты уже привязан к Konsensus.\n\nИспользуй кнопки меню ниже 👇`
       );
     } else {
-      await sendMessage(
+      await replyUnlinked(
         chatId,
         "👋 Привет! Я бот Konsensus.\n\nЧтобы получать уведомления:\n1. Откройте профиль на сайте\n2. Нажмите «Подключить Telegram»\n3. Я открою автоматически — или вставьте код сюда",
-        { inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]] }
+        { label: "Открыть профиль →", url: `${APP_URL}/profile` }
       );
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── /help ─────────────────────────────────────────────────────────────────
+  if (text === "/help") {
+    const helpText = me
+      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n\nТакже: /challenges /disputes /profile /unlink /help`
+      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n\nТакже: /challenges /start /help`;
+
+    if (me) {
+      await reply(chatId, helpText);
+    } else {
+      await replyUnlinked(chatId, helpText);
     }
     return NextResponse.json({ ok: true });
   }
@@ -149,10 +220,12 @@ export async function POST(req: NextRequest) {
       .returns<{ id: string; topic: string; position_hint: string; profiles: { display_name: string | null } | null }[]>();
 
     if (!challenges || challenges.length === 0) {
-      await sendMessage(chatId, "🏟 На арене пока нет открытых вызовов.", {
-        keyboard: MAIN_KEYBOARD,
-        inline: [[{ text: "Открыть арену →", url: `${APP_URL}/arena` }]],
-      });
+      const msg = "🏟 На арене пока нет открытых вызовов.";
+      if (me) {
+        await reply(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+      } else {
+        await replyUnlinked(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+      }
       return NextResponse.json({ ok: true });
     }
 
@@ -160,19 +233,23 @@ export async function POST(req: NextRequest) {
       .map((c, i) => `${i + 1}. <b>${c.topic}</b>\nот ${c.profiles?.display_name ?? "Участник"} · <i>${c.position_hint}</i>`)
       .join("\n\n");
 
-    await sendMessage(chatId, `⚔️ <b>Открытые вызовы:</b>\n\n${lines}`, {
-      keyboard: MAIN_KEYBOARD,
-      inline: [[{ text: "Открыть арену →", url: `${APP_URL}/arena` }]],
-    });
+    const msg = `⚔️ <b>Открытые вызовы:</b>\n\n${lines}`;
+    if (me) {
+      await reply(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+    } else {
+      await replyUnlinked(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+    }
     return NextResponse.json({ ok: true });
   }
 
   // ── 📋 Споры / /disputes ─────────────────────────────────────────────────
   if (text === "/disputes" || text === "📋 Споры") {
     if (!me) {
-      await sendMessage(chatId, "⚠️ Сначала привяжите Telegram-аккаунт через профиль на сайте.", {
-        inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]],
-      });
+      await replyUnlinked(
+        chatId,
+        "⚠️ Сначала привяжите Telegram-аккаунт через профиль на сайте.",
+        { label: "Открыть профиль →", url: `${APP_URL}/profile` }
+      );
       return NextResponse.json({ ok: true });
     }
 
@@ -200,9 +277,11 @@ export async function POST(req: NextRequest) {
   // ── 👤 Профиль / /profile ────────────────────────────────────────────────
   if (text === "/profile" || text === "👤 Профиль") {
     if (!me) {
-      await sendMessage(chatId, "⚠️ Сначала привяжите Telegram-аккаунт через профиль на сайте.", {
-        inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]],
-      });
+      await replyUnlinked(
+        chatId,
+        "⚠️ Сначала привяжите Telegram-аккаунт через профиль на сайте.",
+        { label: "Открыть профиль →", url: `${APP_URL}/profile` }
+      );
       return NextResponse.json({ ok: true });
     }
 
@@ -231,11 +310,13 @@ export async function POST(req: NextRequest) {
 
   // ── Default ───────────────────────────────────────────────────────────────
   if (me) {
-    await sendMessage(chatId, "Используй кнопки меню ниже 👇", { keyboard: MAIN_KEYBOARD });
+    await reply(chatId, "Используй кнопки меню ниже 👇 или /help для списка команд.");
   } else {
-    await sendMessage(chatId, "Привяжите Telegram-аккаунт через профиль на сайте.", {
-      inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]],
-    });
+    await replyUnlinked(
+      chatId,
+      "Привяжите Telegram-аккаунт через профиль на сайте или нажмите /help.",
+      { label: "Открыть профиль →", url: `${APP_URL}/profile` }
+    );
   }
 
   return NextResponse.json({ ok: true });
