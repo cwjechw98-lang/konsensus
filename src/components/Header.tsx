@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { MobileMenu } from "./MobileMenu";
 
 export async function Header() {
   const supabase = await createClient();
@@ -17,59 +18,42 @@ export async function Header() {
           Konsensus
         </Link>
 
-        <nav className="flex items-center gap-5">
-          <Link
-            href="/feed"
-            className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
-          >
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-5">
+          <Link href="/feed" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
             Лента
           </Link>
           {user ? (
             <>
-              <Link
-                href="/dashboard"
-                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
-              >
+              <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Мои споры
               </Link>
-              <Link
-                href="/arena"
-                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
-              >
+              <Link href="/arena" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Арена ⚔️
               </Link>
-              <Link
-                href="/profile"
-                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
-              >
+              <Link href="/profile" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Профиль
               </Link>
               <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                >
+                <button type="submit" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
                   Выйти
                 </button>
               </form>
             </>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
-              >
+              <Link href="/login" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Войти
               </Link>
-              <Link
-                href="/register"
-                className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-md font-medium transition-colors"
-              >
+              <Link href="/register" className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-md font-medium transition-colors">
                 Регистрация
               </Link>
             </>
           )}
         </nav>
+
+        {/* Mobile hamburger */}
+        <MobileMenu isLoggedIn={!!user} />
       </div>
     </header>
   );
