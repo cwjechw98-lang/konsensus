@@ -10,6 +10,7 @@ const MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }, { text: "📋 Споры" }],
     [{ text: "👤 Профиль" }, { text: "🔓 Отвязать" }],
+    [{ text: "🌐 Открыть приложение", web_app: { url: APP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,
@@ -20,12 +21,14 @@ const UNLINKED_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }],
     [{ text: "🔗 Привязать аккаунт" }],
+    [{ text: "🌐 Открыть приложение", web_app: { url: APP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,
 };
 
-type InlineKeyboard = { text: string; url: string }[][];
+type InlineButton = { text: string; url?: string; callback_data?: string; web_app?: { url: string } };
+type InlineKeyboard = InlineButton[][];
 
 async function sendMessage(
   chatId: number,
@@ -43,6 +46,26 @@ async function sendMessage(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+  });
+}
+
+async function editMessage(chatId: number, messageId: number, text: string, inline?: InlineKeyboard) {
+  if (!BOT_TOKEN) return;
+  const body: Record<string, unknown> = { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML" };
+  if (inline) body.reply_markup = { inline_keyboard: inline };
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function answerCallback(callbackId: string, text?: string) {
+  if (!BOT_TOKEN) return;
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackId, text }),
   });
 }
 
@@ -85,6 +108,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // ── Handle callback queries (inline button presses) ──────────────────────
+  if (update.callback_query) {
+    const cb = update.callback_query;
+    const chatId = cb.message?.chat.id;
+    const messageId = cb.message?.message_id;
+    const data = cb.data;
+
+    if (!chatId || !messageId) {
+      await answerCallback(cb.id);
+      return NextResponse.json({ ok: true });
+    }
+
+    const admin = createAdminClient();
+
+    if (data === "unlink_confirm") {
+      const { data: me } = await admin
+        .from("profiles")
+        .select("id, display_name")
+        .eq("telegram_chat_id", chatId)
+        .single<{ id: string; display_name: string | null }>();
+
+      if (!me) {
+        await answerCallback(cb.id, "Аккаунт уже отвязан");
+        await editMessage(chatId, messageId, "ℹ️ Аккаунт уже отвязан.");
+        return NextResponse.json({ ok: true });
+      }
+
+      await admin
+        .from("profiles")
+        .update({ telegram_chat_id: null, telegram_link_token: null } as never)
+        .eq("id", me.id);
+
+      await answerCallback(cb.id, "Отвязано ✓");
+      await editMessage(
+        chatId,
+        messageId,
+        `🔓 Аккаунт <b>${me.display_name ?? "участник"}</b> отвязан.\n\nВы больше не будете получать уведомления.`
+      );
+      // Send follow-up with unlinked keyboard
+      await replyUnlinked(
+        chatId,
+        "Чтобы привязать снова — нажмите «Подключить Telegram» в профиле на сайте.",
+        { label: "Открыть профиль →", url: `${APP_URL}/profile` }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    if (data === "unlink_cancel") {
+      await answerCallback(cb.id, "Отменено");
+      await editMessage(chatId, messageId, "✅ Отвязка отменена. Всё остаётся как было.");
+      return NextResponse.json({ ok: true });
+    }
+
+    await answerCallback(cb.id);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Handle text messages ─────────────────────────────────────────────────
   const message = update.message;
   if (!message?.text) return NextResponse.json({ ok: true });
 
@@ -141,24 +222,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // ── 🔓 Отвязать / /unlink ────────────────────────────────────────────────
+  // ── 🔓 Отвязать / /unlink — ask for confirmation ─────────────────────────
   if (text === "/unlink" || text === "🔓 Отвязать") {
     if (!me) {
       await replyUnlinked(chatId, "ℹ️ Аккаунт не привязан. Нечего отвязывать.");
       return NextResponse.json({ ok: true });
     }
 
-    await admin
-      .from("profiles")
-      .update({ telegram_chat_id: null, telegram_link_token: null } as never)
-      .eq("id", me.id);
-
     await sendMessage(
       chatId,
-      `🔓 Аккаунт <b>${me.display_name ?? "участник"}</b> отвязан.\n\nВы больше не будете получать уведомления.\nЧтобы привязать снова — нажмите «Подключить Telegram» в профиле на сайте.`,
+      `⚠️ Вы уверены, что хотите отвязать Telegram от аккаунта <b>${me.display_name ?? "участник"}</b>?\n\nВы перестанете получать уведомления о спорах и вызовах.`,
       {
-        keyboard: UNLINKED_KEYBOARD,
-        inline: [[{ text: "Открыть профиль →", url: `${APP_URL}/profile` }]],
+        inline: [
+          [
+            { text: "✅ Да, отвязать", callback_data: "unlink_confirm" },
+            { text: "❌ Нет, отмена", callback_data: "unlink_cancel" },
+          ],
+        ],
       }
     );
     return NextResponse.json({ ok: true });
@@ -198,8 +278,8 @@ export async function POST(req: NextRequest) {
   // ── /help ─────────────────────────────────────────────────────────────────
   if (text === "/help") {
     const helpText = me
-      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n\nТакже: /challenges /disputes /profile /unlink /help`
-      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n\nТакже: /challenges /start /help`;
+      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n🌐 Открыть приложение — Konsensus прямо в Telegram\n\nТакже: /challenges /disputes /profile /unlink /help`
+      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n🌐 Открыть приложение — Konsensus прямо в Telegram\n\nТакже: /challenges /start /help`;
 
     if (me) {
       await reply(chatId, helpText);
@@ -324,4 +404,9 @@ export async function POST(req: NextRequest) {
 
 interface TelegramUpdate {
   message?: { text?: string; chat: { id: number } };
+  callback_query?: {
+    id: string;
+    data?: string;
+    message?: { chat: { id: number }; message_id: number };
+  };
 }
