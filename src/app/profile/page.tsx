@@ -99,8 +99,8 @@ export default async function ProfilePage({
     { id: "settings", label: "Настройки", icon: "⚙️" },
   ];
 
-  const styleInfo = aiProfile ? getStyleInfo(aiProfile.argumentation_style) : null;
-  const reactionInfo = aiProfile ? getReactionInfo(aiProfile.ai_hint_reaction) : null;
+  const styleInfo = aiProfile ? await getStyleInfo(aiProfile.argumentation_style) : null;
+  const reactionInfo = aiProfile ? await getReactionInfo(aiProfile.ai_hint_reaction) : null;
 
   const categoryEmoji: Record<string, string> = {
     politics: "🏛", technology: "💻", philosophy: "🧠", lifestyle: "🏠",

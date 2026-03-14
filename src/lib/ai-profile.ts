@@ -29,11 +29,11 @@ const REACTION_LABELS: Record<string, { label: string; icon: string }> = {
   argues:  { label: "Спорит с ИИ", icon: "💬" },
 };
 
-export function getStyleInfo(style: string) {
+export async function getStyleInfo(style: string) {
   return STYLE_LABELS[style] ?? STYLE_LABELS.mixed;
 }
 
-export function getReactionInfo(reaction: string) {
+export async function getReactionInfo(reaction: string) {
   return REACTION_LABELS[reaction] ?? REACTION_LABELS.accepts;
 }
 
