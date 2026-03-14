@@ -492,7 +492,7 @@ export default function RealtimeDisputeClient({
           <div className="flex flex-col gap-3">
             <Link
               href={`/dispute/${dispute.id}/argue`}
-              className="btn-ripple inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
+              className="btn-ripple block text-center sm:inline-block bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
             >
               Написать аргумент · Раунд {myArgCount + 1}
             </Link>

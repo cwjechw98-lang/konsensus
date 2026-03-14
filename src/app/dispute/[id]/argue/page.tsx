@@ -112,7 +112,7 @@ export default async function ArguePage({
         </div>
       ) : isFirstRound ? (
         /* ==================== РАУНД 1: полная форма ==================== */
-        <div className="glass rounded-2xl p-8">
+        <div className="glass rounded-2xl p-4 sm:p-8">
           {errorMsg && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-5">
               {errorMsg}
@@ -151,7 +151,7 @@ export default async function ArguePage({
 
             <EvidenceFields />
 
-            <div className="flex gap-3 mt-2">
+            <div className="flex flex-wrap gap-3 mt-2">
               <SubmitButton
                 pendingText="Отправляем..."
                 className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
