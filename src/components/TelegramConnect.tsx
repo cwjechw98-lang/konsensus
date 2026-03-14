@@ -17,6 +17,7 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
   const [connected, setConnected] = useState(initialConnected);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [disconnecting, startDisconnect] = useTransition();
 
   // Poll for connection after token is generated
@@ -38,42 +39,42 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
 
   async function handleConnect() {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/telegram/generate-token", { method: "POST" });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Ошибка генерации кода. Проверьте консоль Vercel.");
+        return;
+      }
       if (data.token) {
         setToken(data.token);
         window.open(`${botUrl}?start=${data.token}`, "_blank");
       }
+    } catch {
+      setError("Нет соединения с сервером.");
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Connected ──────────────────────────────────────────────────────────────
+  // ── Connected — just one button ────────────────────────────────────────────
   if (connected) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-green-400 text-lg">✅</span>
-          <p className="text-sm text-green-400 font-medium">Telegram подключён</p>
-        </div>
-        <p className="text-xs text-gray-500">
-          Уведомления о спорах, вызовах и медиации приходят в Telegram.
-        </p>
         <a
           href={botUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors w-fit"
+          className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors w-fit"
         >
-          Открыть бот →
+          ✅ Открыть Telegram бот →
         </a>
         <form action={onDisconnect}>
           <button
             type="submit"
             disabled={disconnecting}
-            className="text-xs text-gray-600 hover:text-red-400 transition-colors underline mt-1"
+            className="text-xs text-gray-600 hover:text-red-400 transition-colors underline"
           >
             {disconnecting ? "Отключение..." : "Отключить"}
           </button>
@@ -82,7 +83,7 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
     );
   }
 
-  // ── Token shown — waiting for Telegram confirmation ─────────────────────────
+  // ── Token shown — waiting for confirmation ──────────────────────────────────
   if (token) {
     const deepLink = `${botUrl}?start=${token}`;
     return (
@@ -121,6 +122,11 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
       <p className="text-xs text-gray-500">
         Получайте пуш-уведомления о новых аргументах, вызовах и медиации прямо в Telegram.
       </p>
+      {error && (
+        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
       <button
         onClick={handleConnect}
         disabled={loading}
