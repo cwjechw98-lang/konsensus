@@ -13,6 +13,8 @@ export type DisputeStatus =
   | "resolved"
   | "closed";
 
+export type ChallengeStatus = "open" | "active" | "closed";
+
 export type ResolutionStatus = "proposed" | "accepted" | "rejected";
 
 export interface Database {
@@ -22,16 +24,80 @@ export interface Database {
         Row: {
           id: string;
           display_name: string | null;
+          bio: string | null;
+          debate_stance: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
           display_name?: string | null;
+          bio?: string | null;
+          debate_stance?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           display_name?: string | null;
+          bio?: string | null;
+          debate_stance?: string | null;
+          created_at?: string;
+        };
+      };
+      challenges: {
+        Row: {
+          id: string;
+          author_id: string;
+          topic: string;
+          position_hint: string;
+          status: ChallengeStatus;
+          accepted_by: string | null;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          topic: string;
+          position_hint: string;
+          status?: ChallengeStatus;
+          accepted_by?: string | null;
+          created_at?: string;
+          expires_at?: string;
+        };
+        Update: {
+          id?: string;
+          author_id?: string;
+          topic?: string;
+          position_hint?: string;
+          status?: ChallengeStatus;
+          accepted_by?: string | null;
+          created_at?: string;
+          expires_at?: string;
+        };
+      };
+      challenge_messages: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          author_id: string | null;
+          content: string;
+          is_ai: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          author_id?: string | null;
+          content: string;
+          is_ai?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          challenge_id?: string;
+          author_id?: string | null;
+          content?: string;
+          is_ai?: boolean;
           created_at?: string;
         };
       };
@@ -277,6 +343,7 @@ export interface Database {
     Enums: {
       dispute_status: DisputeStatus;
       resolution_status: ResolutionStatus;
+      challenge_status: ChallengeStatus;
     };
   };
 }

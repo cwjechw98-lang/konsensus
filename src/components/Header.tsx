@@ -33,6 +33,12 @@ export async function Header() {
                 Мои споры
               </Link>
               <Link
+                href="/arena"
+                className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
+              >
+                Арена ⚔️
+              </Link>
+              <Link
                 href="/profile"
                 className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
               >

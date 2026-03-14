@@ -4,6 +4,8 @@ import type { Database } from "@/types/database";
 import { updateProfile } from "./actions";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import RPGProfileCard from "@/components/RPGProfileCard";
+import { fetchRPGStats } from "@/lib/rpg";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -60,6 +62,8 @@ export default async function ProfilePage({
     disputeCount = disputesRes.count ?? 0;
     argCount = argsRes.count ?? 0;
   } catch { /* Tables not migrated yet */ }
+
+  const rpgStats = await fetchRPGStats(user.id, supabase);
 
   const earnedMap = Object.fromEntries(earnedAchievements.map((a) => [a.achievement_id, a.earned_at]));
   const earnedIds = new Set(earnedAchievements.map((a) => a.achievement_id));
@@ -155,6 +159,28 @@ export default async function ProfilePage({
                   placeholder="Как вас называть"
                 />
               </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-gray-300">О себе</span>
+                <textarea
+                  name="bio"
+                  rows={3}
+                  maxLength={500}
+                  defaultValue={(profile as { bio?: string | null })?.bio ?? ""}
+                  className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-none text-sm"
+                  placeholder="Расскажите о себе (покажется в RPG-карточке)"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-gray-300">Кредо в спорах</span>
+                <input
+                  name="debate_stance"
+                  type="text"
+                  maxLength={200}
+                  defaultValue={(profile as { debate_stance?: string | null })?.debate_stance ?? ""}
+                  className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors text-sm"
+                  placeholder="Я спорю, потому что..."
+                />
+              </label>
               <button
                 type="submit"
                 className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors"
@@ -162,6 +188,16 @@ export default async function ProfilePage({
                 Сохранить
               </button>
             </form>
+          </div>
+
+          {/* RPG Profile Card */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">RPG-профиль</h2>
+            <RPGProfileCard
+              stats={rpgStats}
+              displayName={profile?.display_name ?? user.email ?? "Игрок"}
+              bio={(profile as { bio?: string | null })?.bio}
+            />
           </div>
         </div>
 

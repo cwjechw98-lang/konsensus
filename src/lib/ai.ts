@@ -367,6 +367,86 @@ ${chatHistory}
   }
 }
 
+export async function generateChallengeInsight(
+  messages: { author: string; content: string }[],
+  topic: string
+): Promise<string> {
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const history = messages.map((m) => `${m.author}: "${m.content}"`).join("\n");
+
+    const prompt = `Ты — нейтральный ИИ-медиатор в живом чате дискуссии. Пиши на русском.
+
+Тема дискуссии: «${topic}»
+
+Последние сообщения участников:
+${history}
+
+Твоя задача: написать короткое наблюдение (1-2 предложения). Ты — нейтральный помощник, не судья.
+Можешь задать вопрос, который поможет сторонам лучше понять друг друга.
+Будь краток, уважителен, без выводов о правоте.`;
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 150,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return response.choices[0]?.message?.content?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export async function generateChallengeMediation(
+  messages: { author: string; content: string }[],
+  topic: string
+): Promise<{ summary: string; commonGround: string; solutions: string[] }> {
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const history = messages.map((m) => `${m.author}: "${m.content}"`).join("\n");
+
+    const prompt = `Ты — ИИ-медиатор. Проанализируй дискуссию и верни JSON. Отвечай на русском.
+
+Тема: «${topic}»
+
+Диалог:
+${history}
+
+Сделай итоговую медиацию:
+1. Краткое нейтральное резюме дискуссии
+2. Что общего у участников (точки соприкосновения)
+3. 2-3 конкретных решения/предложения для движения вперёд
+
+Верни JSON:
+{
+  "summary": "краткое резюме (2-3 предложения)",
+  "commonGround": "что объединяет стороны",
+  "solutions": ["решение 1", "решение 2", "решение 3"]
+}`;
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 500,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    return {
+      summary: (result.summary as string) ?? "",
+      commonGround: (result.commonGround as string) ?? "",
+      solutions: (result.solutions as string[]) ?? [],
+    };
+  } catch {
+    return { summary: "", commonGround: "", solutions: [] };
+  }
+}
+
 async function saveInsights(
   admin: ReturnType<typeof createAdminClient>,
   disputeId: string,

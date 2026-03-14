@@ -14,10 +14,16 @@ export async function updateProfile(formData: FormData) {
   }
 
   const displayName = (formData.get("display_name") as string).trim();
+  const bio = (formData.get("bio") as string | null)?.trim() ?? null;
+  const debateStance = (formData.get("debate_stance") as string | null)?.trim() ?? null;
 
   const { error } = await supabase
     .from("profiles")
-    .update({ display_name: displayName } as never)
+    .update({
+      display_name: displayName,
+      bio: bio || null,
+      debate_stance: debateStance || null,
+    } as never)
     .eq("id", user.id);
 
   if (error) {
