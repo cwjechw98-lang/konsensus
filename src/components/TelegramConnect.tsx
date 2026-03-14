@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
+
+const DEFAULT_BOT = "KonsensusAppBot";
 
 interface Props {
   isConnected: boolean;
@@ -8,10 +10,31 @@ interface Props {
   onDisconnect: () => Promise<void>;
 }
 
-export function TelegramConnect({ isConnected, botUsername, onDisconnect }: Props) {
+export function TelegramConnect({ isConnected: initialConnected, botUsername, onDisconnect }: Props) {
+  const bot = botUsername ?? DEFAULT_BOT;
+  const botUrl = `https://t.me/${bot}`;
+
+  const [connected, setConnected] = useState(initialConnected);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [disconnecting, startDisconnect] = useTransition();
+
+  // Poll for connection after token is generated
+  useEffect(() => {
+    if (!token || connected) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/telegram/check-connected");
+        const { connected: isNow } = await res.json();
+        if (isNow) {
+          setConnected(true);
+          setToken(null);
+          clearInterval(interval);
+        }
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [token, connected]);
 
   async function handleConnect() {
     setLoading(true);
@@ -20,21 +43,15 @@ export function TelegramConnect({ isConnected, botUsername, onDisconnect }: Prop
       const data = await res.json();
       if (data.token) {
         setToken(data.token);
-        // Open Telegram immediately
-        if (botUsername) {
-          window.open(`https://t.me/${botUsername}?start=${data.token}`, "_blank");
-        }
+        window.open(`${botUrl}?start=${data.token}`, "_blank");
       }
     } finally {
       setLoading(false);
     }
   }
 
-  const botUrl = botUsername ? `https://t.me/${botUsername}` : null;
-  const deepLink = botUsername && token ? `https://t.me/${botUsername}?start=${token}` : null;
-
   // ── Connected ──────────────────────────────────────────────────────────────
-  if (isConnected) {
+  if (connected) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
@@ -44,16 +61,14 @@ export function TelegramConnect({ isConnected, botUsername, onDisconnect }: Prop
         <p className="text-xs text-gray-500">
           Уведомления о спорах, вызовах и медиации приходят в Telegram.
         </p>
-        {botUrl && (
-          <a
-            href={botUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors w-fit"
-          >
-            Открыть бот →
-          </a>
-        )}
+        <a
+          href={botUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors w-fit"
+        >
+          Открыть бот →
+        </a>
         <form action={onDisconnect}>
           <button
             type="submit"
@@ -67,31 +82,29 @@ export function TelegramConnect({ isConnected, botUsername, onDisconnect }: Prop
     );
   }
 
-  // ── Token shown ─────────────────────────────────────────────────────────────
+  // ── Token shown — waiting for Telegram confirmation ─────────────────────────
   if (token) {
+    const deepLink = `${botUrl}?start=${token}`;
     return (
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
           <p className="text-xs text-gray-400">Ожидаем подтверждения в Telegram...</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 font-mono text-purple-300 text-base tracking-widest select-all">
           {token}
         </div>
-        {deepLink ? (
-          <a
-            href={deepLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors"
-          >
-            Открыть Telegram →
-          </a>
-        ) : (
-          <p className="text-xs text-gray-500">
-            Отправьте код боту в Telegram вручную
-          </p>
-        )}
+        <a
+          href={deepLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors"
+        >
+          Открыть Telegram →
+        </a>
+        <p className="text-xs text-gray-600">
+          Если Telegram не открылся — скопируйте код и отправьте его боту вручную.
+        </p>
         <button
           onClick={handleConnect}
           className="text-xs text-gray-600 hover:text-gray-400 transition-colors underline"
