@@ -809,6 +809,62 @@ export async function addComment(
   return {};
 }
 
+// ─── Argument strength evaluation ────────────────────────────────────────────
+
+export async function evaluateArgument(
+  position: string,
+  reasoning: string,
+  disputeTitle: string,
+  disputeDescription: string
+): Promise<{ score: number; strengths: string[]; suggestion: string } | null> {
+  const pos = position.trim();
+  const rea = reasoning.trim();
+  if (!pos || !rea) return null;
+
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const prompt = `Ты — беспристрастный судья качества аргументов. Отвечай строго JSON.
+
+Спор: "${disputeTitle}"${disputeDescription ? `\nКонтекст: "${disputeDescription}"` : ""}
+
+Аргумент участника:
+Позиция: "${pos}"
+Обоснование: "${rea}"
+
+Оцени качество аргумента по шкале 1-5:
+1 = очень слабый (нет обоснования, только мнение)
+2 = слабый (есть мнение, мало обоснования)
+3 = средний (есть логика, но не хватает деталей)
+4 = сильный (чёткая позиция, хорошее обоснование)
+5 = убедительный (всё чётко, есть логика и детали)
+
+Верни JSON:
+{
+  "score": число 1-5,
+  "strengths": ["1-2 коротких сильных стороны аргумента, если есть"],
+  "suggestion": "одна конкретная рекомендация как усилить аргумент (1 предложение)"
+}`;
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 200,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    return {
+      score: Math.min(5, Math.max(1, Math.round(Number(result.score) || 3))),
+      strengths: Array.isArray(result.strengths) ? result.strengths.slice(0, 2) : [],
+      suggestion: (result.suggestion as string) ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Helper: check and award dispute milestone achievements
 async function checkDisputeMilestones(userId: string, admin: ReturnType<typeof createAdminClient>) {
   const supabase = await createClient();
