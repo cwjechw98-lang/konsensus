@@ -8,8 +8,8 @@
 
 - **Frontend:** Next.js 15 (App Router) + TypeScript + Tailwind CSS
 - **Backend/DB:** Supabase (PostgreSQL + Auth + Realtime)
-- **ИИ:** Claude API (Anthropic)
-- **Деплой:** Vercel (планируется)
+- **ИИ:** Groq API (llama-3.3-70b-versatile)
+- **Деплой:** Vercel (автодеплой из main)
 
 ## Языки
 
@@ -95,24 +95,28 @@ src/
 
 ## Текущий статус
 
-**Фаза:** Фаза 2 (Споры) — в процессе
-**Дата:** 2026-03-12
+**Фаза:** Фазы 8–9 (Социальный слой + ИИ-углубление) — частично завершены
+**Дата:** 2026-03-14
+**ИИ:** Groq API (llama-3.3-70b-versatile) — продакшн
 
-### Сделано
-- [x] Создана структура проекта
-- [x] Настроен Git-репозиторий + GitHub
-- [x] Документация (concept, roadmap, architecture, status)
-- [x] CLAUDE.md + skill /log
-- [x] Next.js 16 + TypeScript (strict) + Tailwind CSS
-- [x] Supabase подключён (клиент, auth, миграция)
-- [x] Схема БД: profiles, disputes, arguments, mediations, resolutions
-- [x] RLS-политики для всех таблиц
-- [x] Аутентификация (login, register, signout, callback)
-- [x] Базовый layout с header и навигацией
-- [x] Landing page + Dashboard
-- [x] Страница профиля (просмотр + редактирование имени)
-- [x] Деплой на Vercel (связан с GitHub, автодеплой из main)
-- [x] ИИ: Grok (xAI) подключён через Vercel (вместо Claude API)
+### Завершено (фазы 0–9 частично)
+- [x] Весь базовый стек: Next.js 15, TypeScript strict, Tailwind 4, Supabase, Vercel
+- [x] Полный flow споров: создание → аргументы → медиация → консенсус
+- [x] Google OAuth + email/password аутентификация
+- [x] Гостевой режим (anonymous join по инвайту)
+- [x] ИИ: категоризация, инсайты по раундам, waiting insight, tension meter
+- [x] Геймификация: очки, 11 достижений, тосты, адаптивный профиль
+- [x] Публичные споры: лента /feed, emoji реакции, чат наблюдателей
+- [x] "Всезнающий Сурок" — AI-комментатор чата
+- [x] Публичная карточка ИИ после раунда (convergence score)
+- [x] Оценка силы аргумента перед отправкой (score 1–5, советы)
+- [x] Пост-конфликтный момент (конфетти, common ground, инлайн-ачивка)
+- [x] Email-уведомления (Resend): инвайт, аргумент, медиация готова
+- [x] Пагинация + фильтры в dashboard
+- [x] Антиспам в чате (блокировки 1 мин → 5 мин, DDoS-защита)
 
-### В процессе
-- [ ] Фаза 2: Споры (создание спора, страница спора, инвайт-система)
+### В очереди
+- [ ] Шаблоны тем споров (быстрый старт)
+- [ ] Поиск оппонента (матчинг)
+- [ ] Error tracking (Sentry)
+- [ ] E2E тесты (Playwright)
