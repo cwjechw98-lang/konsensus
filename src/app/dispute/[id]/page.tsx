@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
+import { closeDispute } from "@/lib/actions";
 import ShareInviteButton from "@/components/ShareInviteButton";
 import RealtimeDisputeClient from "@/components/RealtimeDisputeClient";
 import DisputeReactions from "@/components/DisputeReactions";
@@ -226,6 +227,19 @@ export default async function DisputePage({
             creatorName={creatorName}
           />
         </div>
+      )}
+
+      {/* Закрыть спор — для инициатора (open / in_progress) */}
+      {isCreator && (dispute.status === "open" || dispute.status === "in_progress") && (
+        <form action={closeDispute} className="mb-6">
+          <input type="hidden" name="dispute_id" value={dispute.id} />
+          <button
+            type="submit"
+            className="text-xs text-gray-600 hover:text-red-400 border border-white/8 hover:border-red-500/30 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            Закрыть спор
+          </button>
+        </form>
       )}
 
       {/* Реакции (публичные споры) */}

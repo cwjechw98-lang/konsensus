@@ -616,6 +616,31 @@ export async function declineEarlyEnd(formData: FormData) {
     .eq("id", disputeId);
 }
 
+export async function closeDispute(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = formData.get("dispute_id") as string;
+
+  // Only creator can close, and only open or in_progress disputes
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("creator_id, status")
+    .eq("id", disputeId)
+    .single<{ creator_id: string; status: string }>();
+
+  if (!dispute || dispute.creator_id !== user.id) return;
+  if (dispute.status !== "open" && dispute.status !== "in_progress") return;
+
+  await supabase
+    .from("disputes")
+    .update({ status: "closed" } as never)
+    .eq("id", disputeId);
+
+  redirect("/dashboard");
+}
+
 export async function acceptSolution(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

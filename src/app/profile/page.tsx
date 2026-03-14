@@ -165,7 +165,7 @@ export default async function ProfilePage({
                   name="bio"
                   rows={3}
                   maxLength={500}
-                  defaultValue={(profile as { bio?: string | null })?.bio ?? ""}
+                  defaultValue={profile?.bio ?? ""}
                   className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-none text-sm"
                   placeholder="Расскажите о себе (покажется в RPG-карточке)"
                 />
@@ -176,7 +176,7 @@ export default async function ProfilePage({
                   name="debate_stance"
                   type="text"
                   maxLength={200}
-                  defaultValue={(profile as { debate_stance?: string | null })?.debate_stance ?? ""}
+                  defaultValue={profile?.debate_stance ?? ""}
                   className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors text-sm"
                   placeholder="Я спорю, потому что..."
                 />
@@ -196,7 +196,7 @@ export default async function ProfilePage({
             <RPGProfileCard
               stats={rpgStats}
               displayName={profile?.display_name ?? user.email ?? "Игрок"}
-              bio={(profile as { bio?: string | null })?.bio}
+              bio={profile?.bio}
             />
           </div>
         </div>

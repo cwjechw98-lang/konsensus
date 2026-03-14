@@ -30,22 +30,22 @@ const HOW_STEPS = [
   {
     step: "01",
     label: "Опишите суть",
-    desc: "Сформулируйте предмет спора — что именно не поделили, в чём расхождение. Ясность с самого начала задаёт тон всему диалогу.",
+    desc: "Выберите готовый шаблон или сформулируйте предмет спора самостоятельно. 15+ тем: финансы, быт, работа, семья, отношения.",
   },
   {
     step: "02",
     label: "Пригласите оппонента",
-    desc: "Одна ссылка — и вторая сторона в деле. Никаких установок, регистраций по запросу, ничего лишнего между вами.",
+    desc: "Одна ссылка — и вторая сторона в деле. Или бросьте открытый вызов на Арене — и примет тот, кто готов.",
   },
   {
     step: "03",
     label: "Изложите аргументы",
-    desc: "По очереди, раунд за раундом. У каждого — пространство для позиции, обоснования и доказательств. Без перебиваний.",
+    desc: "По очереди, раунд за раундом. ИИ оценит силу аргумента до отправки, а после — даст нейтральный разбор и покажет сближение позиций.",
   },
   {
     step: "04",
     label: "Получите решение",
-    desc: "ИИ-медиатор изучает обе стороны и предлагает консенсус: что объединяет, где можно сойтись, каким путём.",
+    desc: "ИИ-медиатор изучает все аргументы и предлагает 2–3 варианта консенсуса. Оба участника голосуют — и фиксируют договорённость.",
   },
 ];
 
@@ -57,28 +57,38 @@ const FEATURES = [
   },
   {
     icon: "🧠",
-    title: "Нейтральный ИИ-арбитр",
-    desc: "Алгоритм не знает, кто прав. Он читает аргументы, взвешивает доказательства и ищет пересечения — без предвзятости.",
+    title: "ИИ анализирует каждый раунд",
+    desc: "Нейтральная карточка от ИИ после каждого раунда: наблюдение и показатель сближения позиций от −2 до +2. Динамика в реальном времени.",
   },
   {
-    icon: "📎",
-    title: "Доказательства в деле",
-    desc: "Прикладывайте ссылки, факты, источники. Аргумент с подтверждением весит иначе, чем просто слова.",
+    icon: "✨",
+    title: "Оценка аргументов до отправки",
+    desc: "ИИ оценит ваш аргумент по шкале 1–5, покажет сильные стороны и подсказку — отправьте лучшую версию себя.",
   },
   {
-    icon: "🔐",
-    title: "Приватно и безопасно",
-    desc: "Спор виден только участникам. Никакой публичности, никакой утечки — только вы, оппонент и медиатор.",
+    icon: "⚔️",
+    title: "Арена вызовов",
+    desc: "Бросьте открытый вызов по любой теме. Наведите на оппонента — увидите его RPG-карточку: класс, статы, стиль. Примите вызов — и в бой.",
+  },
+  {
+    icon: "🛡️",
+    title: "RPG-профиль и прогресс",
+    desc: "Аргументация, Дипломатия, Активность, Выдержка — 4 стата растут с каждым спором. Класс персонажа от Новобранца до Мастера.",
+  },
+  {
+    icon: "👁️",
+    title: "Публичная лента и зрители",
+    desc: "Наблюдайте за спорами других. Реагируйте, комментируйте, читайте разбор ИИ. Всезнающий Сурок прокомментирует происходящее.",
   },
 ];
 
 const USECASES = [
-  { icon: "👥", label: "Партнёрские разногласия" },
-  { icon: "👨‍👩‍👧", label: "Семейные вопросы" },
+  { icon: "💰", label: "Финансовые споры" },
+  { icon: "🧹", label: "Бытовые вопросы" },
   { icon: "💼", label: "Рабочие конфликты" },
-  { icon: "🏠", label: "Соседские споры" },
-  { icon: "🤝", label: "Переговоры об условиях" },
-  { icon: "📝", label: "Разногласия по договору" },
+  { icon: "👨‍👩‍👧", label: "Семейные решения" },
+  { icon: "📱", label: "Отношения" },
+  { icon: "🌱", label: "Разногласия во взглядах" },
 ];
 
 // ─── Страница ────────────────────────────────────────────────────────
@@ -110,13 +120,13 @@ export default function HomePage() {
               Платформа для разрешения споров
             </p>
 
-            <h1 className="text-5xl sm:text-7xl font-bold mb-5 shimmer-text leading-none">
-              Спор — это
+            <h1 className="text-5xl sm:text-7xl font-bold mb-5 leading-none">
+              <span className="shimmer-text">Спор — это</span>
               <br />
-              не война.
+              <span className="hero-accent">не война.</span>
             </h1>
 
-            <p className="text-2xl sm:text-3xl font-light text-gray-500 mb-4">
+            <p className="text-2xl sm:text-3xl font-light mb-4 glow-pulse">
               Это возможность.
             </p>
 
@@ -142,10 +152,10 @@ export default function HomePage() {
               Начать бесплатно
             </Link>
             <Link
-              href="/login"
+              href="/arena"
               className="btn-ripple glass text-gray-300 hover:text-white px-8 py-3.5 rounded-lg font-semibold transition-colors text-base"
             >
-              Войти
+              Арена вызовов
             </Link>
           </div>
         </div>
@@ -158,29 +168,37 @@ export default function HomePage() {
 
       {/* ════════════════════ STATS ════════════════════ */}
       <section className="py-14 border-y border-white/5">
-        <div className="max-w-3xl mx-auto px-4 grid grid-cols-3 gap-6 text-center">
+        <div className="max-w-4xl mx-auto px-4 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           <ScrollReveal>
-            <div className="text-3xl sm:text-4xl font-bold gradient-text">
-              <AnimatedCounter target={1200} suffix="+" />
+            <div className="text-3xl sm:text-4xl font-bold gradient-text stat-number">
+              <AnimatedCounter target={15} suffix="+" />
             </div>
             <div className="text-xs text-gray-500 mt-2 uppercase tracking-wide">
-              Споров решено
+              Готовых шаблонов
             </div>
           </ScrollReveal>
-          <ScrollReveal delay={130}>
-            <div className="text-3xl sm:text-4xl font-bold gradient-text">
-              <AnimatedCounter target={95} suffix="%" />
+          <ScrollReveal delay={100}>
+            <div className="text-3xl sm:text-4xl font-bold gradient-text stat-number">
+              <AnimatedCounter target={3} suffix=" варианта" />
             </div>
             <div className="text-xs text-gray-500 mt-2 uppercase tracking-wide">
-              Удовлетворённость
+              Решений от ИИ
             </div>
           </ScrollReveal>
-          <ScrollReveal delay={260}>
-            <div className="text-3xl sm:text-4xl font-bold gradient-text">
-              <AnimatedCounter target={12} suffix=" мин" />
+          <ScrollReveal delay={200}>
+            <div className="text-3xl sm:text-4xl font-bold gradient-text stat-number">
+              <AnimatedCounter target={6} />
             </div>
             <div className="text-xs text-gray-500 mt-2 uppercase tracking-wide">
-              Среднее время
+              Классов персонажей
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
+            <div className="text-3xl sm:text-4xl font-bold gradient-text stat-number">
+              <AnimatedCounter target={4} suffix=" стата" />
+            </div>
+            <div className="text-xs text-gray-500 mt-2 uppercase tracking-wide">
+              RPG-профиля
             </div>
           </ScrollReveal>
         </div>
@@ -194,7 +212,7 @@ export default function HomePage() {
               Почему споры не решаются
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-4 leading-snug">
-              Конфликт без структуры —
+              Конфликт без <span className="underline-shimmer">структуры</span> —
               <br />
               это разговор глухих
             </h2>
@@ -263,7 +281,7 @@ export default function HomePage() {
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-14">
               Четыре шага от конфликта
-              <br />к консенсусу
+              <br />к <span className="section-word-accent">консенсусу</span>
             </h2>
           </ScrollReveal>
 
@@ -294,16 +312,16 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest text-center mb-4">
-              Почему Konsensus
+              Возможности
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-14">
               Не просто чат.
               <br />
-              Система для справедливого диалога.
+              <span className="underline-shimmer">Система</span> для справедливого диалога.
             </h2>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map((f, i) => (
               <ScrollReveal key={f.title} delay={i * 80}>
                 <TiltCard className="card-gradient-top glass rounded-xl p-6 h-full cursor-default">
@@ -316,6 +334,52 @@ export default function HomePage() {
               </ScrollReveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ════════════════════ ARENA PROMO ════════════════════ */}
+      <section className="py-10 px-4 pb-28 relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 40%, rgba(239,68,68,0.06) 0%, transparent 70%)",
+          }}
+        />
+        <div className="max-w-3xl mx-auto relative z-10">
+          <ScrollReveal>
+            <div className="glass rounded-2xl p-10 border border-red-500/15 text-center">
+              <div className="text-5xl mb-6">⚔️</div>
+              <p className="text-xs font-semibold text-red-400 uppercase tracking-widest mb-4">
+                Арена вызовов
+              </p>
+              <h2 className="text-2xl font-bold text-white mb-4 leading-snug">
+                Бросьте вызов — или примите чужой.
+              </h2>
+              <p className="text-gray-400 leading-relaxed mb-3">
+                Открытая доска дискуссий: выберите тему, заявите позицию — и ждите оппонента.
+                Наведите на любого участника — увидите его RPG-карточку: класс, статы, стиль спора.
+              </p>
+              <p className="text-gray-500 text-sm leading-relaxed mb-8">
+                В чате вызова ИИ-медиатор активно участвует: задаёт вопросы, фиксирует прогресс.
+                После обмена аргументами — запросите финальную медиацию и получите итог.
+              </p>
+              <div className="flex gap-4 justify-center flex-wrap">
+                <Link
+                  href="/arena"
+                  className="btn-ripple inline-block bg-red-600/80 hover:bg-red-500 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Перейти на Арену
+                </Link>
+                <Link
+                  href="/feed"
+                  className="btn-ripple inline-block glass text-gray-300 hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Смотреть споры
+                </Link>
+              </div>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -359,16 +423,16 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-white mb-4 leading-snug">
                 Он не выбирает сторону.
                 <br />
-                Он ищет мост.
+                Он ищет <span className="section-word-accent">мост</span>.
               </h2>
               <p className="text-gray-400 leading-relaxed mb-4">
-                После завершения всех раундов продвинутая языковая модель
-                анализирует все аргументы, выявляет общие точки и формирует
-                подробный медиационный разбор.
+                После каждого раунда — нейтральная карточка с наблюдением и показателем
+                сближения позиций. Вы видите динамику спора в реальном времени, а не только итог.
               </p>
               <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                Вы получаете: резюме позиции каждой стороны, что объединяет
-                обоих, 2–3 конкретных варианта решения и рекомендацию медиатора.
+                По завершении всех раундов — подробная медиация: резюме позиции
+                каждой стороны, что объединяет обоих, 2–3 конкретных варианта решения
+                и рекомендация медиатора.
               </p>
               <Link
                 href="/register"
@@ -387,18 +451,26 @@ export default function HomePage() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-snug">
             Готовы перестать спорить
             <br />
-            и начать договариваться?
+            и начать <span className="section-word-accent">договариваться</span>?
           </h2>
           <p className="text-gray-500 mb-10 max-w-md mx-auto leading-relaxed">
             Создайте первый спор за две минуты. Бесплатно, без скрытых
             условий — просто попробуйте.
           </p>
-          <Link
-            href="/register"
-            className="btn-ripple inline-block bg-purple-600 hover:bg-purple-500 text-white px-12 py-4 rounded-xl font-semibold transition-colors shadow-lg shadow-purple-900/40 text-lg"
-          >
-            Начать бесплатно
-          </Link>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link
+              href="/register"
+              className="btn-ripple inline-block bg-purple-600 hover:bg-purple-500 text-white px-12 py-4 rounded-xl font-semibold transition-colors shadow-lg shadow-purple-900/40 text-lg"
+            >
+              Начать бесплатно
+            </Link>
+            <Link
+              href="/feed"
+              className="btn-ripple inline-block glass text-gray-300 hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg"
+            >
+              Посмотреть споры
+            </Link>
+          </div>
           <p className="text-xs text-gray-600 mt-4">
             Без кредитной карты · Без обязательств
           </p>
