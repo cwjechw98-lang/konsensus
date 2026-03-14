@@ -39,6 +39,36 @@ function notify(title: string, body?: string) {
   }
 }
 
+// ─── Convergence display ───────────────────────────────────────────────────
+type PublicSummary = { content: string; convergence: number };
+
+const CONVERGENCE_LABEL = ["Позиции сильно расходятся", "Небольшое расхождение", "Позиции стабильны", "Небольшое сближение", "Позиции сближаются"];
+const CONVERGENCE_ICON  = ["↘↘", "↘", "→", "↗", "↗↗"];
+const CONVERGENCE_COLOR = ["text-red-400", "text-orange-400", "text-gray-500", "text-emerald-400", "text-emerald-300"];
+const CONVERGENCE_BG    = ["bg-red-500/8 border-red-500/15", "bg-orange-500/8 border-orange-500/15", "bg-white/3 border-white/8", "bg-emerald-500/8 border-emerald-500/15", "bg-emerald-500/10 border-emerald-500/20"];
+
+function convergenceIdx(v: number) { return Math.min(4, Math.max(0, v + 2)); }
+
+function PublicRoundCard({ summary, round }: { summary: PublicSummary; round: number }) {
+  const idx = convergenceIdx(summary.convergence);
+  return (
+    <div className={`mx-auto max-w-[95%] mt-3 rounded-2xl px-4 py-3 border ${CONVERGENCE_BG[idx]}`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
+          🤖 Наблюдение · Раунд {round}
+        </p>
+        <span className={`text-xs font-semibold flex items-center gap-1 ${CONVERGENCE_COLOR[idx]}`}>
+          <span>{CONVERGENCE_ICON[idx]}</span>
+          <span>{CONVERGENCE_LABEL[idx]}</span>
+        </span>
+      </div>
+      <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+        {summary.content}
+      </p>
+    </div>
+  );
+}
+
 const HEAT_LABELS = ["", "Спокойно", "Почти мирно", "Напряжённо", "Горячо", "Накалено"];
 const HEAT_ICONS  = ["", "😊", "🙂", "😤", "🔥", "💥"];
 const HEAT_TEXT   = ["", "text-green-400", "text-green-300", "text-yellow-400", "text-orange-400", "text-red-400"];
@@ -75,6 +105,7 @@ export default function RealtimeDisputeClient({
   isParticipant,
   isCreator,
   roundInsights,
+  roundPublicSummaries: initialPublicSummaries = {},
   heatLevel: initialHeatLevel = 0,
   earlyEndProposedBy: initialEarlyEndProposedBy = null,
   waitingInsight: initialWaitingInsight = "",
@@ -87,6 +118,7 @@ export default function RealtimeDisputeClient({
   isParticipant: boolean;
   isCreator: boolean;
   roundInsights: Record<number, string>;
+  roundPublicSummaries?: Record<number, PublicSummary>;
   heatLevel?: number;
   earlyEndProposedBy?: string | null;
   waitingInsight?: string;
@@ -96,6 +128,7 @@ export default function RealtimeDisputeClient({
   const [status, setStatus] = useState(initialStatus);
   const [newArgFlash, setNewArgFlash] = useState<string | null>(null);
   const [insights, setInsights] = useState<Record<number, string>>(roundInsights);
+  const [publicSummaries, setPublicSummaries] = useState<Record<number, PublicSummary>>(initialPublicSummaries);
   const [heatLevel, setHeatLevel] = useState(initialHeatLevel);
   const [earlyEndProposedBy, setEarlyEndProposedBy] = useState<string | null>(initialEarlyEndProposedBy);
   const [currentWaitingInsight, setCurrentWaitingInsight] = useState(initialWaitingInsight);
@@ -135,6 +168,25 @@ export default function RealtimeDisputeClient({
             notify("Konsensus", "ИИ подготовил для вас комментарий");
             scrollToBottom();
           }
+        }
+      )
+      .subscribe();
+
+    // Public round summaries
+    const publicSummariesChannel = supabase
+      .channel(`public-summaries-${dispute.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "round_public_summaries",
+          filter: `dispute_id=eq.${dispute.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { round: number; content: string; convergence: number };
+          setPublicSummaries((prev) => ({ ...prev, [row.round]: { content: row.content, convergence: row.convergence } }));
+          scrollToBottom();
         }
       )
       .subscribe();
@@ -238,6 +290,7 @@ export default function RealtimeDisputeClient({
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(insightsChannel);
+      supabase.removeChannel(publicSummariesChannel);
       supabase.removeChannel(analysisChannel);
       supabase.removeChannel(waitingChannel);
     };
@@ -404,9 +457,14 @@ export default function RealtimeDisputeClient({
                     })}
                   </div>
 
-                  {/* AI-инсайт после раунда */}
+                  {/* Public AI round card — visible to both */}
+                  {roundArgs.length === 2 && publicSummaries[round] && (
+                    <PublicRoundCard summary={publicSummaries[round]} round={round} />
+                  )}
+
+                  {/* Private AI insight — only for current user */}
                   {roundArgs.length === 2 && insights[round] && (
-                    <div className="mx-auto max-w-[90%] mt-3">
+                    <div className="mx-auto max-w-[90%] mt-2">
                       <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
                         <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
                           <span>🤖</span>

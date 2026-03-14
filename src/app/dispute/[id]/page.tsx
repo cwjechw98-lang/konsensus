@@ -74,6 +74,17 @@ export default async function DisputePage({
       .returns<ArgumentRow[]>(),
   ]);
 
+  // round_public_summaries: visible to both participants
+  let publicSummaries: { round: number; content: string; convergence: number }[] = [];
+  try {
+    const { data: summaryData } = await supabase
+      .from("round_public_summaries")
+      .select("round, content, convergence")
+      .eq("dispute_id", id)
+      .returns<{ round: number; content: string; convergence: number }[]>();
+    publicSummaries = summaryData ?? [];
+  } catch { publicSummaries = []; }
+
   // round_insights: graceful fallback до запуска миграции
   let insights: { round: number; content: string }[] = [];
   try {
@@ -252,6 +263,10 @@ export default async function DisputePage({
         isCreator={isCreator}
         roundInsights={insights.reduce<Record<number, string>>(
           (acc, i) => { acc[i.round] = i.content; return acc; },
+          {}
+        )}
+        roundPublicSummaries={publicSummaries.reduce<Record<number, { content: string; convergence: number }>>(
+          (acc, s) => { acc[s.round] = { content: s.content, convergence: s.convergence }; return acc; },
           {}
         )}
         heatLevel={heatLevel}

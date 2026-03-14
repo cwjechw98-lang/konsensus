@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { generateRoundInsights, generateWaitingInsight } from "@/lib/ai";
+import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 
@@ -358,20 +358,21 @@ export async function submitArgument(formData: FormData) {
       .eq("dispute_id", disputeId)
       .returns<{ author_id: string; round: number; position: string; reasoning: string; evidence: string | null }[]>();
 
+    const disputeCtx = {
+      id: disputeId,
+      title: dispute.title,
+      description: dispute.description,
+      creator_id: dispute.creator_id,
+      opponent_id: dispute.opponent_id,
+      max_rounds: dispute.max_rounds,
+    };
+
     try {
-      await generateRoundInsights(
-        {
-          id: disputeId,
-          title: dispute.title,
-          description: dispute.description,
-          creator_id: dispute.creator_id,
-          opponent_id: dispute.opponent_id,
-          max_rounds: dispute.max_rounds,
-        },
-        currentRound,
-        fullArgs ?? [],
-        allProfiles
-      );
+      await generateRoundInsights(disputeCtx, currentRound, fullArgs ?? [], allProfiles);
+    } catch { /* AI — non-critical */ }
+
+    try {
+      await generatePublicRoundSummary(disputeCtx, currentRound, fullArgs ?? [], allProfiles);
     } catch { /* AI — non-critical */ }
   }
 

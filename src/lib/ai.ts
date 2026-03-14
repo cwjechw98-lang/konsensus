@@ -243,6 +243,93 @@ Return JSON:
   } as never, { onConflict: "dispute_id,round,recipient_id" });
 }
 
+export async function generatePublicRoundSummary(
+  dispute: DisputeContext,
+  currentRound: number,
+  allArgs: ArgumentRow[],
+  profiles: Profile[]
+): Promise<void> {
+  const admin = createAdminClient();
+
+  // Skip if already exists
+  const { data: existing } = await admin
+    .from("round_public_summaries")
+    .select("id")
+    .eq("dispute_id", dispute.id)
+    .eq("round", currentRound)
+    .single();
+  if (existing) return;
+
+  const getName = (id: string) =>
+    profiles.find((p) => p.id === id)?.display_name ?? "Участник";
+
+  const creatorName = getName(dispute.creator_id);
+  const opponentName = getName(dispute.opponent_id);
+
+  const roundArgs = allArgs.filter((a) => a.round === currentRound);
+  const creatorArg = roundArgs.find((a) => a.author_id === dispute.creator_id);
+  const opponentArg = roundArgs.find((a) => a.author_id === dispute.opponent_id);
+  if (!creatorArg || !opponentArg) return;
+
+  // Previous rounds context
+  const prevRounds = Array.from({ length: currentRound - 1 }, (_, i) => {
+    const r = i + 1;
+    const ca = allArgs.find((a) => a.author_id === dispute.creator_id && a.round === r);
+    const oa = allArgs.find((a) => a.author_id === dispute.opponent_id && a.round === r);
+    return `Раунд ${r}: ${creatorName}: "${ca?.position ?? "—"}" | ${opponentName}: "${oa?.position ?? "—"}"`;
+  }).join("\n");
+
+  const Groq = (await import("groq-sdk")).default;
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const prompt = `Ты — нейтральный ИИ-наблюдатель спора. Отвечай на русском. Верни только JSON.
+
+Спор: "${dispute.title}"${dispute.description ? `\nОписание: "${dispute.description}"` : ""}
+
+${prevRounds ? `Предыдущие раунды:\n${prevRounds}\n\n` : ""}Раунд ${currentRound}:
+${creatorName}: позиция — "${creatorArg.position}". Аргумент: "${creatorArg.reasoning}"
+${opponentName}: позиция — "${opponentArg.position}". Аргумент: "${opponentArg.reasoning}"
+
+Задача:
+1. Напиши короткое нейтральное наблюдение об этом раунде (2-3 предложения). Видно ОБОИМ участникам. Не говори кто прав. Отметь, что интересного в аргументах, есть ли точки соприкосновения.
+2. Оцени, сближаются ли позиции (по сравнению с предыдущими раундами или начальным состоянием):
+   -2 = позиции сильно расходятся
+   -1 = небольшое расхождение
+    0 = позиции стабильны, движения нет
+   +1 = небольшое сближение
+   +2 = позиции заметно сближаются
+
+Верни JSON:
+{
+  "content": "нейтральное наблюдение на русском, 2-3 предложения",
+  "convergence": число от -2 до 2
+}`;
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    max_tokens: 300,
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  let content = "";
+  let convergence = 0;
+  try {
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    content = (result.content as string) ?? "";
+    convergence = Math.min(2, Math.max(-2, Math.round(Number(result.convergence) || 0)));
+  } catch { return; }
+
+  if (!content) return;
+
+  await admin.from("round_public_summaries").upsert({
+    dispute_id: dispute.id,
+    round: currentRound,
+    content,
+    convergence,
+  } as never, { onConflict: "dispute_id,round" });
+}
+
 export async function generateChatComment(
   disputeTitle: string,
   recentComments: { author_name: string; content: string }[]
