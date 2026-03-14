@@ -3,18 +3,42 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
+// Dynamically load Telegram Web App SDK and return the WebApp object
+function loadTelegramSdk(): Promise<{ initData?: string; ready?: () => void; expand?: () => void } | null> {
+  return new Promise((resolve) => {
+    // Already loaded?
+    const existing = (window as any).Telegram?.WebApp;
+    if (existing?.initData) {
+      resolve(existing);
+      return;
+    }
+
+    // Inject script manually (in case layout defer hasn't fired yet)
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-web-app.js";
+    script.onload = () => {
+      // Give it a moment to initialize
+      setTimeout(() => resolve((window as any).Telegram?.WebApp ?? null), 200);
+    };
+    script.onerror = () => resolve(null);
+    document.head.appendChild(script);
+
+    // Fallback timeout
+    setTimeout(() => resolve((window as any).Telegram?.WebApp ?? null), 5000);
+  });
+}
+
 export default function TelegramAppPage() {
   const [status, setStatus] = useState<"loading" | "not_linked" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     async function authenticate() {
-      // Check if we're inside Telegram WebApp
-      const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string; ready?: () => void; expand?: () => void } } }).Telegram?.WebApp;
+      const tg = await loadTelegramSdk();
 
       if (!tg?.initData) {
         setStatus("error");
-        setErrorMsg("Эта страница работает только внутри Telegram.");
+        setErrorMsg("Эта страница работает только внутри Telegram. Откройте её через кнопку «Открыть приложение» в боте.");
         return;
       }
 
@@ -88,7 +112,7 @@ export default function TelegramAppPage() {
               Чтобы использовать приложение внутри Telegram, сначала привяжите аккаунт:
             </p>
             <ol className="text-left text-gray-400 text-sm space-y-2">
-              <li>1. Откройте <a href="https://konsensus.app/profile" target="_blank" rel="noopener" className="text-purple-400 underline">профиль на сайте</a></li>
+              <li>1. Откройте <a href="https://konsensus-six.vercel.app/profile" target="_blank" rel="noopener" className="text-purple-400 underline">профиль на сайте</a></li>
               <li>2. Нажмите «Подключить Telegram»</li>
               <li>3. Отправьте код боту</li>
               <li>4. Вернитесь сюда</li>

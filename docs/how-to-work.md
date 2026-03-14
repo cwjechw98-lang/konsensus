@@ -104,7 +104,7 @@ TELEGRAM_WEBHOOK_SECRET=<любая случайная строка>
 ```bash
 curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://konsensus.app/api/telegram","secret_token":"<WEBHOOK_SECRET>"}'
+  -d '{"url":"https://konsensus-six.vercel.app/api/telegram","secret_token":"<WEBHOOK_SECRET>"}'
 ```
 
 После этого бот готов к работе. Пользователи привязывают аккаунт через Профиль → «Получить код».

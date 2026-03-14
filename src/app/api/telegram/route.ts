@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
 
 const WEBAPP_URL = `${APP_URL}/tg`;
 

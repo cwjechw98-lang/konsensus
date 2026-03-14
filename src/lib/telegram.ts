@@ -1,5 +1,5 @@
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
 
 async function sendTelegramMessage(
   chatId: number,
