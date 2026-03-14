@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 
 const translateError = (msg: string): string => {
   if (msg.includes("User already registered") || msg.includes("already been registered"))
@@ -67,7 +68,13 @@ export default async function RegisterPage({
           </p>
         </div>
 
-        <div className="glass rounded-2xl p-8">
+        <div className="glass rounded-2xl p-8 flex flex-col gap-4">
+          <GoogleOAuthButton next={redirectUrl || undefined} />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/8" />
+            <span className="text-xs text-gray-600">или</span>
+            <div className="flex-1 h-px bg-white/8" />
+          </div>
           <form action={signUp} className="flex flex-col gap-4">
             {message && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg">

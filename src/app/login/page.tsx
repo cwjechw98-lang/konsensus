@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 
 // Переводим английские ошибки Supabase на русский
 const translateError = (msg: string): string => {
@@ -49,7 +50,9 @@ export default function LoginPage({
           <p className="text-gray-500 text-sm mt-2">Добро пожаловать обратно</p>
         </div>
 
-        <div className="glass rounded-2xl p-8">
+        <div className="glass rounded-2xl p-8 flex flex-col gap-4">
+          <GoogleOAuthButton />
+          <Divider />
           <LoginForm action={signIn} searchParams={searchParams} />
         </div>
 
@@ -63,6 +66,16 @@ export default function LoginPage({
           </Link>
         </p>
       </div>
+    </div>
+  );
+}
+
+function Divider() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-px bg-white/8" />
+      <span className="text-xs text-gray-600">или</span>
+      <div className="flex-1 h-px bg-white/8" />
     </div>
   );
 }
