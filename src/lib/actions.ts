@@ -701,34 +701,59 @@ export async function toggleReaction(
 
 // ─── Observer chat ────────────────────────────────────────────────────────────
 
+// Thresholds
+const SPAM_WINDOW_MS = 10_000;   // 10 seconds window
+const SPAM_LIMIT_WARN = 2;       // messages in 10s → 1 min block
+const SPAM_LIMIT_BAN  = 4;       // messages in 10s → 5 min block
+const DDOS_WINDOW_MS  = 60_000;  // 1 minute window
+const DDOS_THRESHOLD  = 60;      // total messages per minute → overload
+
 export async function addComment(
   disputeId: string,
   content: string,
   authorName: string,
   sessionId: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; blockUntil?: number; level?: 1 | 2; overload?: boolean }> {
   const trimmed = content.trim();
   if (!trimmed || trimmed.length > 500) return { error: "Недопустимая длина" };
+  if (!sessionId) return { error: "Сессия не найдена" };
 
   const admin = createAdminClient();
+  const now = new Date();
 
-  // Rate limit: max 1 message per 5 seconds per session
-  const { data: recent } = await admin
+  // 1. DDoS check: total messages in last minute
+  const ddosFrom = new Date(now.getTime() - DDOS_WINDOW_MS).toISOString();
+  const { count: totalRecent } = await admin
     .from("dispute_comments")
-    .select("created_at")
+    .select("*", { count: "exact", head: true })
     .eq("dispute_id", disputeId)
-    .eq("author_name", authorName)
     .eq("is_ai", false)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .gte("created_at", ddosFrom);
 
-  if (recent) {
-    const diff = Date.now() - new Date(recent.created_at).getTime();
-    if (diff < 5000) return { error: "Подождите немного перед следующим сообщением" };
+  if ((totalRecent ?? 0) >= DDOS_THRESHOLD) {
+    return { overload: true, blockUntil: now.getTime() + 30_000 };
   }
 
-  // Insert user comment
+  // 2. Per-session rate limit
+  const spamFrom = new Date(now.getTime() - SPAM_WINDOW_MS).toISOString();
+  const { count: sessionRecent } = await admin
+    .from("dispute_comments")
+    .select("*", { count: "exact", head: true })
+    .eq("dispute_id", disputeId)
+    .eq("session_id", sessionId)
+    .eq("is_ai", false)
+    .gte("created_at", spamFrom);
+
+  const recent = sessionRecent ?? 0;
+
+  if (recent >= SPAM_LIMIT_BAN) {
+    return { error: "spam", level: 2, blockUntil: now.getTime() + 300_000 };
+  }
+  if (recent >= SPAM_LIMIT_WARN) {
+    return { error: "spam", level: 1, blockUntil: now.getTime() + 60_000 };
+  }
+
+  // 3. Insert user comment
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -737,18 +762,18 @@ export async function addComment(
     content: trimmed,
     author_name: authorName,
     author_id: user?.id ?? null,
+    session_id: sessionId,
     is_ai: false,
   } as never);
 
-  // Check if AI should chime in (every 5th human comment)
-  const { count } = await admin
+  // 4. AI chimes in every 5th human comment
+  const { count: total } = await admin
     .from("dispute_comments")
     .select("*", { count: "exact", head: true })
     .eq("dispute_id", disputeId)
     .eq("is_ai", false);
 
-  if ((count ?? 0) % 5 === 0 && (count ?? 0) > 0) {
-    // Get dispute title + recent comments for AI context
+  if ((total ?? 0) % 5 === 0 && (total ?? 0) > 0) {
     const { data: dispute } = await admin
       .from("disputes")
       .select("title")
@@ -766,16 +791,14 @@ export async function addComment(
 
     if (dispute && recentComments) {
       const { generateChatComment } = await import("@/lib/ai");
-      const aiText = await generateChatComment(
-        dispute.title,
-        recentComments.reverse()
-      );
+      const aiText = await generateChatComment(dispute.title, recentComments.reverse());
       if (aiText) {
         await admin.from("dispute_comments").insert({
           dispute_id: disputeId,
           content: aiText,
           author_name: "Всезнающий Сурок",
           author_id: null,
+          session_id: null,
           is_ai: true,
         } as never);
       }
