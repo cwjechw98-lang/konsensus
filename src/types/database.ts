@@ -352,6 +352,104 @@ export interface Database {
           earned_at?: string;
         };
       };
+      user_ai_profiles: {
+        Row: {
+          user_id: string;
+          argumentation_style: string;
+          compromise_tendency: number;
+          ai_hint_reaction: string;
+          typical_planes: string[];
+          consensus_rate: number;
+          avg_response_time: number;
+          impulsivity: number;
+          empathy_score: number;
+          ai_summary: string | null;
+          hints_accepted: number;
+          hints_ignored: number;
+          hints_total: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          argumentation_style?: string;
+          compromise_tendency?: number;
+          ai_hint_reaction?: string;
+          typical_planes?: string[];
+          consensus_rate?: number;
+          avg_response_time?: number;
+          impulsivity?: number;
+          empathy_score?: number;
+          ai_summary?: string | null;
+          hints_accepted?: number;
+          hints_ignored?: number;
+          hints_total?: number;
+          updated_at?: string;
+        };
+        Update: {
+          argumentation_style?: string;
+          compromise_tendency?: number;
+          ai_hint_reaction?: string;
+          typical_planes?: string[];
+          consensus_rate?: number;
+          avg_response_time?: number;
+          impulsivity?: number;
+          empathy_score?: number;
+          ai_summary?: string | null;
+          hints_accepted?: number;
+          hints_ignored?: number;
+          hints_total?: number;
+          updated_at?: string;
+        };
+      };
+      user_counterparts: {
+        Row: {
+          id: string;
+          user_id: string;
+          counterpart_id: string;
+          dispute_count: number;
+          consensus_count: number;
+          last_dispute_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          counterpart_id: string;
+          dispute_count?: number;
+          consensus_count?: number;
+          last_dispute_at?: string;
+        };
+        Update: {
+          dispute_count?: number;
+          consensus_count?: number;
+          last_dispute_at?: string;
+        };
+      };
+      ai_hint_logs: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          user_id: string;
+          round: number;
+          hint_text: string;
+          tone_changed: boolean | null;
+          positions_converged: boolean | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          user_id: string;
+          round: number;
+          hint_text: string;
+          tone_changed?: boolean | null;
+          positions_converged?: boolean | null;
+          created_at?: string;
+        };
+        Update: {
+          tone_changed?: boolean | null;
+          positions_converged?: boolean | null;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

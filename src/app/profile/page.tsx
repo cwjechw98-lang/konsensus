@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { updateProfile, disconnectTelegram } from "./actions";
 import { TelegramConnect } from "@/components/TelegramConnect";
-import { ACHIEVEMENTS } from "@/lib/achievements";
+import { ACHIEVEMENTS, CATEGORY_LABELS, type AchievementCategory } from "@/lib/achievements";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import RPGProfileCard from "@/components/RPGProfileCard";
 import { fetchRPGStats } from "@/lib/rpg";
+import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -18,17 +19,28 @@ function formatDate(iso: string) {
   });
 }
 
+function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-gray-500 w-28 shrink-0">{label}</span>
+      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, value)}%` }} />
+      </div>
+      <span className="text-xs text-gray-400 w-8 text-right">{value}%</span>
+    </div>
+  );
+}
+
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; tab?: string }>;
 }) {
-  const { error: errorMsg, success } = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { error: errorMsg, success, tab } = await searchParams;
+  const activeTab = tab ?? "overview";
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
@@ -38,98 +50,402 @@ export default async function ProfilePage({
     .single<Profile>();
 
   const createdAt = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+    ? new Date(profile.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
-  let totalPoints = 0;
-  let earnedAchievements: { achievement_id: string; earned_at: string }[] = [];
-  let disputeCount = 0;
-  let argCount = 0;
+  // Parallel data fetch
+  const [pointsRes, achievementsRes, disputesRes, argsRes, rpgStats, aiProfile, counterparts] = await Promise.all([
+    supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
+    supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
+    supabase.from("disputes").select("id, status, category", { count: "exact" }).or(`creator_id.eq.${user.id},opponent_id.eq.${user.id}`).returns<{ id: string; status: string; category: string | null }[]>(),
+    supabase.from("arguments").select("*", { count: "exact", head: true }).eq("author_id", user.id),
+    fetchRPGStats(user.id, supabase),
+    fetchAIProfile(user.id).catch(() => null),
+    fetchCounterparts(user.id).catch(() => []),
+  ]);
 
-  try {
-    const [pointsRes, achievementsRes, disputesRes, argsRes] = await Promise.all([
-      supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
-      supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
-      supabase.from("disputes").select("*", { count: "exact", head: true }).or(`creator_id.eq.${user.id},opponent_id.eq.${user.id}`),
-      supabase.from("arguments").select("*", { count: "exact", head: true }).eq("author_id", user.id),
-    ]);
+  const totalPoints = pointsRes.data?.total ?? 0;
+  const earnedAchievements = achievementsRes.data ?? [];
+  const allDisputes = disputesRes.data ?? [];
+  const disputeCount = disputesRes.count ?? 0;
+  const argCount = argsRes.count ?? 0;
 
-    totalPoints = pointsRes.data?.total ?? 0;
-    earnedAchievements = achievementsRes.data ?? [];
-    disputeCount = disputesRes.count ?? 0;
-    argCount = argsRes.count ?? 0;
-  } catch { /* Tables not migrated yet */ }
+  const resolvedCount = allDisputes.filter((d) => d.status === "resolved").length;
+  const activeCount = allDisputes.filter((d) => ["open", "in_progress", "mediation"].includes(d.status)).length;
+  const consensusRate = disputeCount > 0 ? Math.round((resolvedCount / disputeCount) * 100) : 0;
 
-  const rpgStats = await fetchRPGStats(user.id, supabase);
+  // Category distribution
+  const categoryMap: Record<string, number> = {};
+  for (const d of allDisputes) {
+    const cat = d.category ?? "other";
+    categoryMap[cat] = (categoryMap[cat] ?? 0) + 1;
+  }
 
   const earnedMap = Object.fromEntries(earnedAchievements.map((a) => [a.achievement_id, a.earned_at]));
   const earnedIds = new Set(earnedAchievements.map((a) => a.achievement_id));
 
+  // Group achievements by category
+  const achievementsByCategory: Record<string, { id: string; ach: typeof ACHIEVEMENTS[keyof typeof ACHIEVEMENTS]; earned: boolean; earnedAt?: string }[]> = {};
+  for (const [id, ach] of Object.entries(ACHIEVEMENTS)) {
+    const cat = ach.category;
+    if (!achievementsByCategory[cat]) achievementsByCategory[cat] = [];
+    achievementsByCategory[cat].push({ id, ach, earned: earnedIds.has(id), earnedAt: earnedMap[id] });
+  }
+
+  const tabs = [
+    { id: "overview", label: "Обзор", icon: "📊" },
+    { id: "achievements", label: "Достижения", icon: "🏆" },
+    { id: "ai-profile", label: "ИИ-профиль", icon: "🧠" },
+    { id: "settings", label: "Настройки", icon: "⚙️" },
+  ];
+
+  const styleInfo = aiProfile ? getStyleInfo(aiProfile.argumentation_style) : null;
+  const reactionInfo = aiProfile ? getReactionInfo(aiProfile.ai_hint_reaction) : null;
+
+  const categoryEmoji: Record<string, string> = {
+    politics: "🏛", technology: "💻", philosophy: "🧠", lifestyle: "🏠",
+    science: "🔬", culture: "🎭", economics: "💰", relationships: "💬", other: "📌",
+  };
+  const categoryLabels: Record<string, string> = {
+    politics: "Политика", technology: "Технологии", philosophy: "Философия", lifestyle: "Быт",
+    science: "Наука", culture: "Культура", economics: "Экономика", relationships: "Отношения", other: "Другое",
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold text-white mb-6">Профиль</h1>
+      {/* ─── Header with name and XP ─── */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">{profile?.display_name ?? "Профиль"}</h1>
+          {createdAt && <p className="text-xs text-gray-500 mt-1" suppressHydrationWarning>На платформе с {createdAt}</p>}
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-bold text-white"><AnimatedCounter target={totalPoints} /></p>
+          <p className="text-xs text-purple-400">XP</p>
+        </div>
+      </div>
 
       {errorMsg && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4">
-          {errorMsg}
-        </div>
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4">{errorMsg}</div>
       )}
       {success && (
-        <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm p-3 rounded-lg mb-4">
-          Профиль обновлён
+        <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm p-3 rounded-lg mb-4">Профиль обновлён</div>
+      )}
+
+      {/* ─── Quick Stats Row ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="glass rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-white">{disputeCount}</p>
+          <p className="text-xs text-gray-500">Споров</p>
+        </div>
+        <div className="glass rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-white">{argCount}</p>
+          <p className="text-xs text-gray-500">Аргументов</p>
+        </div>
+        <div className="glass rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-purple-400">{consensusRate}%</p>
+          <p className="text-xs text-gray-500">Консенсус</p>
+        </div>
+        <div className="glass rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-white">{earnedIds.size}/{Object.keys(ACHIEVEMENTS).length}</p>
+          <p className="text-xs text-gray-500">Ачивок</p>
+        </div>
+      </div>
+
+      {/* ─── Tabs ─── */}
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
+        {tabs.map((t) => (
+          <a
+            key={t.id}
+            href={`/profile${t.id === "overview" ? "" : `?tab=${t.id}`}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === t.id
+                ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
+                : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+            }`}
+          >
+            <span>{t.icon}</span>
+            {t.label}
+          </a>
+        ))}
+      </div>
+
+      {/* ─── Tab Content ─── */}
+
+      {/* ────── OVERVIEW TAB ────── */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* RPG Card */}
+          <RPGProfileCard
+            stats={rpgStats}
+            displayName={profile?.display_name ?? user.email ?? "Игрок"}
+            bio={profile?.bio}
+          />
+
+          {/* Category Distribution */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Темы споров</h2>
+            {Object.keys(categoryMap).length === 0 ? (
+              <p className="text-sm text-gray-500">Пока нет данных. Создайте первый спор!</p>
+            ) : (
+              <div className="space-y-2.5">
+                {Object.entries(categoryMap)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([cat, count]) => (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="text-lg">{categoryEmoji[cat] ?? "📌"}</span>
+                      <span className="text-sm text-gray-300 flex-1">{categoryLabels[cat] ?? cat}</span>
+                      <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 rounded-full"
+                          style={{ width: `${(count / disputeCount) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 w-6 text-right">{count}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Counterparts */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Контрагенты</h2>
+            {counterparts.length === 0 ? (
+              <p className="text-sm text-gray-500">Вы ещё ни с кем не спорили. Начните!</p>
+            ) : (
+              <div className="space-y-3">
+                {counterparts.slice(0, 10).map((c) => (
+                  <div key={c.counterpart_id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-white">{c.display_name}</p>
+                      <p className="text-xs text-gray-500">
+                        {c.dispute_count} спор{c.dispute_count === 1 ? "" : c.dispute_count < 5 ? "а" : "ов"}
+                        {c.consensus_count > 0 && ` · ${c.consensus_count} консенсус`}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-600" suppressHydrationWarning>
+                      {formatDate(c.last_dispute_at)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Achievements */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Последние достижения</h2>
+            {earnedAchievements.length === 0 ? (
+              <p className="text-sm text-gray-500">Пока нет достижений. Начните спорить!</p>
+            ) : (
+              <div className="space-y-2.5">
+                {earnedAchievements
+                  .sort((a, b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime())
+                  .slice(0, 5)
+                  .map((ea) => {
+                    const ach = ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS];
+                    if (!ach) return null;
+                    return (
+                      <div key={ea.achievement_id} className="flex items-center gap-3">
+                        <span className="text-xl">{ach.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{ach.title}</p>
+                          <p className="text-xs text-gray-500">{ach.desc}</p>
+                        </div>
+                        <span className="text-xs text-purple-400 font-semibold">+{ach.points}</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            <a href="/profile?tab=achievements" className="block text-center text-xs text-purple-400 mt-4 hover:underline">
+              Все достижения →
+            </a>
+          </div>
         </div>
       )}
 
-      {/* ─── Points Banner — full width ─── */}
-      <div className="relative glass rounded-2xl p-6 mb-5 overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="relative flex items-center justify-between gap-6">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Очки опыта</p>
-            <p className="text-5xl font-bold text-white mb-1">
-              <AnimatedCounter target={totalPoints} />
-            </p>
-            <p className="text-xs text-purple-400">
-              {earnedIds.size} из {Object.keys(ACHIEVEMENTS).length} достижений разблокировано
-            </p>
-          </div>
-          {/* Stats inline on wide banner */}
-          <div className="hidden sm:flex gap-6 flex-shrink-0">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white">{disputeCount}</p>
-              <p className="text-xs text-gray-500 mt-1">Споров</p>
+      {/* ────── ACHIEVEMENTS TAB ────── */}
+      {activeTab === "achievements" && (
+        <div className="space-y-6">
+          {/* Progress bar */}
+          <div className="glass rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-300">Общий прогресс</span>
+              <span className="text-sm text-purple-400 font-bold">{earnedIds.size}/{Object.keys(ACHIEVEMENTS).length}</span>
             </div>
-            <div className="w-px bg-white/8 self-stretch" />
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white">{argCount}</p>
-              <p className="text-xs text-gray-500 mt-1">Аргументов</p>
+            <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full transition-all duration-1000"
+                style={{ width: `${(earnedIds.size / Object.keys(ACHIEVEMENTS).length) * 100}%` }}
+              />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Stats Row — mobile only */}
-      <div className="grid grid-cols-2 gap-4 mb-5 sm:hidden">
-        <div className="glass rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-white">{disputeCount}</p>
-          <p className="text-xs text-gray-500 mt-1">Споров</p>
+          {/* By category */}
+          {(Object.keys(CATEGORY_LABELS) as AchievementCategory[]).map((cat) => {
+            const items = achievementsByCategory[cat] ?? [];
+            if (items.length === 0) return null;
+            const catInfo = CATEGORY_LABELS[cat];
+            const earned = items.filter((i) => i.earned).length;
+            return (
+              <div key={cat} className="glass rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>{catInfo.icon}</span>
+                    {catInfo.label}
+                  </h3>
+                  <span className="text-xs text-gray-500">{earned}/{items.length}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {items.map(({ id, ach, earned: isEarned, earnedAt }) => (
+                    <div
+                      key={id}
+                      className={`rounded-xl p-3 transition-all ${
+                        isEarned
+                          ? "bg-purple-500/10 border border-purple-500/25"
+                          : "bg-white/2 border border-white/5 opacity-45"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span className="text-xl leading-none mt-0.5">{ach.icon}</span>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-semibold truncate ${isEarned ? "text-white" : "text-gray-500"}`}>
+                            {ach.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 leading-tight">{ach.desc}</p>
+                          {isEarned ? (
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs text-purple-400 font-semibold">+{ach.points}</span>
+                              {earnedAt && <span className="text-xs text-gray-600" suppressHydrationWarning>{formatDate(earnedAt)}</span>}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-600 mt-1">{ach.points} очков</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="glass rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-white">{argCount}</p>
-          <p className="text-xs text-gray-500 mt-1">Аргументов</p>
+      )}
+
+      {/* ────── AI PROFILE TAB ────── */}
+      {activeTab === "ai-profile" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* AI Analysis */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              🧠 ИИ-анализ вашего стиля
+            </h2>
+            {aiProfile ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
+                  <span className="text-2xl">{styleInfo?.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{styleInfo?.label}</p>
+                    <p className="text-xs text-gray-500">{styleInfo?.desc}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <StatBar label="Компромисс" value={aiProfile.compromise_tendency} color="bg-green-500" />
+                  <StatBar label="Эмпатия" value={aiProfile.empathy_score} color="bg-blue-500" />
+                  <StatBar label="Импульсивность" value={aiProfile.impulsivity} color="bg-orange-500" />
+                  <StatBar label="Консенсус" value={aiProfile.consensus_rate} color="bg-purple-500" />
+                </div>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/3 mt-4">
+                  <span className="text-xl">{reactionInfo?.icon}</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Реакция на подсказки ИИ</p>
+                    <p className="text-sm font-medium text-white">{reactionInfo?.label}</p>
+                  </div>
+                  {aiProfile.hints_total > 0 && (
+                    <span className="text-xs text-gray-500 ml-auto">
+                      {aiProfile.hints_accepted}/{aiProfile.hints_total} принято
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <span className="text-4xl">🔮</span>
+                <p className="text-sm text-gray-500 mt-3">
+                  ИИ-профиль формируется автоматически по мере ваших споров.
+                  <br />Начните спорить, чтобы увидеть анализ!
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* AI Summary */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              📋 Резюме от ИИ
+            </h2>
+            {aiProfile?.ai_summary ? (
+              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                {aiProfile.ai_summary}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <span className="text-4xl">📝</span>
+                <p className="text-sm text-gray-500 mt-3">
+                  После нескольких споров ИИ составит персональное резюме вашего стиля дебатирования.
+                </p>
+              </div>
+            )}
+
+            {/* Typical planes */}
+            {aiProfile && aiProfile.typical_planes.length > 0 && (
+              <div className="mt-6">
+                <p className="text-xs text-gray-500 mb-2">Ваши типичные темы:</p>
+                <div className="flex flex-wrap gap-2">
+                  {aiProfile.typical_planes.map((plane) => (
+                    <span key={plane} className="px-2.5 py-1 text-xs rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      {categoryEmoji[plane] ?? "📌"} {categoryLabels[plane] ?? plane}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* How AI uses your profile */}
+          <div className="glass rounded-2xl p-6 lg:col-span-2">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              💡 Как ИИ использует ваш профиль
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-white/3">
+                <span className="text-2xl">🎯</span>
+                <p className="text-sm font-semibold text-white mt-2">Адаптивные подсказки</p>
+                <p className="text-xs text-gray-500 mt-1">ИИ подстраивает тон и стиль подсказок под ваш характер</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/3">
+                <span className="text-2xl">🔬</span>
+                <p className="text-sm font-semibold text-white mt-2">Глубокий анализ</p>
+                <p className="text-xs text-gray-500 mt-1">Медиатор учитывает профили обоих сторон для точного анализа</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/3">
+                <span className="text-2xl">📈</span>
+                <p className="text-sm font-semibold text-white mt-2">Рост навыков</p>
+                <p className="text-xs text-gray-500 mt-1">Отслеживает вашу эволюцию как спорщика со временем</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ─── Two-column layout on lg+ ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-5">
-
-        {/* Left: account + edit */}
-        <div className="flex flex-col gap-5">
+      {/* ────── SETTINGS TAB ────── */}
+      {activeTab === "settings" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Account info */}
           <div className="glass rounded-2xl p-6">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Аккаунт</h2>
             <div className="flex flex-col gap-3">
@@ -146,6 +462,7 @@ export default async function ProfilePage({
             </div>
           </div>
 
+          {/* Edit profile */}
           <div className="glass rounded-2xl p-6">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Данные профиля</h2>
             <form action={updateProfile} className="flex flex-col gap-4">
@@ -168,7 +485,7 @@ export default async function ProfilePage({
                   maxLength={500}
                   defaultValue={profile?.bio ?? ""}
                   className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-none text-sm"
-                  placeholder="Расскажите о себе (покажется в RPG-карточке)"
+                  placeholder="Расскажите о себе"
                 />
               </label>
               <label className="flex flex-col gap-1.5">
@@ -191,17 +508,7 @@ export default async function ProfilePage({
             </form>
           </div>
 
-          {/* RPG Profile Card */}
-          <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">RPG-профиль</h2>
-            <RPGProfileCard
-              stats={rpgStats}
-              displayName={profile?.display_name ?? user.email ?? "Игрок"}
-              bio={profile?.bio}
-            />
-          </div>
-
-          {/* Telegram Notifications */}
+          {/* Telegram */}
           <div className="glass rounded-2xl p-6">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Telegram-уведомления</h2>
             <TelegramConnect
@@ -210,50 +517,18 @@ export default async function ProfilePage({
               onDisconnect={disconnectTelegram}
             />
           </div>
-        </div>
 
-        {/* Right: achievements */}
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Достижения</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.entries(ACHIEVEMENTS).map(([id, ach]) => {
-              const earned = earnedIds.has(id);
-              const earnedAt = earnedMap[id];
-              return (
-                <div
-                  key={id}
-                  className={`rounded-xl p-3 transition-all ${
-                    earned
-                      ? "bg-purple-500/10 border border-purple-500/25"
-                      : "bg-white/2 border border-white/5 opacity-45"
-                  }`}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <span className="text-xl leading-none mt-0.5">{ach.icon}</span>
-                    <div className="min-w-0">
-                      <p className={`text-sm font-semibold truncate ${earned ? "text-white" : "text-gray-500"}`}>
-                        {ach.title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5 leading-tight">{ach.desc}</p>
-                      {earned ? (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-purple-400 font-semibold">+{ach.points} очков</span>
-                          {earnedAt && (
-                            <span className="text-xs text-gray-600" suppressHydrationWarning>{formatDate(earnedAt)}</span>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-600 mt-1">{ach.points} очков</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          {/* RPG Card */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">RPG-профиль</h2>
+            <RPGProfileCard
+              stats={rpgStats}
+              displayName={profile?.display_name ?? user.email ?? "Игрок"}
+              bio={profile?.bio}
+            />
           </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }
