@@ -45,7 +45,7 @@ export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-12 w-52 glass border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/40">
+        <div className="absolute right-0 top-12 w-52 border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/60" style={{ background: "rgba(20, 16, 32, 0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
           <Link href="/feed" className={linkClass} onClick={() => setOpen(false)}>
             Лента
           </Link>
