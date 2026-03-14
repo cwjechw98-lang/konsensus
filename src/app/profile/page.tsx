@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import { updateProfile } from "./actions";
+import { updateProfile, generateTelegramToken, disconnectTelegram } from "./actions";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import RPGProfileCard from "@/components/RPGProfileCard";
@@ -20,9 +20,9 @@ function formatDate(iso: string) {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; tg_token?: string }>;
 }) {
-  const { error: errorMsg, success } = await searchParams;
+  const { error: errorMsg, success, tg_token } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -198,6 +198,53 @@ export default async function ProfilePage({
               displayName={profile?.display_name ?? user.email ?? "Игрок"}
               bio={profile?.bio}
             />
+          </div>
+
+          {/* Telegram Notifications */}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Telegram-уведомления</h2>
+            {profile?.telegram_chat_id ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400 text-lg">✅</span>
+                  <p className="text-sm text-green-400 font-medium">Telegram подключён</p>
+                </div>
+                <p className="text-xs text-gray-500">Вы будете получать уведомления о спорах и вызовах в Telegram.</p>
+                <form action={disconnectTelegram}>
+                  <button
+                    type="submit"
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors underline"
+                  >
+                    Отключить
+                  </button>
+                </form>
+              </div>
+            ) : tg_token ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-gray-300">Код для привязки:</p>
+                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 font-mono text-purple-300 text-lg tracking-widest select-all">
+                  {tg_token}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Напишите боту в Telegram: <span className="text-purple-400">@KonsensusBot</span>
+                </p>
+                <p className="text-xs text-gray-600 font-mono">/start {tg_token}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-gray-500">
+                  Получайте пуш-уведомления о новых аргументах, вызовах и медиации прямо в Telegram.
+                </p>
+                <form action={generateTelegramToken}>
+                  <button
+                    type="submit"
+                    className="btn-ripple bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors"
+                  >
+                    Получить код
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
 

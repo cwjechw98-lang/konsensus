@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
+import { notifyArgumentReceived, notifyMediationReady } from "@/lib/telegram";
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
@@ -317,6 +318,44 @@ export async function submitArgument(formData: FormData) {
     }
   } catch { /* email — non-critical */ }
 
+  // Telegram notifications
+  try {
+    const admin = createAdminClient();
+    const { data: opponentProfile } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .eq("id", opponentId)
+      .single<{ telegram_chat_id: number | null }>();
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>();
+
+    if (opponentProfile?.telegram_chat_id) {
+      if (opponentDoneThisRound && currentRound >= dispute.max_rounds) {
+        // notify both about mediation
+        await notifyMediationReady(opponentProfile.telegram_chat_id, dispute.title, disputeId);
+        const { data: myTg } = await admin
+          .from("profiles")
+          .select("telegram_chat_id")
+          .eq("id", user.id)
+          .single<{ telegram_chat_id: number | null }>();
+        if (myTg?.telegram_chat_id) {
+          await notifyMediationReady(myTg.telegram_chat_id, dispute.title, disputeId);
+        }
+      } else {
+        await notifyArgumentReceived(
+          opponentProfile.telegram_chat_id,
+          myProfile?.display_name ?? "Участник",
+          dispute.title,
+          currentRound,
+          disputeId
+        );
+      }
+    }
+  } catch { /* non-critical */ }
+
   // Fetch profiles for AI calls (needed for both waiting insight and round insight)
   type ProfilePick = { id: string; display_name: string | null };
   let allProfiles: ProfilePick[] = [];
@@ -522,6 +561,22 @@ ${roundsText}
     await awardAchievement(dispute.creator_id, "resolution", admin);
     if (dispute.opponent_id) {
       await awardAchievement(dispute.opponent_id, "resolution", admin);
+    }
+  } catch { /* non-critical */ }
+
+  // Telegram notifications for mediation ready
+  try {
+    const admin = createAdminClient();
+    const participants = [dispute.creator_id, dispute.opponent_id].filter(Boolean) as string[];
+    const { data: tgProfiles } = await admin
+      .from("profiles")
+      .select("id, telegram_chat_id")
+      .in("id", participants)
+      .returns<{ id: string; telegram_chat_id: number | null }[]>();
+    for (const p of tgProfiles ?? []) {
+      if (p.telegram_chat_id) {
+        await notifyMediationReady(p.telegram_chat_id, dispute.title, disputeId);
+      }
     }
   } catch { /* non-critical */ }
 

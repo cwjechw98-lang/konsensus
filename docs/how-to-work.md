@@ -89,6 +89,28 @@ Claude Code автоматически прочитает `.claude/CLAUDE.md` и
 Объясни как работает [файл/компонент/функция].
 ```
 
+## Telegram Bot — первичная настройка
+
+### 1. Создать бота
+Написать `@BotFather` в Telegram → `/newbot` → сохранить токен.
+
+### 2. Добавить env-переменные в Vercel
+```
+TELEGRAM_BOT_TOKEN=<токен от BotFather>
+TELEGRAM_WEBHOOK_SECRET=<любая случайная строка>
+```
+
+### 3. После деплоя — зарегистрировать webhook (один раз)
+```bash
+curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://konsensus.app/api/telegram","secret_token":"<WEBHOOK_SECRET>"}'
+```
+
+После этого бот готов к работе. Пользователи привязывают аккаунт через Профиль → «Получить код».
+
+---
+
 ## Важно помнить
 
 - **`.env.local`** — создай вручную из `.env.example` и заполни реальными ключами

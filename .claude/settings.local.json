@@ -14,7 +14,10 @@
       "Bash(npx eslint:*)",
       "Bash(wc:*)",
       "Bash(ls:*)",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(npm install:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateChallengeInsight, generateChallengeMediation } from "@/lib/ai";
+import { notifyChallengeAccepted, notifyChallengeMessage } from "@/lib/telegram";
 
 export async function createChallenge(formData: FormData) {
   const supabase = await createClient();
@@ -32,9 +33,9 @@ export async function acceptChallenge(challengeId: string) {
   // Check challenge is open and not by this user
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("author_id, status")
+    .select("author_id, status, topic")
     .eq("id", challengeId)
-    .single<{ author_id: string; status: string }>();
+    .single<{ author_id: string; status: string; topic: string }>();
 
   if (!challenge || challenge.status !== "open" || challenge.author_id === user.id) {
     redirect("/arena?error=challenge_unavailable");
@@ -46,6 +47,29 @@ export async function acceptChallenge(challengeId: string) {
     .eq("id", challengeId);
 
   if (error) redirect("/arena?error=" + encodeURIComponent(error.message));
+
+  // Notify challenge author via Telegram
+  try {
+    const admin = createAdminClient();
+    const { data: authorProfile } = await admin
+      .from("profiles")
+      .select("telegram_chat_id, display_name")
+      .eq("id", challenge.author_id)
+      .single<{ telegram_chat_id: number | null; display_name: string | null }>();
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>();
+    if (authorProfile?.telegram_chat_id) {
+      await notifyChallengeAccepted(
+        authorProfile.telegram_chat_id,
+        myProfile?.display_name ?? "Участник",
+        challenge.topic,
+        challengeId
+      );
+    }
+  } catch { /* non-critical */ }
 
   redirect("/arena/" + challengeId);
 }
@@ -68,6 +92,38 @@ export async function sendChallengeMessage(
     content,
     is_ai: false,
   } as never);
+
+  // Notify the other participant via Telegram
+  try {
+    const { data: challengeInfo } = await admin
+      .from("challenges")
+      .select("author_id, accepted_by, topic")
+      .eq("id", challengeId)
+      .single<{ author_id: string; accepted_by: string | null; topic: string }>();
+    if (challengeInfo) {
+      const otherId = challengeInfo.author_id === user.id ? challengeInfo.accepted_by : challengeInfo.author_id;
+      if (otherId) {
+        const { data: otherProfile } = await admin
+          .from("profiles")
+          .select("telegram_chat_id, display_name")
+          .eq("id", otherId)
+          .single<{ telegram_chat_id: number | null; display_name: string | null }>();
+        const { data: myProfile } = await admin
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .single<{ display_name: string | null }>();
+        if (otherProfile?.telegram_chat_id) {
+          await notifyChallengeMessage(
+            otherProfile.telegram_chat_id,
+            myProfile?.display_name ?? "Участник",
+            challengeInfo.topic,
+            challengeId
+          );
+        }
+      }
+    }
+  } catch { /* non-critical */ }
 
   if (!triggerAI) return;
 

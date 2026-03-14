@@ -27,6 +27,8 @@ export interface Database {
           bio: string | null;
           debate_stance: string | null;
           created_at: string;
+          telegram_chat_id: number | null;
+          telegram_link_token: string | null;
         };
         Insert: {
           id: string;
@@ -34,6 +36,8 @@ export interface Database {
           bio?: string | null;
           debate_stance?: string | null;
           created_at?: string;
+          telegram_chat_id?: number | null;
+          telegram_link_token?: string | null;
         };
         Update: {
           id?: string;
@@ -41,6 +45,8 @@ export interface Database {
           bio?: string | null;
           debate_stance?: string | null;
           created_at?: string;
+          telegram_chat_id?: number | null;
+          telegram_link_token?: string | null;
         };
       };
       challenges: {
