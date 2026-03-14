@@ -549,3 +549,36 @@ Return JSON:
 function buildPlaneSystemPrompt(plane: string, toneLevel: number): string {
   return `Dispute plane: ${plane}. Tone: ${toneLevel}/5. ${PLANE_DESCRIPTIONS[plane] ?? ""}. Always respond in Russian. Never declare a winner. Explain perspectives, not verdicts.`;
 }
+
+// Lightweight AI categorization for topics (used by bot notifications, arena, etc.)
+const VALID_CATEGORIES = ["politics", "technology", "philosophy", "lifestyle", "science", "culture", "economics", "relationships", "other"] as const;
+export type TopicCategory = typeof VALID_CATEGORIES[number];
+
+export async function categorizeTopicAI(topic: string, description?: string): Promise<TopicCategory> {
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 50,
+      temperature: 0,
+      messages: [{
+        role: "user",
+        content: `Classify this topic into exactly ONE category. Return ONLY the category word, nothing else.
+
+Categories: politics, technology, philosophy, lifestyle, science, culture, economics, relationships, other
+
+Topic: "${topic}"${description ? `\nDescription: "${description}"` : ""}
+
+Category:`,
+      }],
+    });
+
+    const raw = (response.choices[0]?.message?.content ?? "").trim().toLowerCase();
+    const cat = VALID_CATEGORIES.find((c) => raw.includes(c));
+    return cat ?? "other";
+  } catch {
+    return "other";
+  }
+}

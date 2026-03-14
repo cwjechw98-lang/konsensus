@@ -63,6 +63,9 @@
 | 00005_public_disputes.sql | is_public поле, RLS для анонимов |
 | 00006_reactions_comments.sql | dispute_reactions, dispute_comments |
 | 00007_round_public_summaries.sql | round_public_summaries (публичная карточка ИИ) |
+| 00008_arena.sql | challenges, challenge_messages, RLS |
+| 00009_telegram.sql | telegram_chat_id, telegram_link_token в profiles |
+| 00010_topic_categories.sql | category в disputes/challenges, telegram_bot_messages в profiles |
 
 ## Ключевые компоненты
 
@@ -96,3 +99,5 @@
 | 2026-03-14 | Фаза 9: публичная карточка раунда, оценка аргумента, пост-конфликтный момент |
 | 2026-03-14 | Telegram-бот: уведомления, привязка аккаунта, Mini App авто-вход через /tg |
 | 2026-03-14 | Фикс: домен konsensus-six.vercel.app во всех fallback'ах |
+| 2026-03-14 | Бот v2: убрана кнопка «Открыть приложение», автоочистка чата, AI-категоризация тем |
+| 2026-03-14 | Новые уведомления: оппонент присоединился, спор завершён, новый вызов на арене |

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateChallengeInsight, generateChallengeMediation } from "@/lib/ai";
-import { notifyChallengeAccepted, notifyChallengeMessage } from "@/lib/telegram";
+import { notifyChallengeAccepted, notifyChallengeMessage, notifyNewChallenge } from "@/lib/telegram";
+import { categorizeTopicAI } from "@/lib/ai";
 
 export async function createChallenge(formData: FormData) {
   const supabase = await createClient();
@@ -14,13 +15,38 @@ export async function createChallenge(formData: FormData) {
   const topic = (formData.get("topic") as string).trim();
   const position_hint = (formData.get("position_hint") as string).trim();
 
+  // AI categorization (non-blocking fallback to 'other')
+  const category = await categorizeTopicAI(topic, position_hint);
+
   const { data, error } = await supabase
     .from("challenges")
-    .insert({ author_id: user.id, topic, position_hint } as never)
+    .insert({ author_id: user.id, topic, position_hint, category } as never)
     .select("id")
     .single<{ id: string }>();
 
   if (error) redirect("/arena?error=" + encodeURIComponent(error.message));
+
+  // Notify all linked Telegram users about the new challenge (except author)
+  try {
+    const admin = createAdminClient();
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>();
+
+    const { data: tgUsers } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .not("telegram_chat_id", "is", null)
+      .neq("id", user.id)
+      .returns<{ telegram_chat_id: number }[]>();
+
+    // Limit broadcast to first 50 users to avoid timeout
+    for (const u of (tgUsers ?? []).slice(0, 50)) {
+      await notifyNewChallenge(u.telegram_chat_id, myProfile?.display_name ?? "Участник", topic, category);
+    }
+  } catch { /* non-critical */ }
 
   redirect("/arena");
 }

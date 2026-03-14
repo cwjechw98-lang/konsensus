@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteTelegramMessage } from "@/lib/telegram";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
-
-const WEBAPP_URL = `${APP_URL}/tg`;
 
 // Persistent bottom keyboard — shown to linked users
 const MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }, { text: "📋 Споры" }],
     [{ text: "👤 Профиль" }, { text: "🔓 Отвязать" }],
-    [{ text: "🌐 Открыть приложение", web_app: { url: WEBAPP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,
@@ -23,11 +21,12 @@ const UNLINKED_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }],
     [{ text: "🔗 Привязать аккаунт" }],
-    [{ text: "🌐 Открыть приложение", web_app: { url: WEBAPP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,
 };
+
+const MAX_BOT_MESSAGES = 5; // keep only last N bot messages in chat
 
 type InlineButton = { text: string; url?: string; callback_data?: string; web_app?: { url: string } };
 type InlineKeyboard = InlineButton[][];
@@ -36,19 +35,65 @@ async function sendMessage(
   chatId: number,
   text: string,
   opts?: { inline?: InlineKeyboard; keyboard?: object }
-) {
-  if (!BOT_TOKEN) return;
+): Promise<number | null> {
+  if (!BOT_TOKEN) return null;
   const body: Record<string, unknown> = { chat_id: chatId, text, parse_mode: "HTML" };
   if (opts?.inline) {
     body.reply_markup = { inline_keyboard: opts.inline };
   } else if (opts?.keyboard) {
     body.reply_markup = opts.keyboard;
   }
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return data?.result?.message_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Track bot messages and delete old ones to keep chat clean
+async function trackAndCleanup(chatId: number, newMessageId: number | null) {
+  if (!newMessageId) return;
+  try {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("telegram_bot_messages")
+      .eq("telegram_chat_id", chatId)
+      .single<{ telegram_bot_messages: number[] | null }>();
+
+    const msgs = [...(profile?.telegram_bot_messages ?? []), newMessageId];
+
+    // Delete messages beyond limit
+    const toDelete = msgs.slice(0, Math.max(0, msgs.length - MAX_BOT_MESSAGES));
+    const toKeep = msgs.slice(Math.max(0, msgs.length - MAX_BOT_MESSAGES));
+
+    for (const msgId of toDelete) {
+      await deleteTelegramMessage(chatId, msgId);
+    }
+
+    await admin
+      .from("profiles")
+      .update({ telegram_bot_messages: toKeep } as never)
+      .eq("telegram_chat_id", chatId);
+  } catch { /* non-critical */ }
+}
+
+// Also try to delete the user's message to keep chat clean
+async function deleteUserMessage(chatId: number, messageId: number) {
+  if (!BOT_TOKEN) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+    });
+  } catch { /* may fail if bot doesn't have delete permission */ }
 }
 
 async function editMessage(chatId: number, messageId: number, text: string, inline?: InlineKeyboard) {
@@ -75,24 +120,30 @@ async function answerCallback(callbackId: string, text?: string) {
 async function reply(
   chatId: number,
   text: string,
-  inlineUrl?: { label: string; url: string }
+  inlineUrl?: { label: string; url: string },
+  userMsgId?: number
 ) {
   const inline: InlineKeyboard | undefined = inlineUrl
     ? [[{ text: inlineUrl.label, url: inlineUrl.url }]]
     : undefined;
-  await sendMessage(chatId, text, { keyboard: MAIN_KEYBOARD, ...(inline ? { inline } : {}) });
+  const msgId = await sendMessage(chatId, text, { keyboard: MAIN_KEYBOARD, ...(inline ? { inline } : {}) });
+  await trackAndCleanup(chatId, msgId);
+  if (userMsgId) await deleteUserMessage(chatId, userMsgId);
 }
 
 // Sends with unlinked keyboard + optional inline button
 async function replyUnlinked(
   chatId: number,
   text: string,
-  inlineUrl?: { label: string; url: string }
+  inlineUrl?: { label: string; url: string },
+  userMsgId?: number
 ) {
   const inline: InlineKeyboard | undefined = inlineUrl
     ? [[{ text: inlineUrl.label, url: inlineUrl.url }]]
     : undefined;
-  await sendMessage(chatId, text, { keyboard: UNLINKED_KEYBOARD, ...(inline ? { inline } : {}) });
+  const msgId = await sendMessage(chatId, text, { keyboard: UNLINKED_KEYBOARD, ...(inline ? { inline } : {}) });
+  await trackAndCleanup(chatId, msgId);
+  if (userMsgId) await deleteUserMessage(chatId, userMsgId);
 }
 
 export async function POST(req: NextRequest) {
@@ -172,6 +223,7 @@ export async function POST(req: NextRequest) {
   if (!message?.text) return NextResponse.json({ ok: true });
 
   const chatId = message.chat.id;
+  const userMsgId = message.message_id;
   const text = message.text.trim();
   const admin = createAdminClient();
 
@@ -227,7 +279,7 @@ export async function POST(req: NextRequest) {
   // ── 🔓 Отвязать / /unlink — ask for confirmation ─────────────────────────
   if (text === "/unlink" || text === "🔓 Отвязать") {
     if (!me) {
-      await replyUnlinked(chatId, "ℹ️ Аккаунт не привязан. Нечего отвязывать.");
+      await replyUnlinked(chatId, "ℹ️ Аккаунт не привязан. Нечего отвязывать.", undefined, userMsgId);
       return NextResponse.json({ ok: true });
     }
 
@@ -249,7 +301,7 @@ export async function POST(req: NextRequest) {
   // ── 🔗 Привязать аккаунт ──────────────────────────────────────────────────
   if (text === "🔗 Привязать аккаунт") {
     if (me) {
-      await reply(chatId, `✅ Вы уже привязаны как <b>${me.display_name ?? "участник"}</b>!`);
+      await reply(chatId, `✅ Вы уже привязаны как <b>${me.display_name ?? "участник"}</b>!`, undefined, userMsgId);
       return NextResponse.json({ ok: true });
     }
     await replyUnlinked(
@@ -280,13 +332,13 @@ export async function POST(req: NextRequest) {
   // ── /help ─────────────────────────────────────────────────────────────────
   if (text === "/help") {
     const helpText = me
-      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n🌐 Открыть приложение — Konsensus прямо в Telegram\n\nТакже: /challenges /disputes /profile /unlink /help`
-      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n🌐 Открыть приложение — Konsensus прямо в Telegram\n\nТакже: /challenges /start /help`;
+      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /disputes /profile /unlink /help`
+      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /start /help`;
 
     if (me) {
-      await reply(chatId, helpText);
+      await reply(chatId, helpText, undefined, userMsgId);
     } else {
-      await replyUnlinked(chatId, helpText);
+      await replyUnlinked(chatId, helpText, undefined, userMsgId);
     }
     return NextResponse.json({ ok: true });
   }
@@ -392,7 +444,7 @@ export async function POST(req: NextRequest) {
 
   // ── Default ───────────────────────────────────────────────────────────────
   if (me) {
-    await reply(chatId, "Используй кнопки меню ниже 👇 или /help для списка команд.");
+    await reply(chatId, "Используй кнопки меню ниже 👇 или /help для списка команд.", undefined, userMsgId);
   } else {
     await replyUnlinked(
       chatId,
@@ -405,7 +457,7 @@ export async function POST(req: NextRequest) {
 }
 
 interface TelegramUpdate {
-  message?: { text?: string; chat: { id: number } };
+  message?: { message_id: number; text?: string; chat: { id: number } };
   callback_query?: {
     id: string;
     data?: string;

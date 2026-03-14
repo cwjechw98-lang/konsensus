@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { notifyArgumentReceived, notifyMediationReady } from "@/lib/telegram";
-import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary } from "@/lib/ai";
+import { notifyArgumentReceived, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
+import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 
@@ -69,12 +69,16 @@ export async function createDispute(formData: FormData) {
     } catch { /* non-critical */ }
   }
 
+  // AI categorization (non-blocking)
+  const category = await categorizeTopicAI(title, description);
+
   const row: DisputeInsert = {
     title,
     description,
     max_rounds: maxRounds,
     creator_id: user.id,
     is_public: isPublic,
+    category,
     ...(opponentId ? { opponent_id: opponentId, status: initialStatus } : {}),
   };
 
@@ -171,6 +175,31 @@ export async function joinDispute(formData: FormData) {
       const admin = createAdminClient();
       await awardAchievement(user.id, "accepted_invite", admin);
       await checkDisputeMilestones(user.id, admin);
+
+      // Notify creator that opponent joined via Telegram
+      const { data: creatorProfile } = await admin
+        .from("profiles")
+        .select("telegram_chat_id")
+        .eq("id", dispute.creator_id)
+        .single<{ telegram_chat_id: number | null }>();
+      if (creatorProfile?.telegram_chat_id) {
+        const { data: myProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .single<{ display_name: string | null }>();
+        const { data: disputeInfo } = await supabase
+          .from("disputes")
+          .select("title")
+          .eq("id", dispute.id)
+          .single<{ title: string }>();
+        await notifyOpponentJoined(
+          creatorProfile.telegram_chat_id,
+          myProfile?.display_name ?? "Участник",
+          disputeInfo?.title ?? "Спор",
+          dispute.id
+        );
+      }
     } catch { /* non-critical */ }
   }
 
@@ -564,7 +593,7 @@ ${roundsText}
     }
   } catch { /* non-critical */ }
 
-  // Telegram notifications for mediation ready
+  // Telegram notifications — dispute resolved
   try {
     const admin = createAdminClient();
     const participants = [dispute.creator_id, dispute.opponent_id].filter(Boolean) as string[];
@@ -575,7 +604,7 @@ ${roundsText}
       .returns<{ id: string; telegram_chat_id: number | null }[]>();
     for (const p of tgProfiles ?? []) {
       if (p.telegram_chat_id) {
-        await notifyMediationReady(p.telegram_chat_id, dispute.title, disputeId);
+        await notifyDisputeResolved(p.telegram_chat_id, dispute.title, disputeId);
       }
     }
   } catch { /* non-critical */ }

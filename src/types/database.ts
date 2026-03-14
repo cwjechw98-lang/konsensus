@@ -29,6 +29,7 @@ export interface Database {
           created_at: string;
           telegram_chat_id: number | null;
           telegram_link_token: string | null;
+          telegram_bot_messages: number[] | null;
         };
         Insert: {
           id: string;
@@ -38,6 +39,7 @@ export interface Database {
           created_at?: string;
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;
+          telegram_bot_messages?: number[] | null;
         };
         Update: {
           id?: string;
@@ -47,6 +49,7 @@ export interface Database {
           created_at?: string;
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;
+          telegram_bot_messages?: number[] | null;
         };
       };
       challenges: {
@@ -56,6 +59,7 @@ export interface Database {
           topic: string;
           position_hint: string;
           status: ChallengeStatus;
+          category: string | null;
           accepted_by: string | null;
           created_at: string;
           expires_at: string;
@@ -66,6 +70,7 @@ export interface Database {
           topic: string;
           position_hint: string;
           status?: ChallengeStatus;
+          category?: string | null;
           accepted_by?: string | null;
           created_at?: string;
           expires_at?: string;
@@ -76,6 +81,7 @@ export interface Database {
           topic?: string;
           position_hint?: string;
           status?: ChallengeStatus;
+          category?: string | null;
           accepted_by?: string | null;
           created_at?: string;
           expires_at?: string;
@@ -118,6 +124,7 @@ export interface Database {
           invite_code: string;
           max_rounds: number;
           is_public: boolean;
+          category: string | null;
           early_end_proposed_by: string | null;
           created_at: string;
           updated_at: string;
@@ -132,6 +139,7 @@ export interface Database {
           invite_code?: string;
           max_rounds?: number;
           is_public?: boolean;
+          category?: string | null;
           early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -146,6 +154,7 @@ export interface Database {
           invite_code?: string;
           max_rounds?: number;
           is_public?: boolean;
+          category?: string | null;
           early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;
