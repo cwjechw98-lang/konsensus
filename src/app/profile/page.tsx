@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
-import { updateProfile, generateTelegramToken, disconnectTelegram } from "./actions";
+import { updateProfile, disconnectTelegram } from "./actions";
+import { TelegramConnect } from "@/components/TelegramConnect";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import RPGProfileCard from "@/components/RPGProfileCard";
@@ -20,9 +21,9 @@ function formatDate(iso: string) {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string; tg_token?: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 }) {
-  const { error: errorMsg, success, tg_token } = await searchParams;
+  const { error: errorMsg, success } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -201,87 +202,14 @@ export default async function ProfilePage({
           </div>
 
           {/* Telegram Notifications */}
-          {(() => {
-            const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-            const botUrl = botUsername ? `https://t.me/${botUsername}` : null;
-            const deepLink = botUsername && tg_token ? `https://t.me/${botUsername}?start=${tg_token}` : null;
-
-            return (
-              <div className="glass rounded-2xl p-6">
-                <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Telegram-уведомления</h2>
-
-                {profile?.telegram_chat_id ? (
-                  /* ── Connected ── */
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-400 text-lg">✅</span>
-                      <p className="text-sm text-green-400 font-medium">Telegram подключён</p>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Уведомления о спорах, вызовах и медиации приходят в Telegram.
-                    </p>
-                    {botUrl && (
-                      <a
-                        href={botUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors w-fit"
-                      >
-                        Открыть бот →
-                      </a>
-                    )}
-                    <form action={disconnectTelegram}>
-                      <button type="submit" className="text-xs text-gray-600 hover:text-red-400 transition-colors underline mt-1">
-                        Отключить
-                      </button>
-                    </form>
-                  </div>
-
-                ) : tg_token ? (
-                  /* ── Token generated — open Telegram ── */
-                  <div className="flex flex-col gap-3">
-                    <p className="text-xs text-gray-400">Код для привязки сгенерирован:</p>
-                    <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 font-mono text-purple-300 text-base tracking-widest select-all">
-                      {tg_token}
-                    </div>
-                    {deepLink ? (
-                      <a
-                        href={deepLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2.5 px-4 text-sm font-semibold transition-colors w-fit"
-                      >
-                        Открыть Telegram и привязать →
-                      </a>
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        Отправьте боту: <span className="font-mono text-purple-400">{tg_token}</span>
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-600">
-                      Если Telegram не открылся — скопируйте код и вставьте его в бот вручную.
-                    </p>
-                  </div>
-
-                ) : (
-                  /* ── Not connected ── */
-                  <div className="flex flex-col gap-3">
-                    <p className="text-xs text-gray-500">
-                      Получайте пуш-уведомления о новых аргументах, вызовах и медиации прямо в Telegram.
-                    </p>
-                    <form action={generateTelegramToken}>
-                      <button
-                        type="submit"
-                        className="btn-ripple bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg py-2 px-4 text-sm font-semibold transition-colors"
-                      >
-                        Подключить Telegram
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Telegram-уведомления</h2>
+            <TelegramConnect
+              isConnected={!!profile?.telegram_chat_id}
+              botUsername={process.env.TELEGRAM_BOT_USERNAME ?? null}
+              onDisconnect={disconnectTelegram}
+            />
+          </div>
         </div>
 
         {/* Right: achievements */}
