@@ -18,6 +18,12 @@ export async function Header() {
         </Link>
 
         <nav className="flex items-center gap-5">
+          <Link
+            href="/feed"
+            className="text-sm text-gray-400 hover:text-white nav-link transition-colors"
+          >
+            Лента
+          </Link>
           {user ? (
             <>
               <Link

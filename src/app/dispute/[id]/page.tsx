@@ -51,7 +51,7 @@ export default async function DisputePage({
   const isOpponent = dispute.opponent_id === user.id;
   const isParticipant = isCreator || isOpponent;
 
-  if (!isParticipant && dispute.status !== "open") notFound();
+  if (!isParticipant && !dispute.is_public) notFound();
 
   const participantIds = [dispute.creator_id, dispute.opponent_id].filter(
     Boolean

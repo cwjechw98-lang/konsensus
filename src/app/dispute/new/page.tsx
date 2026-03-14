@@ -49,6 +49,7 @@ function RoundsSelector() {
 
 export default function NewDisputePage() {
   const [showOpponentField, setShowOpponentField] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-10">
@@ -123,6 +124,22 @@ export default function NewDisputePage() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Публичный спор */}
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <p className="text-sm font-medium text-gray-300">Публичный спор</p>
+              <p className="text-xs text-gray-600 mt-0.5">Виден всем в ленте без регистрации</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPublic((v) => !v)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${isPublic ? "bg-purple-600" : "bg-white/10"}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isPublic ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <input type="hidden" name="is_public" value={isPublic ? "true" : "false"} />
           </div>
 
           <div className="flex gap-3 mt-2">

@@ -45,6 +45,7 @@ export interface Database {
           opponent_id: string | null;
           invite_code: string;
           max_rounds: number;
+          is_public: boolean;
           early_end_proposed_by: string | null;
           created_at: string;
           updated_at: string;
@@ -58,6 +59,7 @@ export interface Database {
           opponent_id?: string | null;
           invite_code?: string;
           max_rounds?: number;
+          is_public?: boolean;
           early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -71,6 +73,7 @@ export interface Database {
           opponent_id?: string | null;
           invite_code?: string;
           max_rounds?: number;
+          is_public?: boolean;
           early_end_proposed_by?: string | null;
           created_at?: string;
           updated_at?: string;

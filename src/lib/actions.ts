@@ -26,6 +26,7 @@ export async function createDispute(formData: FormData) {
   const description = ((formData.get("description") as string) ?? "").trim();
   const maxRounds = Math.min(20, Math.max(1, parseInt(formData.get("max_rounds") as string) || 3));
   const opponentEmail = ((formData.get("opponent_email") as string) ?? "").trim().toLowerCase();
+  const isPublic = formData.get("is_public") === "true";
 
   // Input validation
   if (!title || title.length < 3) {
@@ -72,6 +73,7 @@ export async function createDispute(formData: FormData) {
     description,
     max_rounds: maxRounds,
     creator_id: user.id,
+    is_public: isPublic,
     ...(opponentId ? { opponent_id: opponentId, status: initialStatus } : {}),
   };
 
