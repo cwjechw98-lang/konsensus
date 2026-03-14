@@ -51,24 +51,30 @@
 
 ## Фаза 6: Геймификация ✅
 - [x] Очки опыта (user_points)
-- [x] Достижения — 10 штук (user_achievements)
+- [x] Достижения — 11 штук (user_achievements)
 - [x] Страница профиля с прогрессом и достижениями
 - [x] AnimatedCounter для очков
+- [x] Achievement unlock toast notification
 
-## Следующие шаги (бэклог)
-
-### UX-улучшения
-- [ ] Character count в textarea аргумента (видимый счётчик 0/300)
-- [ ] Loading skeleton при запуске медиации
-- [ ] Pagination + фильтры в dashboard
+## Фаза 7: UX-polish ✅ (частично)
+- [x] Character count в textarea аргумента (0/2000)
+- [x] Loading state на кнопке "Запустить медиацию"
+- [x] Round progress bar в dispute view
+- [x] Rotating AI tips пока ждёшь ответа оппонента
+- [x] Round count на карточках dashboard
+- [ ] Пагинация + фильтры по статусу в dashboard
+- [ ] Мобильный UX аудит и фиксы
 - [ ] Google OAuth (один клик для приглашённых оппонентов)
-- [ ] Мобильный UX (аудит и фиксы)
 
-### Growth
+## Фаза 8: Growth (бэклог)
 - [ ] Публичные споры (лента, просмотр без участия)
 - [ ] Шаблоны тем споров
 - [ ] Telegram-бот для уведомлений
+- [ ] Поиск оппонента (матчинг по теме)
 
-### Инфраструктура
+## Фаза 9: Инфраструктура (бэклог)
+- [ ] E2E тестирование основных сценариев (Playwright)
+- [ ] Unit-тесты для server actions
 - [ ] Supabase Metrics Dashboard (мониторинг)
-- [ ] Тестирование основных сценариев (E2E)
+- [ ] Error tracking (Sentry или аналог)
+- [ ] Оптимизация запросов (N+1, индексы)
