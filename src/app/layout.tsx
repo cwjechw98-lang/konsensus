@@ -34,6 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js" defer />
+      </head>
       <body className="antialiased min-h-screen flex flex-col">
         <CursorGlow />
         <RippleEffect />

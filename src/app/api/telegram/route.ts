@@ -5,12 +5,14 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus.app";
 
+const WEBAPP_URL = `${APP_URL}/tg`;
+
 // Persistent bottom keyboard — shown to linked users
 const MAIN_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }, { text: "📋 Споры" }],
     [{ text: "👤 Профиль" }, { text: "🔓 Отвязать" }],
-    [{ text: "🌐 Открыть приложение", web_app: { url: APP_URL } }],
+    [{ text: "🌐 Открыть приложение", web_app: { url: WEBAPP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,
@@ -21,7 +23,7 @@ const UNLINKED_KEYBOARD = {
   keyboard: [
     [{ text: "⚔️ Вызовы" }],
     [{ text: "🔗 Привязать аккаунт" }],
-    [{ text: "🌐 Открыть приложение", web_app: { url: APP_URL } }],
+    [{ text: "🌐 Открыть приложение", web_app: { url: WEBAPP_URL } }],
   ],
   resize_keyboard: true,
   persistent: true,

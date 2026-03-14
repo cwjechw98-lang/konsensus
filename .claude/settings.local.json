@@ -17,7 +17,8 @@
       "WebFetch(domain:supabase.com)",
       "Bash(python3:*)",
       "Bash(python:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(claude hooks:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
