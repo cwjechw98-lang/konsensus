@@ -42,3 +42,6 @@ Konsensus — не сервис для победы в споре. Это сре
 - [education-layer-rollout.md](/C:/project21/konsensus/docs/ops/education-layer-rollout.md)
 - [appeals-rollout.md](/C:/project21/konsensus/docs/ops/appeals-rollout.md)
 - [trust-tiers-rollout.md](/C:/project21/konsensus/docs/ops/trust-tiers-rollout.md)
+
+Их общий индекс и правило сопровождения зафиксированы в:
+[docs/ops/README.md](/C:/project21/konsensus/docs/ops/README.md)

@@ -38,10 +38,22 @@
 - Категоризация тем при создании спора/вызова
 
 ## Ключевые файлы
-- Концепция: `тз и концепция/Konsensus_TZ_v0.1.docx` + `docs/vision-extended.md`
+- Концепция: `тз и концепция/Konsensus_TZ_v0.1.md` + `docs/concept.md`
 - Архитектура: `docs/architecture.md`
 - Статус: `docs/status.md`
 - Роадмап: `docs/roadmap.md`
+- Стратегические rollout-блоки: `docs/ops/README.md`
+
+## Стратегические rollout-блоки
+- Перед возвратом к стратегическому пласту (`ai orchestration`, `profile quests`, `reputation`, `education layer`, `appeals`, `trust tiers`) сначала открыть соответствующий rollout-файл из `docs/ops/README.md`
+- После изменений в таком блоке обновить:
+  - сам rollout-файл;
+  - `docs/status.md`;
+  - `docs/roadmap.md`
+- В rollout-файле всегда фиксировать:
+  - что уже выполнено;
+  - что ещё не выполнено;
+  - следующий практический шаг
 
 ## Стек
 - Next.js 15 (App Router), React 19, TypeScript strict, Tailwind 4
