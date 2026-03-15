@@ -55,9 +55,10 @@ export async function acceptChallenge(challengeId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const admin = createAdminClient();
 
   // Check challenge is open and not by this user
-  const { data: challenge } = await supabase
+  const { data: challenge } = await admin
     .from("challenges")
     .select("author_id, status, topic")
     .eq("id", challengeId)
@@ -67,16 +68,17 @@ export async function acceptChallenge(challengeId: string) {
     redirect("/arena?error=challenge_unavailable");
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("challenges")
     .update({ accepted_by: user.id, status: "active" } as never)
-    .eq("id", challengeId);
+    .eq("id", challengeId)
+    .eq("status", "open")
+    .is("accepted_by", null);
 
   if (error) redirect("/arena?error=" + encodeURIComponent(error.message));
 
   // Notify challenge author via Telegram
   try {
-    const admin = createAdminClient();
     const { data: authorProfile } = await admin
       .from("profiles")
       .select("telegram_chat_id, display_name")

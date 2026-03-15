@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { joinDisputeFromMatchmaking } from "@/lib/actions";
+import { acceptChallenge } from "@/lib/arena-actions";
 
 const CATEGORY_INFO: Record<string, { label: string; icon: string }> = {
   politics: { label: "Политика", icon: "🏛" },
@@ -182,10 +183,9 @@ export default async function MatchmakingPage({
           {(challenges ?? []).map((c) => {
             const cat = CATEGORY_INFO[c.category ?? "other"];
             return (
-              <Link
+              <div
                 key={c.id}
-                href={`/arena`}
-                className="block glass rounded-xl p-4 hover:border-purple-500/30 transition-all border border-white/8"
+                className="glass rounded-xl p-4 hover:border-purple-500/30 transition-all border border-white/8"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -203,11 +203,16 @@ export default async function MatchmakingPage({
                       от {c.profiles?.display_name ?? "Участник"} · {new Date(c.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
                     </p>
                   </div>
-                  <span className="text-xs bg-orange-600/20 text-orange-400 px-3 py-1.5 rounded-lg font-medium flex-shrink-0">
-                    На арену →
-                  </span>
+                  <form action={acceptChallenge.bind(null, c.id)} className="flex-shrink-0">
+                    <button
+                      type="submit"
+                      className="text-xs bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    >
+                      Принять вызов →
+                    </button>
+                  </form>
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
