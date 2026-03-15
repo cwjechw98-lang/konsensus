@@ -41,6 +41,16 @@ const PLANE_DESCRIPTIONS: Record<string, string> = {
   general:    "general topic that doesn't fit a specific category",
 };
 
+const PERSONAL_INSIGHT_FORMAT = `Use exactly this 3-part structure in Russian:
+Что он защищает: ...
+Почему он так реагирует: ...
+Что можно учесть дальше: ...
+
+Rules:
+- each line is 1-2 sentences max
+- concise, perceptive, strategically useful
+- no markdown bullets, no numbering, no winner language`;
+
 export async function generateRoundInsights(
   dispute: DisputeContext,
   currentRound: number,
@@ -211,13 +221,18 @@ Reasoning: "${submitterArg.reasoning}"
 ${submitterName} is now waiting for ${opponentName} to respond. Give ${submitterName} a brief private coaching hint:
 - Explain why ${opponentName} likely holds their position (based on the dispute context and prior arguments)
 - Help ${submitterName} understand ${opponentName}'s perspective
+- Make it feel strategically useful for ${submitterName}, not like a judge's verdict
 - Be empathetic and diplomatic — never say who is right
-- 2-3 sentences max
+- Use exactly this structure in Russian:
+  Что он, вероятно, защищает: ...
+  Почему он может так ответить: ...
+  Что можно держать в уме: ...
+- each line 1 sentence max
 - This is private — only ${submitterName} will see this
 
 Return JSON:
 {
-  "insight": "coaching message in Russian for ${submitterName}"
+  "insight": "coaching message in Russian for ${submitterName} in the exact 3-line structure"
 }`;
 
   const response = await groq.chat.completions.create({
@@ -493,6 +508,7 @@ Critical behavior:
 - Explain the opponent's logic in a way that lowers hostility and improves understanding
 - If useful, suggest one subtle angle the recipient may keep in mind in the next reply
 - Never declare a winner and never bluntly tell the recipient to surrender or agree
+${PERSONAL_INSIGHT_FORMAT}
 
 ${TONE_GUIDE}
 
@@ -506,8 +522,8 @@ Return JSON:
   "tone_level": 1-5,
   "heat_level": 1-5,
   "core_tension": "one sentence: what makes them incompatible",
-  "insight_for_creator": "Direct private message to ${creatorName}. Explain WHY ${opponentName} thinks this way, what may be behind their reaction, and what nuance ${creatorName} may have missed. Make it feel strategically useful for ${creatorName}. Diplomatic, perceptive, 3-5 sentences max. Never say who is right.",
-  "insight_for_opponent": "Direct private message to ${opponentName}. Explain WHY ${creatorName} thinks this way, what may be behind their reaction, and what nuance ${opponentName} may have missed. Make it feel strategically useful for ${opponentName}. Diplomatic, perceptive, 3-5 sentences max. Never say who is right."
+  "insight_for_creator": "Direct private message to ${creatorName} using the exact 3-part structure. Explain WHY ${opponentName} thinks this way, what may be behind their reaction, and what nuance ${creatorName} may have missed. Make it feel strategically useful for ${creatorName}. Never say who is right.",
+  "insight_for_opponent": "Direct private message to ${opponentName} using the exact 3-part structure. Explain WHY ${creatorName} thinks this way, what may be behind their reaction, and what nuance ${opponentName} may have missed. Make it feel strategically useful for ${opponentName}. Never say who is right."
 }`;
 }
 
@@ -550,14 +566,15 @@ Critical behavior:
 - Do not sound like a final verdict, therapy session, or moral lecture
 - Avoid phrases like "you both need" or "the correct position is"
 - If helpful, include one subtle suggestion about what the recipient could clarify in the next round without ordering them around
+${PERSONAL_INSIGHT_FORMAT}
 
 heat_level guide (1-5): 1 = very calm, 2 = mild, 3 = moderate tension, 4 = heated, 5 = very intense
 
 Return JSON:
 {
   "heat_level": 1-5,
-  "insight_for_creator": "Direct private message to ${creatorName}. Explain WHY ${opponentName} answered this way in round ${currentRound}, what may be informing that response, and what ${creatorName} may want to keep in mind before replying. Make it feel strategically helpful for ${creatorName}. Diplomatic, tone_level ${toneLevel}, 3-5 sentences.",
-  "insight_for_opponent": "Direct private message to ${opponentName}. Explain WHY ${creatorName} answered this way in round ${currentRound}, what may be informing that response, and what ${opponentName} may want to keep in mind before replying. Make it feel strategically helpful for ${opponentName}. Diplomatic, tone_level ${toneLevel}, 3-5 sentences."
+  "insight_for_creator": "Direct private message to ${creatorName} using the exact 3-part structure. Explain WHY ${opponentName} answered this way in round ${currentRound}, what may be informing that response, and what ${creatorName} may want to keep in mind before replying. Make it feel strategically helpful for ${creatorName}. Diplomatic, tone_level ${toneLevel}.",
+  "insight_for_opponent": "Direct private message to ${opponentName} using the exact 3-part structure. Explain WHY ${creatorName} answered this way in round ${currentRound}, what may be informing that response, and what ${opponentName} may want to keep in mind before replying. Make it feel strategically helpful for ${opponentName}. Diplomatic, tone_level ${toneLevel}."
 }`;
 }
 
