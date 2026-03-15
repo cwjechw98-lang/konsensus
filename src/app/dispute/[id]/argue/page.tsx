@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ArgueFormClient from "@/components/ArgueFormClient";
+import WaitingAmbient from "@/components/WaitingAmbient";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -97,10 +98,13 @@ export default async function ArguePage({
       )}
 
       {isWaiting ? (
-        <div className="glass rounded-2xl p-10 text-center">
-          <p className="text-2xl mb-3">✓</p>
-          <p className="font-semibold text-white mb-2">Аргумент принят</p>
-          <p className="text-gray-400 text-sm">Ожидаем ответа оппонента...</p>
+        <div className="flex flex-col gap-4">
+          <div className="glass rounded-2xl p-10 text-center">
+            <p className="text-2xl mb-3">✓</p>
+            <p className="font-semibold text-white mb-2">Аргумент принят</p>
+            <p className="text-gray-400 text-sm">Ожидаем ответа оппонента...</p>
+          </div>
+          <WaitingAmbient />
         </div>
       ) : (
         <ArgueFormClient

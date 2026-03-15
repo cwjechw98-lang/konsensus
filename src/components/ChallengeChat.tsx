@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { closeChallenge, sendChallengeMessage } from "@/lib/arena-actions";
+import WaitingAmbient from "@/components/WaitingAmbient";
 
 interface Message {
   id: string;
@@ -263,8 +264,11 @@ export default function ChallengeChat({
         })}
 
         {waitingForOpponent && (
-          <div className="glass rounded-xl p-4 text-center text-sm text-gray-500">
-            Раунд {Math.min(maxRounds, myCount)}: ждём ответ от {opponentName}.
+          <div className="flex flex-col gap-3">
+            <div className="glass rounded-xl p-4 text-center text-sm text-gray-500">
+              Раунд {Math.min(maxRounds, myCount)}: ждём ответ от {opponentName}.
+            </div>
+            <WaitingAmbient variant="arena" />
           </div>
         )}
 

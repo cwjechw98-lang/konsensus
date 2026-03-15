@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd } from "@/lib/actions";
 import WaitingTips from "@/components/WaitingTips";
 import MiniGames from "@/components/MiniGames";
+import WaitingAmbient from "@/components/WaitingAmbient";
 
 type Arg = {
   id: string;
@@ -495,6 +496,7 @@ export default function RealtimeDisputeClient({
                 Все ваши аргументы поданы. Ждём оппонента...
               </div>
               <WaitingTips />
+              <WaitingAmbient />
               {currentWaitingInsight && (
                 <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
                   <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
@@ -525,6 +527,7 @@ export default function RealtimeDisputeClient({
                 Раунд {myArgCount} — ждём ответа оппонента...
               </div>
               <WaitingTips />
+              <WaitingAmbient />
               <MiniGames />
               {currentWaitingInsight && (
                 <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
