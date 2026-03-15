@@ -63,23 +63,35 @@ async function trackAndCleanup(chatId: number, newMessageId: number | null) {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
-      .select("telegram_bot_messages")
+      .select("telegram_bot_messages, telegram_message_index")
       .eq("telegram_chat_id", chatId)
-      .single<{ telegram_bot_messages: number[] | null }>();
+      .single<{
+        telegram_bot_messages: number[] | null;
+        telegram_message_index: Record<string, number> | null;
+      }>();
 
     const msgs = [...(profile?.telegram_bot_messages ?? []), newMessageId];
+    const index = profile?.telegram_message_index ?? {};
 
     // Delete messages beyond limit
     const toDelete = msgs.slice(0, Math.max(0, msgs.length - MAX_BOT_MESSAGES));
     const toKeep = msgs.slice(Math.max(0, msgs.length - MAX_BOT_MESSAGES));
+    const keepIds = new Set(toKeep);
 
     for (const msgId of toDelete) {
       await deleteTelegramMessage(chatId, msgId);
     }
 
+    const nextIndex = Object.fromEntries(
+      Object.entries(index).filter((entry) => keepIds.has(entry[1]))
+    );
+
     await admin
       .from("profiles")
-      .update({ telegram_bot_messages: toKeep } as never)
+      .update({
+        telegram_bot_messages: toKeep,
+        telegram_message_index: nextIndex,
+      } as never)
       .eq("telegram_chat_id", chatId);
   } catch { /* non-critical */ }
 }
@@ -190,7 +202,12 @@ export async function POST(req: NextRequest) {
 
       await admin
         .from("profiles")
-        .update({ telegram_chat_id: null, telegram_link_token: null } as never)
+        .update({
+          telegram_chat_id: null,
+          telegram_link_token: null,
+          telegram_bot_messages: [],
+          telegram_message_index: {},
+        } as never)
         .eq("id", me.id);
 
       await answerCallback(cb.id, "Отвязано ✓");
@@ -265,7 +282,12 @@ export async function POST(req: NextRequest) {
 
     await admin
       .from("profiles")
-      .update({ telegram_chat_id: chatId, telegram_link_token: null } as never)
+      .update({
+        telegram_chat_id: chatId,
+        telegram_link_token: null,
+        telegram_bot_messages: [],
+        telegram_message_index: {},
+      } as never)
       .eq("id", profile.id);
 
     await sendMessage(

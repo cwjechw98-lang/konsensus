@@ -5,7 +5,7 @@
 
 ## Текущий этап
 
-**Фаза 8–10 (Социальный слой + ИИ-углубление + профиль)** — расширена. Добавлены матчинг по темам и уникальные AI-достижения.
+**Фаза 8–10 (Социальный слой + ИИ-углубление + профиль)** — расширена. Добавлены матчинг по темам, уникальные AI-достижения и Telegram-first вход через Mini App.
 
 В работе: первая инфраструктурная итерация для E2E через Playwright.
 
@@ -71,6 +71,7 @@
 | 00010_topic_categories.sql | category в disputes/challenges, telegram_bot_messages в profiles |
 | 00011_ai_profile_and_stats.sql | ai_profiles, counterparts, hint_logs |
 | 00012_user_unique_achievements.sql | user_unique_achievements (AI-награды, отдельное хранение) |
+| 00013_telegram_message_index.sql | telegram_message_index в profiles (дедупликация и обновление bot-уведомлений) |
 
 ## Ключевые компоненты
 
@@ -119,3 +120,5 @@
 | 2026-03-15 | Фикс арены: принятие открытого вызова снова ведёт в отдельный challenge-room, CTA в matchmaking исправлен |
 | 2026-03-15 | Старт E2E-итерации: добавлен Playwright-конфиг, npm scripts и public smoke tests |
 | 2026-03-15 | Исправлен middleware для публичных маршрутов: `/feed`, `/arena`, invite-flow и public dispute view больше не редиректят гостя на login |
+| 2026-03-15 | Telegram Mini App: `/tg` теперь автоматически создаёт Telegram-first аккаунт и логинит без Google/email-регистрации |
+| 2026-03-15 | Telegram-бот: однотипные уведомления обновляются по dedupe-ключам вместо накопления дублей, добавлена миграция `00013` |

@@ -57,7 +57,12 @@ export async function disconnectTelegram(): Promise<void> {
 
   await supabase
     .from("profiles")
-    .update({ telegram_chat_id: null, telegram_link_token: null } as never)
+    .update({
+      telegram_chat_id: null,
+      telegram_link_token: null,
+      telegram_bot_messages: [],
+      telegram_message_index: {},
+    } as never)
     .eq("id", user.id);
 
   redirect("/profile");

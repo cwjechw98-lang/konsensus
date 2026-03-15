@@ -36,6 +36,50 @@ function validateInitData(initData: string): Record<string, string> | null {
   return Object.fromEntries(entries);
 }
 
+function getTelegramEmail(chatId: number): string {
+  return `tg-${chatId}@telegram.konsensus.app`;
+}
+
+function getTelegramDisplayName(user: {
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  id: number;
+}): string {
+  if (user.username) return `@${user.username}`;
+
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+
+  return `Telegram ${user.id}`;
+}
+
+async function findAuthUserIdByEmail(email: string): Promise<string | null> {
+  const admin = createAdminClient() as ReturnType<typeof createAdminClient> & {
+    schema: (schema: string) => {
+      from: (table: string) => {
+        select: (columns: string) => {
+          eq: (column: string, value: string) => {
+            limit: (count: number) => {
+              maybeSingle: <T>() => Promise<{ data: T | null }>;
+            };
+          };
+        };
+      };
+    };
+  };
+
+  const { data } = await admin
+    .schema("auth")
+    .from("users")
+    .select("id")
+    .eq("email", email)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  return data?.id ?? null;
+}
+
 /**
  * POST /api/telegram/auth
  * Body: { initData: string }
@@ -60,7 +104,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No user in initData" }, { status: 400 });
     }
 
-    let tgUser: { id: number };
+    let tgUser: { id: number; username?: string; first_name?: string; last_name?: string };
     try {
       tgUser = JSON.parse(userJson);
     } catch {
@@ -70,22 +114,53 @@ export async function POST(req: Request) {
     const chatId = tgUser.id;
     const admin = createAdminClient();
 
-    // Find linked profile
+    const telegramEmail = getTelegramEmail(chatId);
+    const telegramDisplayName = getTelegramDisplayName(tgUser);
+
+    // Find linked profile first
     const { data: profile } = await admin
       .from("profiles")
-      .select("id")
+      .select("id, display_name")
       .eq("telegram_chat_id", chatId)
-      .single<{ id: string }>();
+      .maybeSingle<{ id: string; display_name: string | null }>();
 
-    if (!profile) {
-      return NextResponse.json({
-        error: "not_linked",
-        message: "Telegram не привязан к аккаунту. Привяжите через профиль на сайте.",
-      }, { status: 403 });
+    let userId = profile?.id ?? null;
+
+    if (!userId) {
+      userId = await findAuthUserIdByEmail(telegramEmail);
     }
 
-    // Get user email
-    const { data: authUser } = await admin.auth.admin.getUserById(profile.id);
+    if (!userId) {
+      const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
+        email: telegramEmail,
+        email_confirm: true,
+        user_metadata: {
+          display_name: telegramDisplayName,
+          auth_provider: "telegram",
+          telegram_id: chatId,
+          telegram_username: tgUser.username ?? null,
+        },
+      });
+
+      if (createError || !createdUser.user?.id) {
+        return NextResponse.json({
+          error: createError?.message ?? "Failed to create Telegram user",
+        }, { status: 500 });
+      }
+
+      userId = createdUser.user.id;
+    }
+
+    // Link or refresh profile metadata for Telegram users
+    await admin
+      .from("profiles")
+      .update({
+        telegram_chat_id: chatId,
+        display_name: profile?.display_name ?? telegramDisplayName,
+      } as never)
+      .eq("id", userId);
+
+    const { data: authUser } = await admin.auth.admin.getUserById(userId);
     if (!authUser?.user?.email) {
       return NextResponse.json({ error: "User not found" }, { status: 500 });
     }

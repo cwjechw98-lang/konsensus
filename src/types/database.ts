@@ -30,6 +30,7 @@ export interface Database {
           telegram_chat_id: number | null;
           telegram_link_token: string | null;
           telegram_bot_messages: number[] | null;
+          telegram_message_index: Json | null;
         };
         Insert: {
           id: string;
@@ -40,6 +41,7 @@ export interface Database {
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;
           telegram_bot_messages?: number[] | null;
+          telegram_message_index?: Json | null;
         };
         Update: {
           id?: string;
@@ -50,6 +52,7 @@ export interface Database {
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;
           telegram_bot_messages?: number[] | null;
+          telegram_message_index?: Json | null;
         };
       };
       challenges: {

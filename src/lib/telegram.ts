@@ -1,5 +1,41 @@
+import type { Json } from "@/types/database";
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
+const MAX_MANAGED_MESSAGES = 5;
+
+type InlineKeyboardButton = { text: string; url: string };
+type InlineKeyboard = InlineKeyboardButton[][];
+type TelegramMessageIndex = Record<string, number>;
+
+function buildInlineKeyboard(url?: string): InlineKeyboard | undefined {
+  if (!url) return undefined;
+  return [[{ text: "Открыть →", url }]];
+}
+
+function normalizeMessageIndex(value: unknown): TelegramMessageIndex {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === "number")
+  );
+}
+
+async function telegramApi<T>(method: string, body: Record<string, unknown>): Promise<T | null> {
+  if (!BOT_TOKEN) return null;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return data as T;
+  } catch {
+    return null;
+  }
+}
 
 async function sendTelegramMessage(
   chatId: number,
@@ -14,35 +50,122 @@ async function sendTelegramMessage(
     parse_mode: "HTML",
   };
 
-  if (url) {
-    body.reply_markup = {
-      inline_keyboard: [[{ text: "Открыть →", url }]],
-    };
+  const inlineKeyboard = buildInlineKeyboard(url);
+  if (inlineKeyboard) {
+    body.reply_markup = { inline_keyboard: inlineKeyboard };
   }
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    return data?.result?.message_id ?? null;
-  } catch {
-    return null;
-  }
+  const data = await telegramApi<{ result?: { message_id?: number } }>("sendMessage", body);
+  return data?.result?.message_id ?? null;
 }
 
 // Delete a message by ID (for chat cleanup)
 export async function deleteTelegramMessage(chatId: number, messageId: number): Promise<void> {
   if (!BOT_TOKEN) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
-    });
-  } catch { /* ignore — message may already be deleted */ }
+  await telegramApi("deleteMessage", { chat_id: chatId, message_id: messageId });
+}
+
+async function editTelegramMessage(
+  chatId: number,
+  messageId: number,
+  text: string,
+  url?: string
+): Promise<boolean> {
+  if (!BOT_TOKEN) return false;
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+  };
+
+  const inlineKeyboard = buildInlineKeyboard(url);
+  if (inlineKeyboard) {
+    body.reply_markup = { inline_keyboard: inlineKeyboard };
+  }
+
+  const data = await telegramApi<{ ok?: boolean }>("editMessageText", body);
+  return data?.ok === true;
+}
+
+async function syncManagedMessages(
+  chatId: number,
+  messageIds: number[],
+  messageIndex: TelegramMessageIndex
+): Promise<void> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const uniqueIds = Array.from(new Set(messageIds));
+  const toDelete = uniqueIds.slice(0, Math.max(0, uniqueIds.length - MAX_MANAGED_MESSAGES));
+  const toKeep = uniqueIds.slice(Math.max(0, uniqueIds.length - MAX_MANAGED_MESSAGES));
+
+  for (const messageId of toDelete) {
+    await deleteTelegramMessage(chatId, messageId);
+  }
+
+  const allowedIds = new Set(toKeep);
+  const prunedIndex = Object.fromEntries(
+    Object.entries(messageIndex).filter((entry) => allowedIds.has(entry[1]))
+  );
+
+  await admin
+    .from("profiles")
+    .update({
+      telegram_bot_messages: toKeep,
+      telegram_message_index: prunedIndex,
+    } as never)
+    .eq("telegram_chat_id", chatId);
+}
+
+export async function upsertTelegramNotification(opts: {
+  chatId: number;
+  text: string;
+  url?: string;
+  dedupeKey: string;
+}): Promise<number | null> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { chatId, text, url, dedupeKey } = opts;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("telegram_bot_messages, telegram_message_index")
+    .eq("telegram_chat_id", chatId)
+    .single<{
+      telegram_bot_messages: number[] | null;
+      telegram_message_index: Json | null;
+    }>();
+
+  const messageIds = [...(profile?.telegram_bot_messages ?? [])];
+  const messageIndex = normalizeMessageIndex(profile?.telegram_message_index);
+  const existingMessageId = messageIndex[dedupeKey];
+
+  if (existingMessageId) {
+    const edited = await editTelegramMessage(chatId, existingMessageId, text, url);
+    if (edited) {
+      await syncManagedMessages(
+        chatId,
+        [...messageIds.filter((id) => id !== existingMessageId), existingMessageId],
+        { ...messageIndex, [dedupeKey]: existingMessageId }
+      );
+      return existingMessageId;
+    }
+
+    await deleteTelegramMessage(chatId, existingMessageId);
+  }
+
+  const newMessageId = await sendTelegramMessage(chatId, text, url);
+  if (!newMessageId) return null;
+
+  await syncManagedMessages(
+    chatId,
+    [...messageIds.filter((id) => id !== existingMessageId), newMessageId],
+    { ...messageIndex, [dedupeKey]: newMessageId }
+  );
+
+  return newMessageId;
 }
 
 export async function notifyChallengeAccepted(
@@ -51,11 +174,12 @@ export async function notifyChallengeAccepted(
   topic: string,
   challengeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `⚔️ <b>${acceptorName}</b> принял ваш вызов!\n\nТема: <i>${topic}</i>`,
-    `${APP_URL}/arena/${challengeId}`
-  );
+    dedupeKey: `challenge_accepted:${challengeId}`,
+    text: `⚔️ <b>${acceptorName}</b> принял ваш вызов!\n\nТема: <i>${topic}</i>`,
+    url: `${APP_URL}/arena/${challengeId}`,
+  });
 }
 
 export async function notifyChallengeMessage(
@@ -64,11 +188,12 @@ export async function notifyChallengeMessage(
   topic: string,
   challengeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `💬 <b>${senderName}</b> написал на арене\n\nТема: <i>${topic}</i>`,
-    `${APP_URL}/arena/${challengeId}`
-  );
+    dedupeKey: `challenge_message:${challengeId}:${senderName}`,
+    text: `💬 <b>${senderName}</b> написал на арене\n\nТема: <i>${topic}</i>`,
+    url: `${APP_URL}/arena/${challengeId}`,
+  });
 }
 
 export async function notifyArgumentReceived(
@@ -78,11 +203,12 @@ export async function notifyArgumentReceived(
   round: number,
   disputeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `🥊 <b>${senderName}</b> подал аргумент в раунде ${round}\n\nСпор: <i>${disputeTitle}</i>`,
-    `${APP_URL}/dispute/${disputeId}`
-  );
+    dedupeKey: `argument_received:${disputeId}:${round}:${senderName}`,
+    text: `🥊 <b>${senderName}</b> подал аргумент в раунде ${round}\n\nСпор: <i>${disputeTitle}</i>`,
+    url: `${APP_URL}/dispute/${disputeId}`,
+  });
 }
 
 export async function notifyMediationReady(
@@ -90,11 +216,12 @@ export async function notifyMediationReady(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `🤖 Медиация готова!\n\nСпор: <i>${disputeTitle}</i>\nВсе раунды завершены — ИИ-медиатор предлагает решение.`,
-    `${APP_URL}/dispute/${disputeId}/mediation`
-  );
+    dedupeKey: `mediation_ready:${disputeId}`,
+    text: `🤖 Медиация готова!\n\nСпор: <i>${disputeTitle}</i>\nВсе раунды завершены — ИИ-медиатор предлагает решение.`,
+    url: `${APP_URL}/dispute/${disputeId}/mediation`,
+  });
 }
 
 // NEW: Notify when opponent joins a dispute
@@ -104,11 +231,12 @@ export async function notifyOpponentJoined(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `🎯 <b>${opponentName}</b> присоединился к спору!\n\nСпор: <i>${disputeTitle}</i>\nВаш ход — подайте аргумент.`,
-    `${APP_URL}/dispute/${disputeId}`
-  );
+    dedupeKey: `opponent_joined:${disputeId}`,
+    text: `🎯 <b>${opponentName}</b> присоединился к спору!\n\nСпор: <i>${disputeTitle}</i>\nВаш ход — подайте аргумент.`,
+    url: `${APP_URL}/dispute/${disputeId}`,
+  });
 }
 
 // NEW: Notify when dispute is fully resolved (consensus reached)
@@ -117,11 +245,12 @@ export async function notifyDisputeResolved(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return sendTelegramMessage(
+  return upsertTelegramNotification({
     chatId,
-    `✅ Спор завершён!\n\nСпор: <i>${disputeTitle}</i>\nМедиация окончена — посмотрите итоги.`,
-    `${APP_URL}/dispute/${disputeId}/mediation`
-  );
+    dedupeKey: `dispute_resolved:${disputeId}`,
+    text: `✅ Спор завершён!\n\nСпор: <i>${disputeTitle}</i>\nМедиация окончена — посмотрите итоги.`,
+    url: `${APP_URL}/dispute/${disputeId}/mediation`,
+  });
 }
 
 // Random AI joke/wisdom in bot (called occasionally)
