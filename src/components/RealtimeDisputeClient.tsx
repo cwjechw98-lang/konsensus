@@ -55,7 +55,7 @@ function convergenceIdx(v: number) { return Math.min(4, Math.max(0, v + 2)); }
 function PublicRoundCard({ summary, round }: { summary: PublicSummary; round: number }) {
   const idx = convergenceIdx(summary.convergence);
   return (
-    <div className={`mx-auto max-w-[95%] mt-3 rounded-2xl px-4 py-3 border ${CONVERGENCE_BG[idx]}`}>
+    <div className={`rounded-2xl px-4 py-3 border ${CONVERGENCE_BG[idx]}`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">
           🤖 Наблюдение · Раунд {round}
@@ -68,6 +68,132 @@ function PublicRoundCard({ summary, round }: { summary: PublicSummary; round: nu
       <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
         {summary.content}
       </p>
+    </div>
+  );
+}
+
+function RoundArgumentCard({
+  arg,
+  isMe,
+  displayName,
+}: {
+  arg: Arg;
+  isMe: boolean;
+  displayName: string;
+}) {
+  return (
+    <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[85%] flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}>
+        <span className="text-xs text-gray-500 px-1">
+          {displayName}
+          {isMe && (
+            <span className="text-purple-500 ml-1">(вы)</span>
+          )}
+        </span>
+        <div
+          className={`rounded-2xl px-4 py-3 ${
+            isMe
+              ? "bg-purple-600/25 border border-purple-500/30 rounded-tr-sm"
+              : "glass border-white/8 rounded-tl-sm"
+          }`}
+        >
+          <p className="font-semibold text-white text-sm mb-1">
+            {arg.position}
+          </p>
+          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+            {arg.reasoning}
+          </p>
+          {arg.evidence && (
+            <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/8">
+              📎 {arg.evidence}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoundPackage({
+  round,
+  maxRounds,
+  roundArgs,
+  currentUserId,
+  getName,
+  publicSummary,
+  privateInsight,
+}: {
+  round: number;
+  maxRounds: number;
+  roundArgs: Arg[];
+  currentUserId: string;
+  getName: (pid: string | null) => string;
+  publicSummary?: PublicSummary;
+  privateInsight?: string;
+}) {
+  const hasAnalysis = roundArgs.length === 2 && (publicSummary || privateInsight);
+
+  return (
+    <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.015] px-3 py-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1 h-px bg-white/6" />
+        <span className="text-xs text-gray-600 px-2">
+          Раунд {round} из {maxRounds}
+        </span>
+        <div className="flex-1 h-px bg-white/6" />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {roundArgs.map((arg) => (
+          <RoundArgumentCard
+            key={arg.id}
+            arg={arg}
+            isMe={arg.author_id === currentUserId}
+            displayName={getName(arg.author_id)}
+          />
+        ))}
+      </div>
+
+      {hasAnalysis && (
+        <div className="mt-4 rounded-2xl border border-white/8 bg-black/10 p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-1">
+                Итог раунда
+              </p>
+              <p className="text-sm text-gray-400">
+                Публичное наблюдение и персональный разбор этого обмена.
+              </p>
+            </div>
+            <span className="text-xs text-violet-300 border border-violet-500/20 bg-violet-500/10 rounded-full px-2.5 py-1 whitespace-nowrap">
+              AI-пакет
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {publicSummary && (
+              <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-2">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500 mb-2 px-2 pt-1">
+                  Что видно обоим
+                </p>
+                <PublicRoundCard summary={publicSummary} round={round} />
+              </div>
+            )}
+
+            {privateInsight && (
+              <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.04] p-2">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-violet-300/80 mb-2 px-2 pt-1">
+                  Что ИИ понял для вас
+                </p>
+                <InsightBreakdown
+                  text={privateInsight}
+                  eyebrow="Разбор оппонента · Только для вас"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -409,72 +535,16 @@ export default function RealtimeDisputeClient({
               if (roundArgs.length === 0) return null;
 
               return (
-                <div key={round}>
-                  <div className="flex items-center gap-3 my-5">
-                    <div className="flex-1 h-px bg-white/6" />
-                    <span className="text-xs text-gray-600 px-2">
-                      Раунд {round} из {dispute.max_rounds}
-                    </span>
-                    <div className="flex-1 h-px bg-white/6" />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {roundArgs.map((arg) => {
-                      const isMe = arg.author_id === userId;
-                      return (
-                        <div
-                          key={arg.id}
-                          className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                        >
-                          <div
-                            className={`max-w-[85%] flex flex-col gap-1 ${isMe ? "items-end" : "items-start"}`}
-                          >
-                            <span className="text-xs text-gray-500 px-1">
-                              {getName(arg.author_id)}
-                              {isMe && (
-                                <span className="text-purple-500 ml-1">(вы)</span>
-                              )}
-                            </span>
-                            <div
-                              className={`rounded-2xl px-4 py-3 ${
-                                isMe
-                                  ? "bg-purple-600/25 border border-purple-500/30 rounded-tr-sm"
-                                  : "glass border-white/8 rounded-tl-sm"
-                              }`}
-                            >
-                              <p className="font-semibold text-white text-sm mb-1">
-                                {arg.position}
-                              </p>
-                              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                                {arg.reasoning}
-                              </p>
-                              {arg.evidence && (
-                                <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/8">
-                                  📎 {arg.evidence}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Public AI round card — visible to both */}
-                  {roundArgs.length === 2 && publicSummaries[round] && (
-                    <PublicRoundCard summary={publicSummaries[round]} round={round} />
-                  )}
-
-                  {/* Private AI insight — only for current user */}
-                  {roundArgs.length === 2 && insights[round] && (
-                    <div className="mx-auto max-w-[90%] mt-2">
-                      <InsightBreakdown
-                        text={insights[round]}
-                        eyebrow="Разбор оппонента · Только для вас"
-                      />
-                    </div>
-                  )}
-                </div>
+                <RoundPackage
+                  key={round}
+                  round={round}
+                  maxRounds={dispute.max_rounds}
+                  roundArgs={roundArgs}
+                  currentUserId={userId}
+                  getName={getName}
+                  publicSummary={publicSummaries[round]}
+                  privateInsight={insights[round]}
+                />
               );
             })}
           </div>
