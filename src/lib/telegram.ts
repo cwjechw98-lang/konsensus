@@ -1,8 +1,11 @@
 import type { Json } from "@/types/database";
+import { getAppBaseUrl, getTelegramReleaseChannelId } from "@/lib/site-config";
+import { formatReleaseCaption, getReleaseImageUrl, normalizeReleasePayload, type ReleasePayload, type ReleaseTarget } from "@/lib/releases";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
+const APP_URL = getAppBaseUrl();
 const MAX_MANAGED_MESSAGES = 5;
+const TELEGRAM_RELEASE_CHANNEL_ID = getTelegramReleaseChannelId();
 
 type InlineKeyboardButton = { text: string; url: string };
 type InlineKeyboard = InlineKeyboardButton[][];
@@ -38,7 +41,7 @@ async function telegramApi<T>(method: string, body: Record<string, unknown>): Pr
 }
 
 async function sendTelegramMessage(
-  chatId: number,
+  chatId: number | string,
   text: string,
   url?: string
 ): Promise<number | null> {
@@ -59,6 +62,30 @@ async function sendTelegramMessage(
   return data?.result?.message_id ?? null;
 }
 
+async function sendTelegramPhoto(
+  chatId: number | string,
+  photo: string,
+  caption: string,
+  url?: string
+): Promise<number | null> {
+  if (!BOT_TOKEN) return null;
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    photo,
+    caption,
+    parse_mode: "HTML",
+  };
+
+  const inlineKeyboard = buildInlineKeyboard(url);
+  if (inlineKeyboard) {
+    body.reply_markup = { inline_keyboard: inlineKeyboard };
+  }
+
+  const data = await telegramApi<{ result?: { message_id?: number } }>("sendPhoto", body);
+  return data?.result?.message_id ?? null;
+}
+
 // Delete a message by ID (for chat cleanup)
 export async function deleteTelegramMessage(chatId: number, messageId: number): Promise<void> {
   if (!BOT_TOKEN) return;
@@ -66,7 +93,7 @@ export async function deleteTelegramMessage(chatId: number, messageId: number): 
 }
 
 async function editTelegramMessage(
-  chatId: number,
+  chatId: number | string,
   messageId: number,
   text: string,
   url?: string
@@ -166,6 +193,125 @@ export async function upsertTelegramNotification(opts: {
   );
 
   return newMessageId;
+}
+
+type ReleaseAnnouncementRow = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  features: string[];
+  hero_image_url: string | null;
+  notes: string | null;
+  source_commits: string[] | null;
+  sent_to_bot_at: string | null;
+  sent_to_channel_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+async function sendReleaseCard(
+  chatId: number | string,
+  release: ReleaseAnnouncementRow
+): Promise<number | null> {
+  const imageUrl = release.hero_image_url || getReleaseImageUrl(release.slug);
+  const caption = formatReleaseCaption({
+    slug: release.slug,
+    title: release.title,
+    summary: release.summary,
+    features: release.features,
+    notes: release.notes ?? undefined,
+    source_commits: release.source_commits ?? undefined,
+  });
+
+  const photoMessageId = await sendTelegramPhoto(chatId, imageUrl, caption, `${APP_URL}/feed`);
+  if (photoMessageId) return photoMessageId;
+
+  return sendTelegramMessage(chatId, caption, `${APP_URL}/feed`);
+}
+
+export async function publishReleaseAnnouncement(
+  payload: ReleasePayload,
+  target: ReleaseTarget = "both"
+): Promise<{
+  slug: string;
+  sentToBot: boolean;
+  sentToChannel: boolean;
+  skippedBot: boolean;
+  skippedChannel: boolean;
+}> {
+  const normalized = normalizeReleasePayload(payload);
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const heroImageUrl = getReleaseImageUrl(normalized.slug);
+
+  await admin.from("release_announcements").upsert({
+    slug: normalized.slug,
+    title: normalized.title,
+    summary: normalized.summary,
+    features: normalized.features,
+    hero_image_url: heroImageUrl,
+    notes: normalized.notes ?? null,
+    source_commits: normalized.source_commits ?? [],
+    updated_at: now,
+  } as never, { onConflict: "slug" });
+
+  const { data: release } = await admin
+    .from("release_announcements")
+    .select("*")
+    .eq("slug", normalized.slug)
+    .single<ReleaseAnnouncementRow>();
+
+  if (!release) {
+    throw new Error("Release announcement was not persisted");
+  }
+
+  let sentToBot = false;
+  let sentToChannel = false;
+  const skippedBot = Boolean(release.sent_to_bot_at);
+  const skippedChannel = Boolean(release.sent_to_channel_at);
+
+  if (target !== "channel" && !release.sent_to_bot_at) {
+    const { data: users } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .not("telegram_chat_id", "is", null)
+      .returns<{ telegram_chat_id: number }[]>();
+
+    let delivered = 0;
+    for (const user of users ?? []) {
+      const messageId = await sendReleaseCard(user.telegram_chat_id, release);
+      if (messageId) delivered++;
+    }
+
+    if (delivered > 0 || (users ?? []).length === 0) {
+      sentToBot = true;
+      await admin
+        .from("release_announcements")
+        .update({ sent_to_bot_at: now, updated_at: now } as never)
+        .eq("slug", normalized.slug);
+    }
+  }
+
+  if (target !== "bot" && TELEGRAM_RELEASE_CHANNEL_ID && !release.sent_to_channel_at) {
+    const channelMessageId = await sendReleaseCard(TELEGRAM_RELEASE_CHANNEL_ID, release);
+    if (channelMessageId) {
+      sentToChannel = true;
+      await admin
+        .from("release_announcements")
+        .update({ sent_to_channel_at: now, updated_at: now } as never)
+        .eq("slug", normalized.slug);
+    }
+  }
+
+  return {
+    slug: normalized.slug,
+    sentToBot,
+    sentToChannel,
+    skippedBot,
+    skippedChannel,
+  };
 }
 
 export async function notifyChallengeAccepted(

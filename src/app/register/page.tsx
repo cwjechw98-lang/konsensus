@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
 import GoogleOAuthButton from "@/components/GoogleOAuthButton";
+import TelegramAuthButton from "@/components/TelegramAuthButton";
 
 const translateError = (msg: string): string => {
   if (msg.includes("User already registered") || msg.includes("already been registered"))
@@ -69,6 +70,7 @@ export default async function RegisterPage({
         </div>
 
         <div className="glass rounded-2xl p-8 flex flex-col gap-4">
+          <TelegramAuthButton />
           <GoogleOAuthButton next={redirectUrl || undefined} />
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-white/8" />

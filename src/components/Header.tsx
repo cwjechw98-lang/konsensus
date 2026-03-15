@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MobileMenu } from "./MobileMenu";
+import TelegramAuthButton from "./TelegramAuthButton";
+import { getTelegramBotLink } from "@/lib/site-config";
 
 export async function Header() {
   const supabase = await createClient();
+  const telegramLink = getTelegramBotLink();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -22,6 +25,9 @@ export async function Header() {
         <nav className="hidden md:flex items-center gap-5">
           <Link href="/feed" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
             Лента
+          </Link>
+          <Link href="/support" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
+            Поддержать
           </Link>
           {user ? (
             <>
@@ -45,6 +51,7 @@ export async function Header() {
             </>
           ) : (
             <>
+              <TelegramAuthButton compact />
               <Link href="/login" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Войти
               </Link>
@@ -56,7 +63,7 @@ export async function Header() {
         </nav>
 
         {/* Mobile hamburger */}
-        <MobileMenu isLoggedIn={!!user} />
+        <MobileMenu isLoggedIn={!!user} telegramLink={telegramLink} />
       </div>
     </header>
   );

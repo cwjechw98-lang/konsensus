@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import CursorGlow from "@/components/CursorGlow";
 import RippleEffect from "@/components/RippleEffect";
 import AchievementToast from "@/components/AchievementToast";
@@ -45,6 +46,7 @@ export default function RootLayout({
         <BrowserNotificationPermission />
         <Header />
         <main className="flex-1 pt-14">{children}</main>
+        <Footer />
       </body>
     </html>
   );

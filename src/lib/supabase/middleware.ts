@@ -49,7 +49,9 @@ export async function updateSession(request: NextRequest) {
     pathname === "/register" ||
     pathname === "/feed" ||
     pathname === "/arena" ||
+    pathname === "/support" ||
     pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/releases") ||
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/tg") ||
     pathname.startsWith("/dispute/join") ||

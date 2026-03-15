@@ -462,6 +462,48 @@ export interface Database {
           last_dispute_at?: string;
         };
       };
+      release_announcements: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          summary: string;
+          features: string[];
+          hero_image_url: string | null;
+          notes: string | null;
+          source_commits: string[] | null;
+          sent_to_bot_at: string | null;
+          sent_to_channel_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          summary: string;
+          features?: string[];
+          hero_image_url?: string | null;
+          notes?: string | null;
+          source_commits?: string[] | null;
+          sent_to_bot_at?: string | null;
+          sent_to_channel_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          title?: string;
+          summary?: string;
+          features?: string[];
+          hero_image_url?: string | null;
+          notes?: string | null;
+          source_commits?: string[] | null;
+          sent_to_bot_at?: string | null;
+          sent_to_channel_at?: string | null;
+          updated_at?: string;
+        };
+      };
       ai_hint_logs: {
         Row: {
           id: string;

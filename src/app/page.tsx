@@ -5,6 +5,8 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import FloatingToast from "@/components/FloatingToast";
 import ScrollReveal from "@/components/ScrollReveal";
 import TiltCard from "@/components/TiltCard";
+import TelegramAuthButton from "@/components/TelegramAuthButton";
+import { SUPPORT_GOALS, SUPPORT_LINKS, hasSupportLinks } from "@/lib/site-config";
 
 // ─── Контент ────────────────────────────────────────────────────────
 
@@ -94,6 +96,8 @@ const USECASES = [
 // ─── Страница ────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const supportVisible = hasSupportLinks();
+
   return (
     <>
       <FloatingToast />
@@ -157,6 +161,7 @@ export default function HomePage() {
             >
               Арена вызовов
             </Link>
+            <TelegramAuthButton className="btn-ripple inline-flex items-center justify-center gap-2 rounded-lg border border-sky-500/25 bg-sky-500/10 px-8 py-3.5 text-base font-semibold text-sky-200 transition-colors hover:bg-sky-500/15" />
           </div>
         </div>
 
@@ -361,8 +366,9 @@ export default function HomePage() {
                 Наведите на любого участника — увидите его RPG-карточку: класс, статы, стиль спора.
               </p>
               <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                В чате вызова ИИ-медиатор активно участвует: задаёт вопросы, фиксирует прогресс.
-                После обмена аргументами — запросите финальную медиацию и получите итог.
+                Открытый вызов теперь идёт по раундам, как и основной диспут:
+                инициатор открывает обмен, оппонент отвечает, а финальная медиация
+                запускается автоматически после последнего раунда.
               </p>
               <div className="flex gap-4 justify-center flex-wrap">
                 <Link
@@ -382,6 +388,66 @@ export default function HomePage() {
           </ScrollReveal>
         </div>
       </section>
+
+      {supportVisible && (
+        <section className="py-10 px-4 pb-28">
+          <div className="max-w-4xl mx-auto">
+            <ScrollReveal>
+              <div className="glass rounded-2xl p-8 border border-amber-500/15">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-4">
+                      Поддержка роста
+                    </p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-snug">
+                      Хотите ускорить развитие Konsensus?
+                    </h2>
+                    <p className="text-gray-400 leading-relaxed mb-5">
+                      Поддержка помогает держать инфраструктуру, подключать
+                      более сильные модели для сложных медиаций и быстрее
+                      выпускать новые пользовательские фичи.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {SUPPORT_LINKS.boosty && (
+                        <Link
+                          href={SUPPORT_LINKS.boosty}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-ripple inline-block bg-amber-500/90 hover:bg-amber-400 text-black px-6 py-3 rounded-lg font-semibold transition-colors"
+                        >
+                          Поддержать через Boosty
+                        </Link>
+                      )}
+                      <Link
+                        href="/support"
+                        className="btn-ripple inline-block glass text-gray-300 hover:text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                      >
+                        Все способы поддержки
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="lg:w-[320px]">
+                    <p className="text-sm font-medium text-white mb-3">
+                      На что идут средства
+                    </p>
+                    <div className="space-y-2.5">
+                      {SUPPORT_GOALS.map((goal) => (
+                        <div
+                          key={goal}
+                          className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-gray-300"
+                        >
+                          {goal}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
 
       {/* ════════════════════ USE CASES ════════════════════ */}
       <section className="py-10 px-4 pb-28">
@@ -464,6 +530,7 @@ export default function HomePage() {
             >
               Начать бесплатно
             </Link>
+            <TelegramAuthButton className="btn-ripple inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-8 py-4 text-lg font-semibold text-sky-200 transition-colors hover:bg-sky-500/15" />
             <Link
               href="/feed"
               className="btn-ripple inline-block glass text-gray-300 hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg"

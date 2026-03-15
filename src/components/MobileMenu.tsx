@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 
 interface MobileMenuProps {
   isLoggedIn: boolean;
+  telegramLink?: string;
 }
 
-export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
+export function MobileMenu({ isLoggedIn, telegramLink = "" }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,6 +53,9 @@ export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
           <Link href="/feed" className={linkClass} onClick={() => setOpen(false)}>
             Лента
           </Link>
+          <Link href="/support" className={linkClass} onClick={() => setOpen(false)}>
+            Поддержать
+          </Link>
 
           {isLoggedIn ? (
             <>
@@ -77,6 +81,17 @@ export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
             </>
           ) : (
             <>
+              {telegramLink && (
+                <Link
+                  href={telegramLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block mx-2 text-center text-sm border border-sky-500/25 bg-sky-500/10 text-sky-200 px-4 py-2.5 rounded-lg font-medium transition-colors hover:bg-sky-500/15"
+                  onClick={() => setOpen(false)}
+                >
+                  Войти через Telegram
+                </Link>
+              )}
               <Link href="/login" className={linkClass} onClick={() => setOpen(false)}>
                 Войти
               </Link>

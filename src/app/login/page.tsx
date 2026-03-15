@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GoogleOAuthButton from "@/components/GoogleOAuthButton";
+import TelegramAuthButton from "@/components/TelegramAuthButton";
 
 // Переводим английские ошибки Supabase на русский
 const translateError = (msg: string): string => {
@@ -51,6 +52,7 @@ export default function LoginPage({
         </div>
 
         <div className="glass rounded-2xl p-8 flex flex-col gap-4">
+          <TelegramAuthButton />
           <GoogleOAuthButton />
           <Divider />
           <LoginForm action={signIn} searchParams={searchParams} />
