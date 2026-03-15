@@ -102,10 +102,11 @@
 - [x] Третий блок персонального инсайта превращён в явный "Вектор следующего хода" без нового AI-вызова и без шаблонных реплик
 - [x] Пост-конфликтный момент (конфетти, общие интересы, инлайн-ачивка)
 - [x] Waiting-stage обычного спора подан как приватная фаза: AI-подсказка, ambient-layer, советы и мини-игры читаются как один порядок ожидания
+- [x] Мягкий orchestration v1 внутри `src/lib/ai.ts`: virtual subagents (`legal_lens`, `empathy_lens`, `mediation_lens`, `fact_lens`) уже обслуживают waiting/private/public/final AI-path с legacy fallback и без переписывания UI
 - [ ] Многоагентная архитектура (Оркестратор + субагенты: Юрист, Психолог, Медиатор) — v2.0
   Реализация разбита по этапам и зафиксирована в `docs/ops/ai-orchestration-rollout.md`
-  Первый шаг: role-based orchestration внутри `src/lib/ai.ts` без смены UX и без отдельных моделей
-  Что останется добить после v1: feature registry, `ai_agent_runs`, AI-profile-driven routing, затем real multi-model routing
+  v1 уже внедрён как role-based orchestration внутри `src/lib/ai.ts` без смены UX и без отдельных моделей
+  Что остаётся добить после v1: feature registry, `ai_agent_runs`, AI-profile-driven routing, затем real multi-model routing
 - [ ] Профилирование участников через текстовые квесты — v2.0
   Реализация разбита по этапам и зафиксирована в `docs/ops/profile-quests-rollout.md`
   Первый шаг: 3 коротких текстовых сценария выбора без игрового движка, с обновлением `user_ai_profiles`

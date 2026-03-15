@@ -20,6 +20,22 @@ type DisputeContext = {
 };
 
 type Profile = { id: string; display_name: string | null };
+type JsonRecord = Record<string, unknown>;
+type AgentStage = "waiting" | "round_private" | "round_public" | "final_mediation";
+type AgentKey = "legal_lens" | "empathy_lens" | "mediation_lens" | "fact_lens";
+type RoundPrivateResult = {
+  heatLevel: number;
+  insightCreator: string;
+  insightOpponent: string;
+};
+type WaitingInsightResult = { insight: string };
+type PublicSummaryResult = { content: string; convergence: number };
+type FinalMediationResult = {
+  analysis: JsonRecord;
+  solutions: string[];
+};
+
+const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const TONE_GUIDE = `
 tone_level guide:
@@ -52,172 +68,648 @@ Rules:
 - the third line must describe the best direction for the recipient's next reply, not a generic reflection
 - no markdown bullets, no numbering, no winner language`;
 
-export async function generateRoundInsights(
-  dispute: DisputeContext,
-  currentRound: number,
-  allArgs: ArgumentRow[],
-  profiles: Profile[]
-): Promise<void> {
-  const admin = createAdminClient();
+const AGENT_SYSTEM_PROMPTS: Record<AgentKey, string> = {
+  legal_lens:
+    "You are the legal_lens in a mediation system. Focus on obligations, fairness, boundaries, practical consequences, and where the sides may be talking past each other about rules or expectations. Never act as a judge, never declare who is right, never give formal legal advice. Respond in Russian and strictly as structured JSON when requested.",
+  empathy_lens:
+    "You are the empathy_lens in a mediation system. Focus on emotional triggers, dignity, fear, face-saving, unmet needs, and why a person may react defensively. Never pathologize people, never moralize, never declare who is right. Respond in Russian and strictly as structured JSON when requested.",
+  mediation_lens:
+    "You are the mediation_lens in a mediation system. Focus on reframing, overlap, de-escalation, constructive next moves, and what can move the dialogue forward without forcing agreement. Never choose a winner. Respond in Russian and strictly as structured JSON when requested.",
+  fact_lens:
+    "You are the fact_lens in a mediation system. Focus on verifiability, evidence quality, factual gaps, assumptions, and where stronger grounding is needed. Never invent facts, never choose a winner. Respond in Russian and strictly as structured JSON when requested.",
+};
 
-  const getName = (id: string) =>
-    profiles.find((p) => p.id === id)?.display_name ?? "Участник";
+function clampInt(value: unknown, min: number, max: number, fallback: number) {
+  const numeric = Math.round(Number(value));
+  if (Number.isNaN(numeric)) return fallback;
+  return Math.min(max, Math.max(min, numeric));
+}
 
-  const creatorName = getName(dispute.creator_id);
-  const opponentName = getName(dispute.opponent_id);
+function getProfileName(profiles: Profile[], id: string) {
+  return profiles.find((profile) => profile.id === id)?.display_name ?? "Участник";
+}
 
-  const roundArgs = allArgs.filter((a) => a.round === currentRound);
-  const creatorArg = roundArgs.find((a) => a.author_id === dispute.creator_id);
-  const opponentArg = roundArgs.find((a) => a.author_id === dispute.opponent_id);
+function getPlaneSpecificLens(plane: string): AgentKey | null {
+  if (plane === "legal" || plane === "business") return "legal_lens";
+  if (plane === "family" || plane === "religious") return "empathy_lens";
+  if (plane === "scientific") return "fact_lens";
+  return null;
+}
 
-  if (!creatorArg || !opponentArg) return;
+function selectAgentKeys(params: {
+  stage: AgentStage;
+  plane: string;
+  heatLevel: number;
+  hasEvidence: boolean;
+}) {
+  const keys = new Set<AgentKey>();
+  const planeLens = getPlaneSpecificLens(params.plane);
 
-  const { data: existingAnalysis } = await admin
-    .from("dispute_analysis")
-    .select("*")
-    .eq("dispute_id", dispute.id)
-    .single();
-
-  const Groq = (await import("groq-sdk")).default;
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-  let plane = existingAnalysis?.plane ?? "general";
-  let toneLevel = existingAnalysis?.tone_level ?? 3;
-  let heatLevel = existingAnalysis?.heat_level ?? 3;
-  let coreTension = existingAnalysis?.core_tension ?? "";
-
-  // --- ПЕРВЫЙ РАУНД: категоризация + инсайты ---
-  if (!existingAnalysis) {
-    const categorizationPrompt = buildCategorizationPrompt(
-      dispute, creatorName, opponentName, creatorArg, opponentArg
-    );
-
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 800,
-      response_format: { type: "json_object" },
-      messages: [{ role: "user", content: categorizationPrompt }],
-    });
-
-    let result: Record<string, unknown> = {};
-    try {
-      result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-    } catch { result = {}; }
-
-    plane = (result.plane as string) ?? "general";
-    toneLevel = Math.min(5, Math.max(1, Number(result.tone_level) || 3));
-    heatLevel = Math.min(5, Math.max(1, Number(result.heat_level) || 3));
-    coreTension = (result.core_tension as string) ?? "";
-
-    const planePrompt = buildPlaneSystemPrompt(plane, toneLevel);
-
-    await admin.from("dispute_analysis").insert({
-      dispute_id: dispute.id,
-      plane,
-      tone_level: toneLevel,
-      heat_level: heatLevel,
-      core_tension: coreTension,
-      plane_prompt: planePrompt,
-      patterns: {},
-    } as never);
-
-    const insightCreator = (result.insight_for_creator as string) ?? "";
-    const insightOpponent = (result.insight_for_opponent as string) ?? "";
-
-    if (insightCreator && insightOpponent) {
-      await saveInsights(admin, dispute.id, currentRound, {
-        [dispute.creator_id]: insightCreator,
-        [dispute.opponent_id]: insightOpponent,
-      });
-      return;
+  if (params.stage === "waiting") {
+    keys.add("empathy_lens");
+    if (params.plane === "legal" || params.plane === "business") {
+      keys.add("legal_lens");
     }
+    return Array.from(keys);
   }
 
-  // --- ПОСЛЕДУЮЩИЕ РАУНДЫ: инсайты + обновление heat_level ---
-  const insightsPrompt = buildInsightsPrompt(
-    dispute, currentRound, allArgs, profiles,
-    plane, toneLevel, coreTension,
-    creatorName, opponentName, creatorArg, opponentArg
-  );
+  keys.add("mediation_lens");
+  if (planeLens) keys.add(planeLens);
+  if (params.heatLevel >= 4) keys.add("empathy_lens");
+  if (params.hasEvidence) keys.add("fact_lens");
+  if ((params.stage === "round_public" || params.stage === "final_mediation") && params.plane === "scientific") {
+    keys.add("fact_lens");
+  }
 
+  return Array.from(keys);
+}
+
+async function createGroqClient() {
+  const Groq = (await import("groq-sdk")).default;
+  return new Groq({ apiKey: process.env.GROQ_API_KEY });
+}
+
+async function runJsonPrompt(
+  messages: Array<{ role: "system" | "user"; content: string }>,
+  maxTokens: number
+): Promise<JsonRecord> {
+  const groq = await createGroqClient();
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 600,
+    model: GROQ_MODEL,
+    max_tokens: maxTokens,
     response_format: { type: "json_object" },
-    messages: [{ role: "user", content: insightsPrompt }],
+    messages,
   });
 
-  let result: Record<string, unknown> = {};
   try {
-    result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-  } catch { result = {}; }
-
-  // Обновляем heat_level если AI вернул его
-  if (result.heat_level) {
-    const newHeat = Math.min(5, Math.max(1, Number(result.heat_level)));
-    await admin
-      .from("dispute_analysis")
-      .update({ heat_level: newHeat } as never)
-      .eq("dispute_id", dispute.id);
-  }
-
-  const insightCreator = (result.insight_for_creator as string) ?? "";
-  const insightOpponent = (result.insight_for_opponent as string) ?? "";
-
-  if (insightCreator && insightOpponent) {
-    await saveInsights(admin, dispute.id, currentRound, {
-      [dispute.creator_id]: insightCreator,
-      [dispute.opponent_id]: insightOpponent,
-    });
+    return JSON.parse(response.choices[0]?.message?.content ?? "{}");
+  } catch {
+    return {};
   }
 }
 
-export async function generateWaitingInsight(
+async function runAgent(
+  agentKey: AgentKey,
+  prompt: string,
+  maxTokens: number
+): Promise<JsonRecord> {
+  return runJsonPrompt(
+    [
+      { role: "system", content: AGENT_SYSTEM_PROMPTS[agentKey] },
+      { role: "user", content: prompt },
+    ],
+    maxTokens
+  );
+}
+
+async function runAgentSet(
+  agentKeys: AgentKey[],
+  promptBuilder: (agentKey: AgentKey) => string,
+  maxTokens: number
+) {
+  const results = await Promise.all(
+    agentKeys.map(async (agentKey) => ({
+      agentKey,
+      result: await runAgent(agentKey, promptBuilder(agentKey), maxTokens),
+    }))
+  );
+
+  return Object.fromEntries(
+    results
+      .filter((entry) => Object.keys(entry.result).length > 0)
+      .map((entry) => [entry.agentKey, entry.result])
+  ) as Partial<Record<AgentKey, JsonRecord>>;
+}
+
+function buildPreviousRoundsText(
   dispute: DisputeContext,
-  submitterId: string,
-  submitterArg: ArgumentRow,
-  currentRound: number,
-  previousArgs: ArgumentRow[],
-  profiles: Profile[]
-): Promise<void> {
-  const admin = createAdminClient();
+  profiles: Profile[],
+  allArgs: ArgumentRow[],
+  roundsCount: number
+) {
+  if (roundsCount <= 0) return "";
 
-  // Check if insight already exists for this round
-  const { data: existing } = await admin
-    .from("waiting_insights")
-    .select("id")
-    .eq("dispute_id", dispute.id)
-    .eq("round", currentRound)
-    .eq("recipient_id", submitterId)
-    .single();
+  const creatorName = getProfileName(profiles, dispute.creator_id);
+  const opponentName = getProfileName(profiles, dispute.opponent_id);
 
-  if (existing) return;
+  return Array.from({ length: roundsCount }, (_, i) => {
+    const round = i + 1;
+    const creatorArg = allArgs.find(
+      (argument) => argument.author_id === dispute.creator_id && argument.round === round
+    );
+    const opponentArg = allArgs.find(
+      (argument) => argument.author_id === dispute.opponent_id && argument.round === round
+    );
 
-  const Groq = (await import("groq-sdk")).default;
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    return `Раунд ${round}: ${creatorName}: "${creatorArg?.position ?? "—"}" | ${opponentName}: "${opponentArg?.position ?? "—"}"`;
+  }).join("\n");
+}
 
-  const getName = (id: string) =>
-    profiles.find((p) => p.id === id)?.display_name ?? "Участник";
+function buildRoundsText(
+  dispute: DisputeContext,
+  profiles: Profile[],
+  allArgs: ArgumentRow[]
+) {
+  const creatorName = getProfileName(profiles, dispute.creator_id);
+  const opponentName = getProfileName(profiles, dispute.opponent_id);
 
-  const submitterName = getName(submitterId);
-  const opponentId = submitterId === dispute.creator_id ? dispute.opponent_id : dispute.creator_id;
-  const opponentName = getName(opponentId);
+  return Array.from({ length: dispute.max_rounds }, (_, index) => {
+    const round = index + 1;
+    const creatorArg = allArgs.find(
+      (argument) => argument.author_id === dispute.creator_id && argument.round === round
+    );
+    const opponentArg = allArgs.find(
+      (argument) => argument.author_id === dispute.opponent_id && argument.round === round
+    );
+    const creatorEvidence = creatorArg?.evidence ? `\nДоказательства: ${creatorArg.evidence}` : "";
+    const opponentEvidence = opponentArg?.evidence ? `\nДоказательства: ${opponentArg.evidence}` : "";
 
-  const prevRoundsText = previousArgs.length > 0
-    ? "Previous rounds:\n" + Array.from(new Set(previousArgs.map((a) => a.round))).sort().map((r) => {
-        const cA = previousArgs.find((a) => a.round === r && a.author_id === dispute.creator_id);
-        const cB = previousArgs.find((a) => a.round === r && a.author_id === dispute.opponent_id);
-        return `Round ${r}: ${getName(dispute.creator_id)}: "${cA?.position ?? "—"}" | ${getName(dispute.opponent_id)}: "${cB?.position ?? "—"}"`;
+    return [
+      `Раунд ${round}:`,
+      `${creatorName}: ${creatorArg?.position ?? "—"}\n${creatorArg?.reasoning ?? ""}${creatorEvidence}`,
+      `${opponentName}: ${opponentArg?.position ?? "—"}\n${opponentArg?.reasoning ?? ""}${opponentEvidence}`,
+    ].join("\n");
+  }).join("\n\n---\n\n");
+}
+
+function buildRoundPrivateAgentPrompt(params: {
+  dispute: DisputeContext;
+  currentRound: number;
+  allArgs: ArgumentRow[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+  profiles: Profile[];
+}) {
+  const { dispute, currentRound, allArgs, plane, toneLevel, heatLevel, coreTension, profiles } = params;
+  const creatorName = getProfileName(profiles, dispute.creator_id);
+  const opponentName = getProfileName(profiles, dispute.opponent_id);
+  const roundArgs = allArgs.filter((argument) => argument.round === currentRound);
+  const creatorArg = roundArgs.find((argument) => argument.author_id === dispute.creator_id);
+  const opponentArg = roundArgs.find((argument) => argument.author_id === dispute.opponent_id);
+  const previousRounds = buildPreviousRoundsText(dispute, profiles, allArgs, currentRound - 1);
+
+  return `Ты работаешь как одна из аналитических линз системы медиации. Отвечай строго JSON на русском.
+
+Плоскость спора: ${plane} (${PLANE_DESCRIPTIONS[plane] ?? ""})
+Тон: ${toneLevel}/5
+Текущая температура: ${heatLevel}/5
+Core tension: "${coreTension}"
+
+Спор: "${dispute.title}"${dispute.description ? `\nОписание: "${dispute.description}"` : ""}
+${previousRounds ? `\nПредыдущие раунды:\n${previousRounds}` : ""}
+
+Раунд ${currentRound}:
+${creatorName}: "${creatorArg?.position ?? "—"}. ${creatorArg?.reasoning ?? ""}"
+${opponentName}: "${opponentArg?.position ?? "—"}. ${opponentArg?.reasoning ?? ""}"
+
+Верни JSON:
+{
+  "insight_for_creator": {
+    "what_they_defend": "1 короткое предложение о том, что, вероятно, защищает ${opponentName}",
+    "why_they_react": "1 короткое предложение, почему ${opponentName} так реагирует",
+    "next_move_vector": "1 короткое предложение о лучшем направлении следующего ответа для ${creatorName}"
+  },
+  "insight_for_opponent": {
+    "what_they_defend": "1 короткое предложение о том, что, вероятно, защищает ${creatorName}",
+    "why_they_react": "1 короткое предложение, почему ${creatorName} так реагирует",
+    "next_move_vector": "1 короткое предложение о лучшем направлении следующего ответа для ${opponentName}"
+  },
+  "heat_signal": число 1-5
+}`;
+}
+
+async function orchestrateRoundPrivateInsight(params: {
+  dispute: DisputeContext;
+  currentRound: number;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}): Promise<RoundPrivateResult | null> {
+  const roundArgs = params.allArgs.filter((argument) => argument.round === params.currentRound);
+  const hasEvidence = roundArgs.some((argument) => Boolean(argument.evidence?.trim()));
+  const agentKeys = selectAgentKeys({
+    stage: "round_private",
+    plane: params.plane,
+    heatLevel: params.heatLevel,
+    hasEvidence,
+  });
+
+  const lensOutputs = await runAgentSet(agentKeys, () => buildRoundPrivateAgentPrompt(params), 450);
+  if (Object.keys(lensOutputs).length === 0) return null;
+
+  const creatorName = getProfileName(params.profiles, params.dispute.creator_id);
+  const opponentName = getProfileName(params.profiles, params.dispute.opponent_id);
+
+  const aggregated = await runJsonPrompt(
+    [
+      {
+        role: "system",
+        content:
+          "You are the orchestration aggregator. Merge multiple lens outputs into one coherent private coaching result. Never mention lenses, never declare a winner. Always respond in Russian and strictly as JSON.",
+      },
+      {
+        role: "user",
+        content: `Собери единый приватный результат для обоих участников на основе выходов аналитических линз.
+
+Плоскость: ${params.plane}
+Тон: ${params.toneLevel}/5
+Текущая температура: ${params.heatLevel}/5
+Core tension: "${params.coreTension}"
+
+Выходы линз:
+${JSON.stringify(lensOutputs, null, 2)}
+
+Верни JSON:
+{
+  "heat_level": число 1-5,
+  "insight_for_creator": "Приватное сообщение для ${creatorName} в точном 3-строчном формате:\nЧто он защищает: ...\nПочему он так реагирует: ...\nВектор следующего хода: ...",
+  "insight_for_opponent": "Приватное сообщение для ${opponentName} в точном 3-строчном формате:\nЧто он защищает: ...\nПочему он так реагирует: ...\nВектор следующего хода: ..."
+}
+
+Критические правила:
+${PERSONAL_INSIGHT_FORMAT}
+- не пиши про победителя
+- не говори от лица психотерапевта
+- третий пункт должен быть направлением хода, а не готовой репликой`,
+      },
+    ],
+    650
+  );
+
+  const insightCreator = String(aggregated.insight_for_creator ?? "").trim();
+  const insightOpponent = String(aggregated.insight_for_opponent ?? "").trim();
+  if (!insightCreator || !insightOpponent) return null;
+
+  return {
+    heatLevel: clampInt(aggregated.heat_level, 1, 5, params.heatLevel),
+    insightCreator,
+    insightOpponent,
+  };
+}
+
+function buildWaitingAgentPrompt(params: {
+  dispute: DisputeContext;
+  submitterId: string;
+  submitterArg: ArgumentRow;
+  currentRound: number;
+  previousArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}) {
+  const submitterName = getProfileName(params.profiles, params.submitterId);
+  const opponentId = params.submitterId === params.dispute.creator_id
+    ? params.dispute.opponent_id
+    : params.dispute.creator_id;
+  const opponentName = getProfileName(params.profiles, opponentId);
+  const previousRounds = params.previousArgs.length > 0
+    ? "Предыдущие раунды:\n" +
+      Array.from(new Set(params.previousArgs.map((argument) => argument.round)))
+        .sort((left, right) => left - right)
+        .map((round) => {
+          const creatorArg = params.previousArgs.find(
+            (argument) => argument.author_id === params.dispute.creator_id && argument.round === round
+          );
+          const opponentArg = params.previousArgs.find(
+            (argument) => argument.author_id === params.dispute.opponent_id && argument.round === round
+          );
+          return `Раунд ${round}: ${getProfileName(params.profiles, params.dispute.creator_id)}: "${creatorArg?.position ?? "—"}" | ${getProfileName(params.profiles, params.dispute.opponent_id)}: "${opponentArg?.position ?? "—"}"`;
+        })
+        .join("\n")
+    : "";
+
+  return `Ты работаешь как одна из аналитических линз системы ожидания ответа. Отвечай строго JSON на русском.
+
+Плоскость спора: ${params.plane} (${PLANE_DESCRIPTIONS[params.plane] ?? ""})
+Тон: ${params.toneLevel}/5
+Текущая температура: ${params.heatLevel}/5
+Core tension: "${params.coreTension}"
+
+Спор: "${params.dispute.title}"${params.dispute.description ? `\nОписание: "${params.dispute.description}"` : ""}
+${previousRounds ? `\n${previousRounds}` : ""}
+
+${submitterName} только что отправил аргумент в раунде ${params.currentRound}:
+Позиция: "${params.submitterArg.position}"
+Обоснование: "${params.submitterArg.reasoning}"
+
+Сейчас ${submitterName} ждёт ответ от ${opponentName}. Верни JSON:
+{
+  "candidate_insight": "Точное 3-строчное приватное сообщение для ${submitterName}:\nЧто он защищает: ...\nПочему он так реагирует: ...\nВектор следующего хода: ..."
+}
+
+Правила:
+- это приватный коучинг, а не вердикт
+- третий пункт должен быть направлением следующего ответа, а не готовой репликой
+- не пиши про правоту одной стороны`;
+}
+
+async function orchestrateWaitingInsight(params: {
+  dispute: DisputeContext;
+  submitterId: string;
+  submitterArg: ArgumentRow;
+  currentRound: number;
+  previousArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}): Promise<WaitingInsightResult | null> {
+  const agentKeys = selectAgentKeys({
+    stage: "waiting",
+    plane: params.plane,
+    heatLevel: params.heatLevel,
+    hasEvidence: Boolean(params.submitterArg.evidence?.trim()),
+  });
+
+  const lensOutputs = await runAgentSet(agentKeys, () => buildWaitingAgentPrompt(params), 280);
+  if (Object.keys(lensOutputs).length === 0) return null;
+
+  const submitterName = getProfileName(params.profiles, params.submitterId);
+  const aggregated = await runJsonPrompt(
+    [
+      {
+        role: "system",
+        content:
+          "You are the orchestration aggregator for waiting insights. Merge lens outputs into one concise private coaching message. Respond in Russian and strictly as JSON.",
+      },
+      {
+        role: "user",
+        content: `Собери единый waiting insight для ${submitterName}.
+
+Выходы линз:
+${JSON.stringify(lensOutputs, null, 2)}
+
+Верни JSON:
+{
+  "insight": "Точное 3-строчное приватное сообщение в формате:\nЧто он защищает: ...\nПочему он так реагирует: ...\nВектор следующего хода: ..."
+}
+
+Правила:
+${PERSONAL_INSIGHT_FORMAT}
+- это приватный hint на время ожидания
+- не звучать как финальный вывод по спору`,
+      },
+    ],
+    320
+  );
+
+  const insight = String(aggregated.insight ?? "").trim();
+  if (!insight) return null;
+
+  return { insight };
+}
+
+function buildPublicSummaryAgentPrompt(params: {
+  dispute: DisputeContext;
+  currentRound: number;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}) {
+  const creatorName = getProfileName(params.profiles, params.dispute.creator_id);
+  const opponentName = getProfileName(params.profiles, params.dispute.opponent_id);
+  const roundArgs = params.allArgs.filter((argument) => argument.round === params.currentRound);
+  const creatorArg = roundArgs.find((argument) => argument.author_id === params.dispute.creator_id);
+  const opponentArg = roundArgs.find((argument) => argument.author_id === params.dispute.opponent_id);
+  const previousRounds = buildPreviousRoundsText(params.dispute, params.profiles, params.allArgs, params.currentRound - 1);
+
+  return `Ты работаешь как одна из аналитических линз публичного AI-наблюдения. Отвечай строго JSON на русском.
+
+Плоскость: ${params.plane}
+Тон: ${params.toneLevel}/5
+Текущая температура: ${params.heatLevel}/5
+Core tension: "${params.coreTension}"
+
+Спор: "${params.dispute.title}"${params.dispute.description ? `\nОписание: "${params.dispute.description}"` : ""}
+${previousRounds ? `\nПредыдущие раунды:\n${previousRounds}` : ""}
+
+Раунд ${params.currentRound}:
+${creatorName}: "${creatorArg?.position ?? "—"}". Аргумент: "${creatorArg?.reasoning ?? ""}"
+${opponentName}: "${opponentArg?.position ?? "—"}". Аргумент: "${opponentArg?.reasoning ?? ""}"
+
+Верни JSON:
+{
+  "observation": "2-3 нейтральных предложения, которые можно показать обеим сторонам",
+  "convergence_signal": число от -2 до 2
+}
+
+Правила:
+- не говори кто прав
+- отметь, где стороны сблизились или продолжают расходиться
+- текст должен быть пригоден для публичного показа обеим сторонам`;
+}
+
+async function orchestratePublicSummary(params: {
+  dispute: DisputeContext;
+  currentRound: number;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}): Promise<PublicSummaryResult | null> {
+  const roundArgs = params.allArgs.filter((argument) => argument.round === params.currentRound);
+  const hasEvidence = roundArgs.some((argument) => Boolean(argument.evidence?.trim()));
+  const agentKeys = selectAgentKeys({
+    stage: "round_public",
+    plane: params.plane,
+    heatLevel: params.heatLevel,
+    hasEvidence,
+  });
+
+  const lensOutputs = await runAgentSet(agentKeys, () => buildPublicSummaryAgentPrompt(params), 260);
+  if (Object.keys(lensOutputs).length === 0) return null;
+
+  const aggregated = await runJsonPrompt(
+    [
+      {
+        role: "system",
+        content:
+          "You are the orchestration aggregator for a public round summary. Merge lens outputs into one neutral observation for both participants. Respond in Russian and strictly as JSON.",
+      },
+      {
+        role: "user",
+        content: `Собери единое публичное наблюдение по раунду.
+
+Выходы линз:
+${JSON.stringify(lensOutputs, null, 2)}
+
+Верни JSON:
+{
+  "content": "2-3 нейтральных предложения для обеих сторон",
+  "convergence": число от -2 до 2
+}
+
+Правила:
+- не объявлять победителя
+- не давать приватных советов
+- показывать динамику обмена и точки соприкосновения, если они есть`,
+      },
+    ],
+    320
+  );
+
+  const content = String(aggregated.content ?? "").trim();
+  if (!content) return null;
+
+  return {
+    content,
+    convergence: Math.min(2, Math.max(-2, Math.round(Number(aggregated.convergence) || 0))),
+  };
+}
+
+function buildFinalMediationAgentPrompt(params: {
+  dispute: DisputeContext;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}) {
+  const creatorName = getProfileName(params.profiles, params.dispute.creator_id);
+  const opponentName = getProfileName(params.profiles, params.dispute.opponent_id);
+  const roundsText = buildRoundsText(params.dispute, params.profiles, params.allArgs);
+
+  return `Ты работаешь как одна из аналитических линз финальной медиации. Отвечай строго JSON на русском.
+
+Плоскость: ${params.plane}
+Тон: ${params.toneLevel}/5
+Температура к финалу: ${params.heatLevel}/5
+Core tension: "${params.coreTension}"
+
+Спор: "${params.dispute.title}"${params.dispute.description ? `\nОписание: "${params.dispute.description}"` : ""}
+
+Полная история раундов:
+${roundsText}
+
+Верни JSON:
+{
+  "summary_a": "краткое резюме позиции ${creatorName}",
+  "summary_b": "краткое резюме позиции ${opponentName}",
+  "common_ground": "что реально объединяет стороны или где есть пересечение",
+  "solutions": ["решение 1", "решение 2", "решение 3"],
+  "recommendation": "мягкая рекомендация медиатора"
+}
+
+Правила:
+- не объявлять победителя
+- не писать юридически категоричных выводов
+- решения должны быть практичными и применимыми
+- если общего мало, честно покажи минимальную точку соприкосновения`;
+}
+
+async function orchestrateFinalMediation(params: {
+  dispute: DisputeContext;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+  plane: string;
+  toneLevel: number;
+  heatLevel: number;
+  coreTension: string;
+}): Promise<FinalMediationResult | null> {
+  const hasEvidence = params.allArgs.some((argument) => Boolean(argument.evidence?.trim()));
+  const agentKeys = selectAgentKeys({
+    stage: "final_mediation",
+    plane: params.plane,
+    heatLevel: params.heatLevel,
+    hasEvidence,
+  });
+
+  const lensOutputs = await runAgentSet(agentKeys, () => buildFinalMediationAgentPrompt(params), 500);
+  if (Object.keys(lensOutputs).length === 0) return null;
+
+  const creatorName = getProfileName(params.profiles, params.dispute.creator_id);
+  const opponentName = getProfileName(params.profiles, params.dispute.opponent_id);
+  const aggregated = await runJsonPrompt(
+    [
+      {
+        role: "system",
+        content:
+          "You are the orchestration aggregator for final mediation. Merge lens outputs into one coherent mediation result. Never declare a winner. Respond in Russian and strictly as JSON.",
+      },
+      {
+        role: "user",
+        content: `Собери финальную медиацию по спору.
+
+Выходы линз:
+${JSON.stringify(lensOutputs, null, 2)}
+
+Верни JSON:
+{
+  "summary_a": "краткое резюме позиции ${creatorName}",
+  "summary_b": "краткое резюме позиции ${opponentName}",
+  "common_ground": "что объединяет стороны",
+  "solutions": ["решение 1", "решение 2", "решение 3"],
+  "recommendation": "рекомендация медиатора"
+}
+
+Правила:
+- решения должны быть реалистичными
+- recommendation не должна звучать как приговор
+- можно признать, что конфликт остаётся сложным, но всё равно предложить путь вперёд`,
+      },
+    ],
+    700
+  );
+
+  const solutions = Array.isArray(aggregated.solutions)
+    ? aggregated.solutions.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+
+  if (!String(aggregated.summary_a ?? "").trim() && !String(aggregated.summary_b ?? "").trim() && solutions.length === 0) {
+    return null;
+  }
+
+  return {
+    analysis: {
+      summary_a: String(aggregated.summary_a ?? "").trim(),
+      summary_b: String(aggregated.summary_b ?? "").trim(),
+      common_ground: String(aggregated.common_ground ?? "").trim(),
+      recommendation: String(aggregated.recommendation ?? "").trim(),
+    },
+    solutions,
+  };
+}
+
+function buildLegacyWaitingPrompt(params: {
+  dispute: DisputeContext;
+  submitterId: string;
+  submitterArg: ArgumentRow;
+  currentRound: number;
+  previousArgs: ArgumentRow[];
+  profiles: Profile[];
+}) {
+  const submitterName = getProfileName(params.profiles, params.submitterId);
+  const opponentId = params.submitterId === params.dispute.creator_id ? params.dispute.opponent_id : params.dispute.creator_id;
+  const opponentName = getProfileName(params.profiles, opponentId);
+  const previousRounds = params.previousArgs.length > 0
+    ? "Previous rounds:\n" + Array.from(new Set(params.previousArgs.map((argument) => argument.round))).sort().map((round) => {
+        const creatorArg = params.previousArgs.find((argument) => argument.round === round && argument.author_id === params.dispute.creator_id);
+        const opponentArg = params.previousArgs.find((argument) => argument.round === round && argument.author_id === params.dispute.opponent_id);
+        return `Round ${round}: ${getProfileName(params.profiles, params.dispute.creator_id)}: "${creatorArg?.position ?? "—"}" | ${getProfileName(params.profiles, params.dispute.opponent_id)}: "${opponentArg?.position ?? "—"}"`;
       }).join("\n") + "\n"
     : "";
 
-  const prompt = `You are an AI mediator giving private coaching. Respond in Russian. Return JSON only.
+  return `You are an AI mediator giving private coaching. Respond in Russian. Return JSON only.
 
-Dispute: "${dispute.title}"${dispute.description ? `\nDescription: "${dispute.description}"` : ""}
+Dispute: "${params.dispute.title}"${params.dispute.description ? `\nDescription: "${params.dispute.description}"` : ""}
 
-${prevRoundsText}${submitterName} just submitted Round ${currentRound}:
-Position: "${submitterArg.position}"
-Reasoning: "${submitterArg.reasoning}"
+${previousRounds}${submitterName} just submitted Round ${params.currentRound}:
+Position: "${params.submitterArg.position}"
+Reasoning: "${params.submitterArg.reasoning}"
 
 ${submitterName} is now waiting for ${opponentName} to respond. Give ${submitterName} a brief private coaching hint:
 - Explain why ${opponentName} likely holds their position (based on the dispute context and prior arguments)
@@ -236,20 +728,232 @@ Return JSON:
 {
   "insight": "coaching message in Russian for ${submitterName} in the exact 3-line structure"
 }`;
+}
 
-  const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 250,
-    response_format: { type: "json_object" },
-    messages: [{ role: "user", content: prompt }],
+function buildLegacyPublicSummaryPrompt(params: {
+  dispute: DisputeContext;
+  currentRound: number;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+}) {
+  const creatorName = getProfileName(params.profiles, params.dispute.creator_id);
+  const opponentName = getProfileName(params.profiles, params.dispute.opponent_id);
+  const roundArgs = params.allArgs.filter((argument) => argument.round === params.currentRound);
+  const creatorArg = roundArgs.find((argument) => argument.author_id === params.dispute.creator_id);
+  const opponentArg = roundArgs.find((argument) => argument.author_id === params.dispute.opponent_id);
+  const previousRounds = buildPreviousRoundsText(params.dispute, params.profiles, params.allArgs, params.currentRound - 1);
+
+  return `Ты — нейтральный ИИ-наблюдатель спора. Отвечай на русском. Верни только JSON.
+
+Спор: "${params.dispute.title}"${params.dispute.description ? `\nОписание: "${params.dispute.description}"` : ""}
+
+${previousRounds ? `Предыдущие раунды:\n${previousRounds}\n\n` : ""}Раунд ${params.currentRound}:
+${creatorName}: позиция — "${creatorArg?.position ?? "—"}". Аргумент: "${creatorArg?.reasoning ?? ""}"
+${opponentName}: позиция — "${opponentArg?.position ?? "—"}". Аргумент: "${opponentArg?.reasoning ?? ""}"
+
+Задача:
+1. Напиши короткое нейтральное наблюдение об этом раунде (2-3 предложения). Видно ОБОИМ участникам. Не говори кто прав. Отметь, что интересного в аргументах, есть ли точки соприкосновения.
+2. Оцени, сближаются ли позиции (по сравнению с предыдущими раундами или начальным состоянием):
+   -2 = позиции сильно расходятся
+   -1 = небольшое расхождение
+    0 = позиции стабильны, движения нет
+   +1 = небольшое сближение
+   +2 = позиции заметно сближаются
+
+Верни JSON:
+{
+  "content": "нейтральное наблюдение на русском, 2-3 предложения",
+  "convergence": число от -2 до 2
+}`;
+}
+
+function buildLegacyFinalMediationPrompt(params: {
+  dispute: DisputeContext;
+  allArgs: ArgumentRow[];
+  profiles: Profile[];
+}) {
+  return `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON.
+
+Спор: ${params.dispute.title}
+Описание: ${params.dispute.description}
+
+Аргументы сторон:
+${buildRoundsText(params.dispute, params.profiles, params.allArgs)}
+
+Верни JSON:
+{
+  "summary_a": "краткое резюме позиции ${getProfileName(params.profiles, params.dispute.creator_id)}",
+  "summary_b": "краткое резюме позиции ${getProfileName(params.profiles, params.dispute.opponent_id)}",
+  "common_ground": "что объединяет стороны",
+  "solutions": ["решение 1", "решение 2", "решение 3"],
+  "recommendation": "рекомендация медиатора"
+}`;
+}
+
+export async function generateRoundInsights(
+  dispute: DisputeContext,
+  currentRound: number,
+  allArgs: ArgumentRow[],
+  profiles: Profile[]
+): Promise<void> {
+  const admin = createAdminClient();
+  const roundArgs = allArgs.filter((a) => a.round === currentRound);
+  const creatorArg = roundArgs.find((a) => a.author_id === dispute.creator_id);
+  const opponentArg = roundArgs.find((a) => a.author_id === dispute.opponent_id);
+  if (!creatorArg || !opponentArg) return;
+
+  const { data: existingAnalysis } = await admin
+    .from("dispute_analysis")
+    .select("*")
+    .eq("dispute_id", dispute.id)
+    .maybeSingle<{
+      plane: string;
+      tone_level: number;
+      heat_level: number;
+      core_tension: string | null;
+    }>();
+
+  let plane = existingAnalysis?.plane ?? "general";
+  let toneLevel = existingAnalysis?.tone_level ?? 3;
+  let heatLevel = existingAnalysis?.heat_level ?? 3;
+  let coreTension = existingAnalysis?.core_tension ?? "";
+
+  if (!existingAnalysis) {
+    const categorization = await runJsonPrompt(
+      [{ role: "user", content: buildCategorizationPrompt(dispute, creatorArg, opponentArg) }],
+      350
+    );
+
+    plane = String(categorization.plane ?? "general");
+    toneLevel = clampInt(categorization.tone_level, 1, 5, 3);
+    heatLevel = clampInt(categorization.heat_level, 1, 5, 3);
+    coreTension = String(categorization.core_tension ?? "").trim();
+
+    await admin.from("dispute_analysis").insert({
+      dispute_id: dispute.id,
+      plane,
+      tone_level: toneLevel,
+      heat_level: heatLevel,
+      core_tension: coreTension,
+      plane_prompt: buildPlaneSystemPrompt(plane, toneLevel),
+      patterns: {},
+    } as never);
+  }
+
+  const orchestrated = await orchestrateRoundPrivateInsight({
+    dispute,
+    currentRound,
+    allArgs,
+    profiles,
+    plane,
+    toneLevel,
+    heatLevel,
+    coreTension,
   });
 
-  let content = "";
-  try {
-    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-    content = (result.insight as string) ?? "";
-  } catch { content = ""; }
+  if (orchestrated) {
+    await admin
+      .from("dispute_analysis")
+      .update({ heat_level: orchestrated.heatLevel } as never)
+      .eq("dispute_id", dispute.id);
 
+    await saveInsights(admin, dispute.id, currentRound, {
+      [dispute.creator_id]: orchestrated.insightCreator,
+      [dispute.opponent_id]: orchestrated.insightOpponent,
+    });
+    return;
+  }
+
+  const creatorName = getProfileName(profiles, dispute.creator_id);
+  const opponentName = getProfileName(profiles, dispute.opponent_id);
+  const legacy = await runJsonPrompt(
+    [
+      {
+        role: "user",
+        content: buildInsightsPrompt(
+          dispute,
+          currentRound,
+          allArgs,
+          profiles,
+          plane,
+          toneLevel,
+          coreTension,
+          creatorName,
+          opponentName,
+          creatorArg,
+          opponentArg
+        ),
+      },
+    ],
+    600
+  );
+
+  const fallbackHeat = clampInt(legacy.heat_level, 1, 5, heatLevel);
+  const insightCreator = String(legacy.insight_for_creator ?? "").trim();
+  const insightOpponent = String(legacy.insight_for_opponent ?? "").trim();
+  if (!insightCreator || !insightOpponent) return;
+
+  await admin
+    .from("dispute_analysis")
+    .update({ heat_level: fallbackHeat } as never)
+    .eq("dispute_id", dispute.id);
+
+  await saveInsights(admin, dispute.id, currentRound, {
+    [dispute.creator_id]: insightCreator,
+    [dispute.opponent_id]: insightOpponent,
+  });
+}
+
+export async function generateWaitingInsight(
+  dispute: DisputeContext,
+  submitterId: string,
+  submitterArg: ArgumentRow,
+  currentRound: number,
+  previousArgs: ArgumentRow[],
+  profiles: Profile[]
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("waiting_insights")
+    .select("id")
+    .eq("dispute_id", dispute.id)
+    .eq("round", currentRound)
+    .eq("recipient_id", submitterId)
+    .single();
+  if (existing) return;
+
+  const { data: analysis } = await admin
+    .from("dispute_analysis")
+    .select("plane, tone_level, heat_level, core_tension")
+    .eq("dispute_id", dispute.id)
+    .maybeSingle<{
+      plane: string;
+      tone_level: number;
+      heat_level: number;
+      core_tension: string | null;
+    }>();
+
+  const orchestrated = await orchestrateWaitingInsight({
+    dispute,
+    submitterId,
+    submitterArg,
+    currentRound,
+    previousArgs,
+    profiles,
+    plane: analysis?.plane ?? "general",
+    toneLevel: analysis?.tone_level ?? 3,
+    heatLevel: analysis?.heat_level ?? 3,
+    coreTension: analysis?.core_tension ?? "",
+  });
+
+  let content = orchestrated?.insight?.trim() ?? "";
+  if (!content) {
+    const legacy = await runJsonPrompt(
+      [{ role: "user", content: buildLegacyWaitingPrompt({ dispute, submitterId, submitterArg, currentRound, previousArgs, profiles }) }],
+      250
+    );
+    content = String(legacy.insight ?? "").trim();
+  }
   if (!content) return;
 
   await admin.from("waiting_insights").upsert({
@@ -268,7 +972,6 @@ export async function generatePublicRoundSummary(
 ): Promise<void> {
   const admin = createAdminClient();
 
-  // Skip if already exists
   const { data: existing } = await admin
     .from("round_public_summaries")
     .select("id")
@@ -277,66 +980,47 @@ export async function generatePublicRoundSummary(
     .single();
   if (existing) return;
 
-  const getName = (id: string) =>
-    profiles.find((p) => p.id === id)?.display_name ?? "Участник";
-
-  const creatorName = getName(dispute.creator_id);
-  const opponentName = getName(dispute.opponent_id);
-
   const roundArgs = allArgs.filter((a) => a.round === currentRound);
   const creatorArg = roundArgs.find((a) => a.author_id === dispute.creator_id);
   const opponentArg = roundArgs.find((a) => a.author_id === dispute.opponent_id);
   if (!creatorArg || !opponentArg) return;
 
-  // Previous rounds context
-  const prevRounds = Array.from({ length: currentRound - 1 }, (_, i) => {
-    const r = i + 1;
-    const ca = allArgs.find((a) => a.author_id === dispute.creator_id && a.round === r);
-    const oa = allArgs.find((a) => a.author_id === dispute.opponent_id && a.round === r);
-    return `Раунд ${r}: ${creatorName}: "${ca?.position ?? "—"}" | ${opponentName}: "${oa?.position ?? "—"}"`;
-  }).join("\n");
-
-  const Groq = (await import("groq-sdk")).default;
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-  const prompt = `Ты — нейтральный ИИ-наблюдатель спора. Отвечай на русском. Верни только JSON.
-
-Спор: "${dispute.title}"${dispute.description ? `\nОписание: "${dispute.description}"` : ""}
-
-${prevRounds ? `Предыдущие раунды:\n${prevRounds}\n\n` : ""}Раунд ${currentRound}:
-${creatorName}: позиция — "${creatorArg.position}". Аргумент: "${creatorArg.reasoning}"
-${opponentName}: позиция — "${opponentArg.position}". Аргумент: "${opponentArg.reasoning}"
-
-Задача:
-1. Напиши короткое нейтральное наблюдение об этом раунде (2-3 предложения). Видно ОБОИМ участникам. Не говори кто прав. Отметь, что интересного в аргументах, есть ли точки соприкосновения.
-2. Оцени, сближаются ли позиции (по сравнению с предыдущими раундами или начальным состоянием):
-   -2 = позиции сильно расходятся
-   -1 = небольшое расхождение
-    0 = позиции стабильны, движения нет
-   +1 = небольшое сближение
-   +2 = позиции заметно сближаются
-
-Верни JSON:
-{
-  "content": "нейтральное наблюдение на русском, 2-3 предложения",
-  "convergence": число от -2 до 2
-}`;
-
-  const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 300,
-    response_format: { type: "json_object" },
-    messages: [{ role: "user", content: prompt }],
-  });
+  const { data: analysis } = await admin
+    .from("dispute_analysis")
+    .select("plane, tone_level, heat_level, core_tension")
+    .eq("dispute_id", dispute.id)
+    .maybeSingle<{
+      plane: string;
+      tone_level: number;
+      heat_level: number;
+      core_tension: string | null;
+    }>();
 
   let content = "";
   let convergence = 0;
-  try {
-    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-    content = (result.content as string) ?? "";
-    convergence = Math.min(2, Math.max(-2, Math.round(Number(result.convergence) || 0)));
-  } catch { return; }
 
+  const orchestrated = await orchestratePublicSummary({
+    dispute,
+    currentRound,
+    allArgs,
+    profiles,
+    plane: analysis?.plane ?? "general",
+    toneLevel: analysis?.tone_level ?? 3,
+    heatLevel: analysis?.heat_level ?? 3,
+    coreTension: analysis?.core_tension ?? "",
+  });
+
+  if (orchestrated) {
+    content = orchestrated.content;
+    convergence = orchestrated.convergence;
+  } else {
+    const legacy = await runJsonPrompt(
+      [{ role: "user", content: buildLegacyPublicSummaryPrompt({ dispute, currentRound, allArgs, profiles }) }],
+      300
+    );
+    content = String(legacy.content ?? "").trim();
+    convergence = Math.min(2, Math.max(-2, Math.round(Number(legacy.convergence) || 0)));
+  }
   if (!content) return;
 
   await admin.from("round_public_summaries").upsert({
@@ -345,6 +1029,71 @@ ${opponentName}: позиция — "${opponentArg.position}". Аргумент:
     content,
     convergence,
   } as never, { onConflict: "dispute_id,round" });
+}
+
+export async function generateFinalMediation(
+  dispute: DisputeContext,
+  allArgs: ArgumentRow[],
+  profiles: Profile[]
+): Promise<FinalMediationResult> {
+  const admin = createAdminClient();
+  const { data: analysis } = await admin
+    .from("dispute_analysis")
+    .select("plane, tone_level, heat_level, core_tension")
+    .eq("dispute_id", dispute.id)
+    .maybeSingle<{
+      plane: string;
+      tone_level: number;
+      heat_level: number;
+      core_tension: string | null;
+    }>();
+
+  try {
+    const orchestrated = await orchestrateFinalMediation({
+      dispute,
+      allArgs,
+      profiles,
+      plane: analysis?.plane ?? "general",
+      toneLevel: analysis?.tone_level ?? 3,
+      heatLevel: analysis?.heat_level ?? 3,
+      coreTension: analysis?.core_tension ?? "",
+    });
+
+    if (orchestrated) return orchestrated;
+  } catch {
+    // fall through to legacy prompt
+  }
+
+  try {
+    const legacy = await runJsonPrompt(
+      [{ role: "user", content: buildLegacyFinalMediationPrompt({ dispute, allArgs, profiles }) }],
+      1500
+    );
+    const solutions = Array.isArray(legacy.solutions)
+      ? legacy.solutions.map((item) => String(item).trim()).filter(Boolean)
+      : [];
+
+    return {
+      analysis: {
+        summary_a: String(legacy.summary_a ?? "").trim(),
+        summary_b: String(legacy.summary_b ?? "").trim(),
+        common_ground: String(legacy.common_ground ?? "").trim(),
+        recommendation: String(legacy.recommendation ?? "").trim(),
+      },
+      solutions,
+    };
+  } catch {
+    return {
+      analysis: {
+        raw: "ИИ-медиатор временно недоступен. Все аргументы сохранены — попробуйте запустить медиацию позже.",
+        summary_a: "",
+        summary_b: "",
+        common_ground: "",
+        recommendation: "",
+      },
+      solutions: [],
+    };
+  }
 }
 
 export async function generateChatComment(
@@ -584,8 +1333,6 @@ async function saveInsights(
 
 function buildCategorizationPrompt(
   dispute: DisputeContext,
-  creatorName: string,
-  opponentName: string,
   creatorArg: ArgumentRow,
   opponentArg: ArgumentRow
 ): string {
@@ -595,24 +1342,14 @@ Dispute: "${dispute.title}"
 Description: "${dispute.description}"
 
 Round 1:
-${creatorName}: "${creatorArg.position}. ${creatorArg.reasoning}"
-${opponentName}: "${opponentArg.position}. ${opponentArg.reasoning}"
+Участник A: "${creatorArg.position}. ${creatorArg.reasoning}"
+Участник B: "${opponentArg.position}. ${opponentArg.reasoning}"
 
 Determine:
 1. The plane of this dispute
 2. The tone level appropriate for it
 3. The heat level (emotional intensity)
 4. The core tension (why they can't hear each other)
-5. A personalized insight for each participant
-
-Critical behavior:
-- Each participant should feel that the AI is helping THEM understand how to answer better
-- Do not sound like a referee or therapist
-- Do not say "you both", "both sides", or "let's reconcile"
-- Explain the opponent's logic in a way that lowers hostility and improves understanding
-- The third line must feel like a subtle tactical compass for the recipient's next reply
-- Never declare a winner and never bluntly tell the recipient to surrender or agree
-${PERSONAL_INSIGHT_FORMAT}
 
 ${TONE_GUIDE}
 
@@ -625,9 +1362,7 @@ Return JSON:
   "plane": "one of: casual|legal|family|scientific|religious|business|political|general",
   "tone_level": 1-5,
   "heat_level": 1-5,
-  "core_tension": "one sentence: what makes them incompatible",
-  "insight_for_creator": "Direct private message to ${creatorName} using the exact 3-part structure. Explain WHY ${opponentName} thinks this way, what may be behind their reaction, and what nuance ${creatorName} may have missed. The third line must be a tactical direction for the next reply, not a script. Make it feel strategically useful for ${creatorName}. Never say who is right.",
-  "insight_for_opponent": "Direct private message to ${opponentName} using the exact 3-part structure. Explain WHY ${creatorName} thinks this way, what may be behind their reaction, and what nuance ${opponentName} may have missed. The third line must be a tactical direction for the next reply, not a script. Make it feel strategically useful for ${opponentName}. Never say who is right."
+  "core_tension": "one sentence: what makes them incompatible"
 }`;
 }
 

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
 import { clearTelegramDisputeNotifications, notifyArgumentReceived, notifyDirectChallengeReceived, notifyDisputeClosed, notifyDisputeReminder, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
-import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
+import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI, generateFinalMediation } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 import { getDisplayName } from "@/lib/display-name";
@@ -777,83 +777,32 @@ export async function triggerMediation(formData: FormData) {
     .in("id", [dispute.creator_id, dispute.opponent_id!])
     .returns<ProfilePick[]>();
 
-  const getName = (id: string) =>
-    profiles?.find((p) => p.id === id)?.display_name ?? "Участник";
-
-  const roundsText = Array.from({ length: dispute.max_rounds }, (_, i) => {
-    const round = i + 1;
-    const aArg = args?.find(
-      (a) => a.author_id === dispute.creator_id && a.round === round
-    );
-    const bArg = args?.find(
-      (a) => a.author_id === dispute.opponent_id && a.round === round
-    );
-    const aName = getName(dispute.creator_id);
-    const bName = getName(dispute.opponent_id!);
-    const aEvidence = aArg?.evidence
-      ? `\nДоказательства: ${aArg.evidence}`
-      : "";
-    const bEvidence = bArg?.evidence
-      ? `\nДоказательства: ${bArg.evidence}`
-      : "";
-    return [
-      `Раунд ${round}:`,
-      `${aName}: ${aArg?.position ?? "—"}\n${aArg?.reasoning ?? ""}${aEvidence}`,
-      `${bName}: ${bArg?.position ?? "—"}\n${bArg?.reasoning ?? ""}${bEvidence}`,
-    ].join("\n");
-  }).join("\n\n---\n\n");
-
-  const Groq = (await import("groq-sdk")).default;
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-  let analysis: Record<string, unknown> = {};
-  try {
-    const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: 1500,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: `Ты ИИ-медиатор. Проанализируй спор и предложи решения. Отвечай строго в JSON.
-
-Спор: ${dispute.title}
-Описание: ${dispute.description}
-
-Аргументы сторон:
-${roundsText}
-
-Верни JSON:
-{
-  "summary_a": "краткое резюме позиции ${getName(dispute.creator_id)}",
-  "summary_b": "краткое резюме позиции ${getName(dispute.opponent_id!)}",
-  "common_ground": "что объединяет стороны",
-  "solutions": ["решение 1", "решение 2", "решение 3"],
-  "recommendation": "рекомендация медиатора"
-}`,
-        },
-      ],
-    });
-    const text = response.choices[0]?.message?.content ?? "";
-    try {
-      analysis = JSON.parse(text);
-    } catch {
-      analysis = { raw: text };
-    }
-  } catch {
-    // AI unavailable — store fallback so mediation still completes
-    analysis = {
-      raw: "ИИ-медиатор временно недоступен. Все аргументы сохранены — попробуйте запустить медиацию позже.",
-      summary_a: "",
-      summary_b: "",
-      solutions: [],
-    };
-  }
+  const mediation = await generateFinalMediation(
+    {
+      id: dispute.id,
+      title: dispute.title,
+      description: dispute.description,
+      creator_id: dispute.creator_id,
+      opponent_id: dispute.opponent_id!,
+      max_rounds: dispute.max_rounds,
+    },
+    (args ?? []).map((argument) => ({
+      author_id: argument.author_id,
+      round: argument.round,
+      position: argument.position,
+      reasoning: argument.reasoning,
+      evidence: argument.evidence,
+    })),
+    (profiles ?? []).map((profile) => ({
+      id: profile.id,
+      display_name: profile.display_name,
+    }))
+  );
 
   await supabase.from("mediations").insert({
     dispute_id: disputeId,
-    analysis,
-    solutions: Array.isArray(analysis.solutions) ? analysis.solutions : [],
+    analysis: mediation.analysis,
+    solutions: mediation.solutions,
   } as never);
 
   await supabase

@@ -7,7 +7,7 @@
 
 **Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена и закреплена QA-итерацией. Arena Live, spectator-layer, typing-индикаторы, Telegram surface/support/release-flow и обычный dispute-flow проверены Playwright-набором на desktop, wide и mobile.
 
-В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также упаковка следующих стратегических пластов в отдельные staged-rollout блоки. Помимо AI orchestration, отдельно зафиксированы profile quests, reputation, education layer, appeals и trust tiers как возвращаемые продуктовые направления с v1-порогом входа и дальнейшим хвостом развития.
+В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также последовательное внедрение стратегических rollout-блоков в код. Первым внедрён `AI orchestration v1`: waiting/private/public/final AI-пути теперь идут через role-based orchestration в `src/lib/ai.ts`, а дальнейший хвост развития отдельно зафиксирован в rollout-документации.
 
 Для этих стратегических пластов теперь есть единая точка входа: [docs/ops/README.md](/C:/project21/konsensus/docs/ops/README.md). Через неё фиксируется правило: перед возвратом к блоку читать его rollout-файл и обновлять не только `status/roadmap`, но и сам staged-план.
 
@@ -43,6 +43,7 @@
 - [x] Оценка силы аргумента перед отправкой (score 1–5)
 - [x] Пост-конфликтный момент (конфетти, common ground, инлайн-ачивка)
 - [x] ИИ-генерируемые уникальные достижения (отдельное хранение, профиль, realtime-toast)
+- [x] Мягкий orchestration-слой v1: virtual subagents (`legal/empathy/mediation/fact`) для waiting/private/public/final AI-path без смены dispute UI
 - [ ] Многоагентная архитектура — v2.0
 - [ ] Профилирование участников — v2.0
 
@@ -180,3 +181,4 @@
 | 2026-03-16 | Все rollout-блоки переведены из уровня концепта в рабочие implementation-пакеты: в каждом документе теперь есть `статус блока`, пакет v1 с конкретными файлами/данными/UI и отдельный список того, что сознательно остаётся на следующий виток |
 | 2026-03-16 | Подготовлен отдельный контент-пакет для Boosty в `docs/marketing/boosty/`: исследование по форматам и витрине, готовые тексты уровней и целей, блок `О проекте`, стартовые посты, витринный paid-post и визуальные промпты. Отдельно зафиксировано, что Telegram release-posting уже работает через текущий release-flow, а Boosty пока заполняется вручную |
 | 2026-03-16 | Подготовлен отдельный редакционный пакет для Telegram в `docs/marketing/telegram/`: welcome-пост и последующие канальные тексты, bot-тизер, ready-to-send release payloads и описание целевой логики `канал = полный пост`, `бот = короткий анонс`. Отдельно зафиксировано текущее ограничение: Bot API-расписание и suppress-логика по подписке пользователя на канал/группу пока не внедрены |
+| 2026-03-16 | Реализован `AI orchestration v1`: в `src/lib/ai.ts` добавлены virtual subagents и routing rules по `plane/heat/evidence`, waiting/private/public AI-функции переведены на orchestration-first path с legacy fallback, а финальная mediation вынесена из `actions.ts` в единый AI-слой |

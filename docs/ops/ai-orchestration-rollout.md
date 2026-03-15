@@ -8,9 +8,23 @@
 
 ## Статус блока
 
-- Стадия: `planned`
-- Ближайший релиз: `v1 role-based orchestration`
+- Стадия: `implemented_v1`
+- Текущий релиз: `v1 role-based orchestration`
 - Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
+
+### Выполнено в v1
+
+- В [src/lib/ai.ts](/C:/project21/konsensus/src/lib/ai.ts) добавлен orchestration layer с virtual subagents:
+  - `legal_lens`
+  - `empathy_lens`
+  - `mediation_lens`
+  - `fact_lens`
+- Введены routing rules по `plane`, `heat_level` и наличию `evidence`
+- `generateWaitingInsight` переведён на orchestration-first path с legacy fallback
+- `generateRoundInsights` переведён на orchestration-first path с legacy fallback и сохранением текущего формата `round_insights`
+- `generatePublicRoundSummary` переведён на orchestration-first path с legacy fallback и сохранением формата `content + convergence`
+- Финальная mediation вынесена из [src/lib/actions.ts](/C:/project21/konsensus/src/lib/actions.ts) в [generateFinalMediation](/C:/project21/konsensus/src/lib/ai.ts)
+- Монолитные prompt'ы оставлены как fallback, чтобы не ломать текущий dispute-flow при деградации оркестратора
 
 ## Текущее состояние
 
