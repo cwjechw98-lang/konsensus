@@ -12,7 +12,7 @@ import {
   toggleChallengeWatch,
 } from "@/lib/arena-actions";
 import WaitingAmbient from "@/components/WaitingAmbient";
-import SpectatorPulseGame from "@/components/SpectatorPulseGame";
+import ShadowMediatorPanel from "@/components/ShadowMediatorPanel";
 
 interface Message {
   id: string;
@@ -38,6 +38,8 @@ interface ObserverHint {
 
 interface ChallengeChatProps {
   challengeId: string;
+  challengeTopic: string;
+  challengeCategory: string | null;
   initialMessages: Message[];
   currentUserId: string | null;
   opponentName: string;
@@ -45,6 +47,8 @@ interface ChallengeChatProps {
   isClosed: boolean;
   authorId: string;
   acceptedById: string | null;
+  authorName: string;
+  acceptedName: string;
   currentUserName: string | null;
   isParticipant: boolean;
   initialComments: ObserverComment[];
@@ -75,6 +79,8 @@ function formatTime(iso: string) {
 
 export default function ChallengeChat({
   challengeId,
+  challengeTopic,
+  challengeCategory,
   initialMessages,
   currentUserId,
   opponentName,
@@ -82,6 +88,8 @@ export default function ChallengeChat({
   isClosed: initialClosed,
   authorId,
   acceptedById,
+  authorName,
+  acceptedName,
   currentUserName,
   isParticipant,
   initialComments,
@@ -153,8 +161,6 @@ export default function ChallengeChat({
       return { ...message, derivedRound, startsRound };
     });
   }, [acceptedById, authorId, messages]);
-
-  const collapseToken = `${completedRounds}-${humanMessages.length}`;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -271,11 +277,11 @@ export default function ChallengeChat({
     await typingChannelRef.current.send({
       type: "broadcast",
       event: "typing",
-        payload: {
-          userId: currentUserId,
-          name: currentUserName ?? (isAuthor ? "Инициатор" : "Оппонент"),
-          isTyping,
-        } satisfies TypingPayload,
+      payload: {
+        userId: currentUserId,
+        name: currentUserName ?? (isAuthor ? "Инициатор" : "Оппонент"),
+        isTyping,
+      } satisfies TypingPayload,
     });
   }
 
@@ -571,7 +577,17 @@ export default function ChallengeChat({
                 </div>
               </div>
 
-              <SpectatorPulseGame collapseToken={collapseToken} />
+              <ShadowMediatorPanel
+                challengeId={challengeId}
+                topic={challengeTopic}
+                category={challengeCategory}
+                authorId={authorId}
+                acceptedById={acceptedById}
+                authorName={authorName}
+                acceptedName={acceptedName}
+                completedRounds={completedRounds}
+                humanMessages={humanMessages}
+              />
 
               <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                 <div className="flex items-center justify-between gap-3 mb-3">

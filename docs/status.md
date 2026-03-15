@@ -5,9 +5,9 @@
 
 ## Текущий этап
 
-**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Arena Live с spectator-view, Telegram-подписки на battle, observer-layer и typing-индикаторы в арене и основном споре.
+**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Arena Live с spectator-view, Telegram-подписки на battle, observer-layer, typing-индикаторы и новый зрительский режим `Теневой медиатор` вместо слабого idle-placeholder.
 
-В работе: внешняя настройка Vercel env для support/release visibility и следующая итерация по тестам.
+В работе: следующая итерация по тестам и QA для arena live, mobile и spectator-layer.
 
 ## Общий прогресс
 
@@ -23,6 +23,7 @@
 - [x] Антиспам: блокировки 1 мин → 5 мин, DDoS-защита
 - [x] Арена вызовов /arena (доска, hover RPG-тултипы, раундовая дискуссия, авто-медиация)
 - [x] Arena Live: публичные active battle, spectator-view без логина, observer chat, delayed observer hints, Telegram watch
+- [x] Shadow Mediator: скрытая игровая панель зрителя с прогнозом реакции и тематическим параллельным кейсом вместо пузырьковой idle-игры
 - [x] RPG-профиль (4 стата, 6 классов, bio, debate_stance)
 - [x] Шаблоны тем споров
 - [x] Поиск оппонента (матчинг по темам, фильтры, join open-спора)
@@ -45,8 +46,8 @@
 - [x] Release automation для Telegram (структурированный payload, bot + channel, branded release image, publish script)
 - [x] Ops-слой проекта (`local-only`, `release-flow`, `model-strategy`)
 - [x] Support hub с env-конфигурируемыми ссылками
-- [~] Production visibility для support/release env
-  В коде и `.env.local` подготовлено, но production-применение ждёт авторизованный доступ к Vercel CLI / dashboard
+- [x] Production visibility для support/release env
+  Vercel env добавлены вручную, redeploy выполнен, support links и release-channel конфиг выведены в production
 
 ## Стек технологий
 
@@ -97,7 +98,7 @@
 | AnimatedCounter | Анимированный счётчик очков |
 | WaitingTips | Rotating советы дебатёра во время ожидания |
 | ArenaLiveBoard | Блок активных battle на `/arena` |
-| SpectatorPulseGame | Локальная idle-игра для зрителей battle |
+| ShadowMediatorPanel | Скрытая игровая панель зрителя: прогноз реакции, параллельный кейс, локальные очки осознанности |
 | ChallengeChat | Раундовая арена + spectator mode + observer layer + Telegram watch |
 
 ## Git-ветки
@@ -150,4 +151,5 @@
 | 2026-03-15 | Arena Live: на `/arena` добавлен список активных battle, `/arena/[id]` теперь имеет participant/spectator mode, observer chat, delayed spectator opinions и локальную idle-игру |
 | 2026-03-15 | Добавлены Telegram-подписки на battle и dedupe-уведомления для наблюдателей по завершению раунда, ответу и финалу |
 | 2026-03-15 | Typing indicators добавлены и в основной dispute-flow, и в arena battle через Supabase Realtime broadcast |
-| 2026-03-15 | Production visibility для support/release проверена: локальный env подготовлен, но Vercel CLI не авторизован, поэтому prod env и redeploy требуют внешнего ручного шага |
+| 2026-03-15 | Production visibility для support/release доведена до конца: Vercel env добавлены вручную через dashboard, выполнен redeploy production |
+| 2026-03-15 | Bubble idle-game на арене заменена на `Теневого медиатора`: spectator-панель теперь открывается по кнопке, даёт прогноз следующей реакции и тематический параллельный кейс по теме battle |

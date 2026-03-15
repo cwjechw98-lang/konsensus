@@ -77,6 +77,7 @@
 - [x] Telegram surface на вебе: явные CTA входа через Telegram на лендинге, логине и регистрации
 - [x] Арена вызовов /arena (доска, hover RPG-тултипы, раундовая дискуссия, редкие AI-комментарии, авто-медиация)
 - [x] Arena Live: список идущих battle, публичный spectator-view, observer chat, delayed observer hints, Telegram-подписка на battle
+- [x] Shadow Mediator для Arena Live: spectator-панель по кнопке с прогнозом реакции и тематическим параллельным кейсом вместо пузырьковой idle-игры
 - [x] AI-категоризация тем при создании спора/вызова
 - [x] Шаблоны тем споров (15 шаблонов, 6 категорий, быстрое заполнение формы)
 - [x] Поиск оппонента (матчинг по теме, фильтры категорий, прямое вступление в open-спор и open-вызов арены)
@@ -121,8 +122,8 @@
 - [x] Release automation для Telegram: структурированный release payload, картинка релиза, публикация в бот и канал, идемпотентность по slug
 - [x] Ops-документация: local-only настройки, release-flow, model-strategy
 - [x] Витрина поддержки проекта: support links через env, отдельная страница и ссылки в веб-интерфейсе
-- [~] Vercel production env для support/release visibility
-  Код и локальная конфигурация готовы, нужен авторизованный доступ к Vercel для применения env и redeploy
+- [x] Vercel production env для support/release visibility
+  Env добавлены через Vercel dashboard, production redeploy выполнен
 
 ## Внутренние правила работы
 - [x] Уточнён git-workflow для агентов: staging только по согласованным файлам текущей итерации, без `git add -A`

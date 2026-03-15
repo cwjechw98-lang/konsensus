@@ -21,7 +21,7 @@ export default async function ChallengePage({
   const { data: challenge } = await supabase
     .from("challenges")
     .select(`
-      id, topic, position_hint, status, max_rounds,
+      id, topic, position_hint, status, category, max_rounds,
       author_id, accepted_by,
       author_profile:profiles!challenges_author_id_fkey(id, display_name),
       accepted_profile:profiles!challenges_accepted_by_fkey(id, display_name)
@@ -32,6 +32,7 @@ export default async function ChallengePage({
       topic: string;
       position_hint: string;
       status: string;
+      category: string | null;
       max_rounds: number;
       author_id: string;
       accepted_by: string | null;
@@ -169,6 +170,8 @@ export default async function ChallengePage({
 
       <ChallengeChat
         challengeId={id}
+        challengeTopic={challenge.topic}
+        challengeCategory={challenge.category}
         initialMessages={messages ?? []}
         currentUserId={user?.id ?? null}
         opponentName={opponentName}
@@ -176,6 +179,8 @@ export default async function ChallengePage({
         isClosed={challenge.status === "closed"}
         authorId={challenge.author_id}
         acceptedById={challenge.accepted_by}
+        authorName={authorName}
+        acceptedName={acceptedName}
         currentUserName={currentUserName}
         isParticipant={isParticipant}
         initialComments={comments ?? []}
