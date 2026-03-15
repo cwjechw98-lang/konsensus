@@ -1,0 +1,11 @@
+{
+  "title": "Telegram и поддержка проекта",
+  "summary": "Telegram стал полноценной поверхностью Konsensus: вход, уведомления, релиз-посты и support-layer теперь работают как связанный контур.",
+  "features": [
+    "Telegram-first вход и явные веб-CTA через Telegram",
+    "Автоматизированные релиз-посты в бот и канал",
+    "Новая support-витрина проекта с Boosty и альтернативными ссылками",
+    "Telegram-уведомления и live-message стали частью основного dispute-flow"
+  ],
+  "source_commits": ["7411595", "7e37fcd", "b63fb72"]
+}

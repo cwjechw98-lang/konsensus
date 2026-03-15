@@ -154,8 +154,10 @@
 - [x] Ops-документация: local-only настройки, release-flow, model-strategy
 - [x] Витрина поддержки проекта: support links через env, отдельная страница и ссылки в веб-интерфейсе
 - [x] Подготовлен маркетинговый контент-пакет для Boosty: уровни поддержки, цели, блок `О проекте`, стартовые посты, витринный paid-post и промпты визуалов в `docs/marketing/boosty/`
+- [x] Подготовлен редакционный пакет для Telegram: канальные посты, bot-тизер и structured release payloads в `docs/marketing/telegram/`
 - [x] Vercel production env для support/release visibility
   Env добавлены через Vercel dashboard, production redeploy выполнен
+- [ ] Редакционная Telegram-логика второго слоя: полный пост в канале/группе, короткий teaser в боте и suppress bot-уведомлений для пользователей, уже подписанных на целевой канал/группу
 
 ## Внутренние правила работы
 - [x] Уточнён git-workflow для агентов: staging только по согласованным файлам текущей итерации, без `git add -A`
