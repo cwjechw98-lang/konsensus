@@ -7,7 +7,7 @@
 
 **Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Arena Live с spectator-view, Telegram-подписки на battle, observer-layer, typing-индикаторы и новый зрительский режим `Теневой медиатор` вместо слабого idle-placeholder.
 
-В работе: следующая итерация по тестам и QA для arena live, mobile и spectator-layer.
+В работе: следующая итерация по тестам и QA для arena live, mobile, spectator-layer и обычного dispute-flow после применения свежей SQL-миграции AI-инсайтов.
 
 ## Общий прогресс
 
@@ -83,6 +83,7 @@
 | 00014_arena_rounds.sql | max_rounds в challenges (раундовая механика арены) |
 | 00015_release_announcements.sql | release_announcements (структурированные релизы, bot + channel publish) |
 | 00016_arena_live_spectators.sql | challenge_watchers, challenge_comments, challenge_opinions, challenge_observer_hints, RLS для live spectator-layer |
+| 00017_dispute_ai_insights.sql | dispute_analysis, round_insights, waiting_insights, RLS и индексы для обычного AI-сопровождения спора |
 
 ## Ключевые компоненты
 
@@ -153,3 +154,4 @@
 | 2026-03-15 | Typing indicators добавлены и в основной dispute-flow, и в arena battle через Supabase Realtime broadcast |
 | 2026-03-15 | Production visibility для support/release доведена до конца: Vercel env добавлены вручную через dashboard, выполнен redeploy production |
 | 2026-03-15 | Bubble idle-game на арене заменена на `Теневого медиатора`: spectator-панель теперь открывается по кнопке, даёт прогноз следующей реакции и тематический параллельный кейс по теме battle |
+| 2026-03-15 | Найден и исправлен разрыв в обычном AI-flow: реальные SQL-таблицы `round_insights` / `waiting_insights` / `dispute_analysis` оформлены в миграцию `00017`, Telegram Mini App auth усилен через `magiclink` verifyOtp + profile upsert, invite email теперь явно сообщает об ошибке и шлётся и для незарегистрированного email |

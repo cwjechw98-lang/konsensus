@@ -8,6 +8,7 @@ import { notifyArgumentReceived, notifyMediationReady, notifyOpponentJoined, not
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
+import { getAppUrl } from "@/lib/url";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
@@ -85,12 +86,22 @@ export async function createDispute(formData: FormData) {
   const { data, error } = await supabase
     .from("disputes")
     .insert(row as never)
-    .select("id")
-    .single<{ id: string }>();
+    .select("id, invite_code")
+    .single<{ id: string; invite_code: string }>();
 
   if (error || !data) {
     redirect("/dashboard?error=" + encodeURIComponent(error?.message ?? "Ошибка создания спора"));
   }
+
+  let creatorDisplayName = "Участник";
+  try {
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>();
+    creatorDisplayName = myProfile?.display_name ?? "Участник";
+  } catch { /* non-critical */ }
 
   // Award first_dispute achievement
   try {
@@ -106,26 +117,35 @@ export async function createDispute(formData: FormData) {
 
     // Award milestone achievements based on total disputes
     await checkDisputeMilestones(user.id, admin);
+  } catch { /* achievements are non-critical */ }
 
-    // Send direct challenge email
-    if (opponentId && opponentEmail) {
-      const myProfile = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .single<{ display_name: string | null }>();
-      const opponentUser = await admin.auth.admin.getUserById(opponentId);
-      if (opponentUser.data.user?.email) {
-        await sendDirectChallengeEmail({
-          toEmail: opponentUser.data.user.email,
-          toName: opponentUser.data.user.user_metadata?.display_name ?? "Участник",
-          fromName: myProfile.data?.display_name ?? "Участник",
+  // Email invite / direct challenge should not be skipped by unrelated achievement errors
+  try {
+    if (opponentEmail) {
+      const admin = createAdminClient();
+
+      if (opponentId) {
+        const opponentUser = await admin.auth.admin.getUserById(opponentId);
+        if (opponentUser.data.user?.email) {
+          await sendDirectChallengeEmail({
+            toEmail: opponentUser.data.user.email,
+            toName: opponentUser.data.user.user_metadata?.display_name ?? "Участник",
+            fromName: creatorDisplayName,
+            disputeTitle: title,
+            disputeId: data.id,
+          });
+        }
+      } else {
+        const appUrl = await getAppUrl();
+        await sendInviteEmail({
+          toEmail: opponentEmail,
           disputeTitle: title,
-          disputeId: data.id,
+          creatorName: creatorDisplayName,
+          inviteUrl: `${appUrl}/dispute/join?code=${data.invite_code}`,
         });
       }
     }
-  } catch { /* achievements are non-critical */ }
+  } catch { /* email is non-critical */ }
 
   redirect(`/dispute/${data.id}`);
 }
@@ -729,21 +749,37 @@ ${roundsText}
   redirect(`/dispute/${disputeId}/mediation`);
 }
 
-export async function sendDisputeInviteEmail(formData: FormData) {
+export async function sendDisputeInviteEmail(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { ok: false, error: "Нужно войти в аккаунт" };
 
-  const toEmail = formData.get("to_email") as string;
-  const inviteUrl = formData.get("invite_url") as string;
-  const disputeTitle = formData.get("dispute_title") as string;
-  const creatorName = formData.get("creator_name") as string;
+  const toEmail = ((formData.get("to_email") as string) ?? "").trim();
+  const inviteUrl = ((formData.get("invite_url") as string) ?? "").trim();
+  const disputeTitle = ((formData.get("dispute_title") as string) ?? "").trim();
+  const creatorName = ((formData.get("creator_name") as string) ?? "").trim();
 
-  if (!toEmail || !inviteUrl) return;
+  if (!toEmail || !inviteUrl) {
+    return { ok: false, error: "Не хватает данных для отправки письма" };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+    return { ok: false, error: "Введите корректный email" };
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    return { ok: false, error: "Email-рассылка сейчас не настроена на сервере" };
+  }
 
   try {
     await sendInviteEmail({ toEmail, disputeTitle, creatorName, inviteUrl });
-  } catch { /* non-critical */ }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Не удалось отправить письмо",
+    };
+  }
 }
 
 export async function proposeEarlyEnd(formData: FormData) {

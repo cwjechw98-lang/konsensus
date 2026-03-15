@@ -16,6 +16,7 @@ export default function ShareInviteButton({
   const [email, setEmail] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const handleShare = async () => {
@@ -38,6 +39,7 @@ export default function ShareInviteButton({
 
   const handleEmailSend = () => {
     if (!email || isPending) return;
+    setEmailError("");
     const fd = new FormData();
     fd.set("to_email", email);
     fd.set("invite_url", inviteUrl);
@@ -45,7 +47,12 @@ export default function ShareInviteButton({
     fd.set("creator_name", creatorName);
 
     startTransition(async () => {
-      await sendDisputeInviteEmail(fd);
+      const result = await sendDisputeInviteEmail(fd);
+      if (!result.ok) {
+        setEmailError(result.error ?? "Не удалось отправить письмо");
+        return;
+      }
+
       setEmailSent(true);
       setEmail("");
       setTimeout(() => {
@@ -74,6 +81,11 @@ export default function ShareInviteButton({
 
       {showEmail && (
         <div className="flex flex-col gap-2">
+          {emailError && (
+            <p className="text-sm text-red-400">
+              {emailError}
+            </p>
+          )}
           {emailSent ? (
             <p className="text-sm text-green-400 flex items-center gap-1.5">
               ✓ Письмо отправлено

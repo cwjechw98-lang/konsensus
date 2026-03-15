@@ -154,11 +154,11 @@ export async function POST(req: Request) {
     // Link or refresh profile metadata for Telegram users
     await admin
       .from("profiles")
-      .update({
+      .upsert({
+        id: userId,
         telegram_chat_id: chatId,
         display_name: profile?.display_name ?? telegramDisplayName,
-      } as never)
-      .eq("id", userId);
+      } as never, { onConflict: "id" });
 
     const { data: authUser } = await admin.auth.admin.getUserById(userId);
     if (!authUser?.user?.email) {
