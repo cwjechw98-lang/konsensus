@@ -251,6 +251,32 @@ export interface Database {
           updated_at?: string;
         };
       };
+      dispute_user_state: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          user_id: string;
+          is_archived: boolean;
+          archived_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          user_id: string;
+          is_archived?: boolean;
+          archived_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          dispute_id?: string;
+          user_id?: string;
+          is_archived?: boolean;
+          archived_at?: string | null;
+          updated_at?: string;
+        };
+      };
       arguments: {
         Row: {
           id: string;

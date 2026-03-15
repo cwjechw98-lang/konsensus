@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { notifyArgumentReceived, notifyDirectChallengeReceived, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
+import { clearTelegramDisputeNotifications, notifyArgumentReceived, notifyDirectChallengeReceived, notifyDisputeClosed, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
@@ -14,6 +14,7 @@ import { getAppUrl } from "@/lib/url";
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
 type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
+type DisputeUserStateInsert = Database["public"]["Tables"]["dispute_user_state"]["Insert"];
 
 async function findExistingUserByEmail(
   admin: ReturnType<typeof createAdminClient>,
@@ -40,6 +41,38 @@ async function findExistingUserByEmail(
   }
 
   return null;
+}
+
+async function upsertDisputeArchiveState(
+  admin: ReturnType<typeof createAdminClient>,
+  disputeId: string,
+  userId: string,
+  isArchived: boolean
+) {
+  const payload: DisputeUserStateInsert = {
+    dispute_id: disputeId,
+    user_id: userId,
+    is_archived: isArchived,
+    archived_at: isArchived ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  await admin.from("dispute_user_state").upsert(payload as never, {
+    onConflict: "dispute_id,user_id",
+  });
+}
+
+async function unarchiveDisputeForParticipants(
+  admin: ReturnType<typeof createAdminClient>,
+  disputeId: string,
+  userIds: Array<string | null | undefined>
+) {
+  const participantIds = Array.from(new Set(userIds.filter(Boolean))) as string[];
+  await Promise.all(
+    participantIds.map((participantId) =>
+      upsertDisputeArchiveState(admin, disputeId, participantId, false)
+    )
+  );
 }
 
 export async function createDispute(formData: FormData) {
@@ -278,6 +311,7 @@ export async function joinDispute(formData: FormData) {
     // Award accepted_invite + milestone achievements
     try {
       const admin = createAdminClient();
+      await unarchiveDisputeForParticipants(admin, dispute.id, [dispute.creator_id, user.id]);
       await awardAchievement(user.id, "accepted_invite", admin);
       await checkDisputeMilestones(user.id, admin);
 
@@ -354,6 +388,7 @@ export async function joinDisputeFromMatchmaking(formData: FormData) {
 
   try {
     const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, dispute.id, [dispute.creator_id, user.id]);
     await awardAchievement(user.id, "accepted_invite", admin);
     await checkDisputeMilestones(user.id, admin);
 
@@ -449,6 +484,11 @@ export async function submitArgument(formData: FormData) {
   const opponentDoneThisRound = opponentArgs.some(
     (a) => a.round === currentRound
   );
+
+  try {
+    const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, disputeId, [user.id, opponentId]);
+  } catch { /* non-critical */ }
 
   // Award argument-related achievements
   try {
@@ -761,6 +801,7 @@ ${roundsText}
   // Award resolution achievement to both participants + AI-generated achievements
   try {
     const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
     const { data: disputeAnalysis } = await admin
       .from("dispute_analysis")
       .select("plane, tone_level")
@@ -867,6 +908,66 @@ export async function sendDisputeInviteEmail(formData: FormData): Promise<{ ok: 
   }
 }
 
+export async function archiveDisputeForUser(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = (formData.get("dispute_id") as string) ?? "";
+  const returnTo = ((formData.get("return_to") as string) ?? "/dashboard").trim();
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("id, creator_id, opponent_id")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "id" | "creator_id" | "opponent_id">>();
+
+  if (!dispute) redirect("/dashboard?error=" + encodeURIComponent("Спор не найден"));
+  if (dispute.creator_id !== user.id && dispute.opponent_id !== user.id) {
+    redirect("/dashboard?error=" + encodeURIComponent("Нет доступа к архивированию этого спора"));
+  }
+
+  const admin = createAdminClient();
+  await upsertDisputeArchiveState(admin, disputeId, user.id, true);
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("telegram_chat_id")
+    .eq("id", user.id)
+    .single<{ telegram_chat_id: number | null }>();
+
+  if (profile?.telegram_chat_id) {
+    await clearTelegramDisputeNotifications(profile.telegram_chat_id, disputeId);
+  }
+
+  redirect(returnTo);
+}
+
+export async function unarchiveDisputeForUser(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = (formData.get("dispute_id") as string) ?? "";
+  const returnTo = ((formData.get("return_to") as string) ?? "/dashboard?view=archived").trim();
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("id, creator_id, opponent_id")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "id" | "creator_id" | "opponent_id">>();
+
+  if (!dispute) redirect("/dashboard?error=" + encodeURIComponent("Спор не найден"));
+  if (dispute.creator_id !== user.id && dispute.opponent_id !== user.id) {
+    redirect("/dashboard?error=" + encodeURIComponent("Нет доступа к архиву этого спора"));
+  }
+
+  const admin = createAdminClient();
+  await upsertDisputeArchiveState(admin, disputeId, user.id, false);
+
+  redirect(returnTo);
+}
+
 export async function proposeEarlyEnd(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -889,6 +990,11 @@ export async function proposeEarlyEnd(formData: FormData) {
     .from("disputes")
     .update({ early_end_proposed_by: user.id } as never)
     .eq("id", disputeId);
+
+  try {
+    const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
+  } catch { /* non-critical */ }
 }
 
 export async function acceptEarlyEnd(formData: FormData) {
@@ -900,9 +1006,9 @@ export async function acceptEarlyEnd(formData: FormData) {
 
   const { data: dispute } = await supabase
     .from("disputes")
-    .select("status, creator_id, opponent_id, early_end_proposed_by")
+    .select("status, creator_id, opponent_id, early_end_proposed_by, title")
     .eq("id", disputeId)
-    .single<Pick<DisputeRow, "status" | "creator_id" | "opponent_id" | "early_end_proposed_by">>();
+    .single<Pick<DisputeRow, "status" | "creator_id" | "opponent_id" | "early_end_proposed_by" | "title">>();
 
   if (!dispute || dispute.status !== "in_progress") return;
   if (dispute.early_end_proposed_by === user.id) return; // Can't accept own proposal
@@ -916,9 +1022,23 @@ export async function acceptEarlyEnd(formData: FormData) {
   // Award reached_mediation to both
   try {
     const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
     await awardAchievement(dispute.creator_id, "reached_mediation", admin);
     if (dispute.opponent_id) {
       await awardAchievement(dispute.opponent_id, "reached_mediation", admin);
+    }
+
+    const participants = [dispute.creator_id, dispute.opponent_id].filter(Boolean) as string[];
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .in("id", participants)
+      .returns<{ telegram_chat_id: number | null }[]>();
+
+    for (const profile of profiles ?? []) {
+      if (profile.telegram_chat_id) {
+        await notifyMediationReady(profile.telegram_chat_id, dispute.title, disputeId);
+      }
     }
   } catch { /* non-critical */ }
 
@@ -936,6 +1056,19 @@ export async function declineEarlyEnd(formData: FormData) {
     .from("disputes")
     .update({ early_end_proposed_by: null } as never)
     .eq("id", disputeId);
+
+  try {
+    const admin = createAdminClient();
+    const { data: dispute } = await supabase
+      .from("disputes")
+      .select("creator_id, opponent_id")
+      .eq("id", disputeId)
+      .single<Pick<DisputeRow, "creator_id" | "opponent_id">>();
+
+    if (dispute) {
+      await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
+    }
+  } catch { /* non-critical */ }
 }
 
 export async function closeDispute(formData: FormData) {
@@ -948,9 +1081,9 @@ export async function closeDispute(formData: FormData) {
   // Only creator can close, and only open or in_progress disputes
   const { data: dispute } = await supabase
     .from("disputes")
-    .select("creator_id, status")
+    .select("creator_id, opponent_id, status, title")
     .eq("id", disputeId)
-    .single<{ creator_id: string; status: string }>();
+    .single<{ creator_id: string; opponent_id: string | null; status: string; title: string }>();
 
   if (!dispute || dispute.creator_id !== user.id) return;
   if (dispute.status !== "open" && dispute.status !== "in_progress") return;
@@ -959,6 +1092,24 @@ export async function closeDispute(formData: FormData) {
     .from("disputes")
     .update({ status: "closed" } as never)
     .eq("id", disputeId);
+
+  try {
+    const admin = createAdminClient();
+    await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
+
+    const participants = [dispute.creator_id, dispute.opponent_id].filter(Boolean) as string[];
+    const { data: tgProfiles } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .in("id", participants)
+      .returns<{ telegram_chat_id: number | null }[]>();
+
+    for (const profile of tgProfiles ?? []) {
+      if (profile.telegram_chat_id) {
+        await notifyDisputeClosed(profile.telegram_chat_id, dispute.title, disputeId);
+      }
+    }
+  } catch { /* non-critical */ }
 
   redirect("/dashboard");
 }
@@ -1015,6 +1166,10 @@ export async function acceptSolution(formData: FormData) {
       status: "proposed",
     } as never).eq("id", existing.id);
   }
+
+  try {
+    await unarchiveDisputeForParticipants(admin, disputeId, [dispute.creator_id, dispute.opponent_id]);
+  } catch { /* non-critical */ }
 
   redirect(`/dispute/${disputeId}/mediation`);
 }

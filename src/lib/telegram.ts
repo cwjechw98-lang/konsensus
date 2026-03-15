@@ -146,6 +146,77 @@ async function syncManagedMessages(
     .eq("telegram_chat_id", chatId);
 }
 
+export async function clearTelegramNotificationByKeys(opts: {
+  chatId: number;
+  dedupeKeys: string[];
+}): Promise<void> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { chatId, dedupeKeys } = opts;
+
+  if (dedupeKeys.length === 0) return;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("telegram_bot_messages, telegram_message_index")
+    .eq("telegram_chat_id", chatId)
+    .single<{
+      telegram_bot_messages: number[] | null;
+      telegram_message_index: Json | null;
+    }>();
+
+  const messageIndex = normalizeMessageIndex(profile?.telegram_message_index);
+
+  for (const dedupeKey of dedupeKeys) {
+    const messageId = messageIndex[dedupeKey];
+    if (messageId) {
+      await deleteTelegramMessage(chatId, messageId);
+      delete messageIndex[dedupeKey];
+    }
+  }
+
+  const indexedIds = Array.from(new Set(Object.values(messageIndex)));
+  await syncManagedMessages(chatId, indexedIds, messageIndex);
+}
+
+function disputeLiveKey(disputeId: string) {
+  return `dispute_live:${disputeId}`;
+}
+
+export async function clearTelegramDisputeNotifications(
+  chatId: number,
+  disputeId: string
+): Promise<void> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("telegram_message_index")
+    .eq("telegram_chat_id", chatId)
+    .single<{ telegram_message_index: Json | null }>();
+
+  const messageIndex = normalizeMessageIndex(profile?.telegram_message_index);
+  const disputeKeys = Object.keys(messageIndex).filter((key) => key.includes(disputeId));
+
+  if (disputeKeys.length === 0) return;
+  await clearTelegramNotificationByKeys({ chatId, dedupeKeys: disputeKeys });
+}
+
+async function upsertDisputeLiveNotification(opts: {
+  chatId: number;
+  disputeId: string;
+  text: string;
+  url?: string;
+}): Promise<number | null> {
+  return upsertTelegramNotification({
+    chatId: opts.chatId,
+    dedupeKey: disputeLiveKey(opts.disputeId),
+    text: opts.text,
+    url: opts.url,
+  });
+}
+
 export async function upsertTelegramNotification(opts: {
   chatId: number;
   text: string;
@@ -349,10 +420,10 @@ export async function notifyArgumentReceived(
   round: number,
   disputeId: string
 ): Promise<number | null> {
-  return upsertTelegramNotification({
+  return upsertDisputeLiveNotification({
     chatId,
-    dedupeKey: `argument_received:${disputeId}:${round}:${senderName}`,
-    text: `🥊 <b>${senderName}</b> подал аргумент в раунде ${round}\n\nСпор: <i>${disputeTitle}</i>`,
+    disputeId,
+    text: `🥊 <b>${senderName}</b> подал новый аргумент\n\nТема: <i>${disputeTitle}</i>\nТекущий раунд: ${round}`,
     url: `${APP_URL}/dispute/${disputeId}`,
   });
 }
@@ -362,10 +433,10 @@ export async function notifyMediationReady(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return upsertTelegramNotification({
+  return upsertDisputeLiveNotification({
     chatId,
-    dedupeKey: `mediation_ready:${disputeId}`,
-    text: `🤖 Медиация готова!\n\nСпор: <i>${disputeTitle}</i>\nВсе раунды завершены — ИИ-медиатор предлагает решение.`,
+    disputeId,
+    text: `🤖 Медиация готова\n\nТема: <i>${disputeTitle}</i>\nВсе раунды завершены — можно открыть итоговый анализ.`,
     url: `${APP_URL}/dispute/${disputeId}/mediation`,
   });
 }
@@ -377,10 +448,10 @@ export async function notifyOpponentJoined(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return upsertTelegramNotification({
+  return upsertDisputeLiveNotification({
     chatId,
-    dedupeKey: `opponent_joined:${disputeId}`,
-    text: `🎯 <b>${opponentName}</b> присоединился к спору!\n\nСпор: <i>${disputeTitle}</i>\nВаш ход — подайте аргумент.`,
+    disputeId,
+    text: `🎯 <b>${opponentName}</b> присоединился к спору\n\nТема: <i>${disputeTitle}</i>\nВаш ход — подайте первый аргумент.`,
     url: `${APP_URL}/dispute/${disputeId}`,
   });
 }
@@ -396,10 +467,10 @@ export async function notifyDirectChallengeReceived(
   const trimmedDescription =
     description.length > 220 ? `${description.slice(0, 217)}...` : description;
 
-  return upsertTelegramNotification({
+  return upsertDisputeLiveNotification({
     chatId,
-    dedupeKey: `direct_challenge:${disputeId}`,
-    text: `📨 <b>${senderName}</b> приглашает вас в спор\n\nТема: <i>${disputeTitle}</i>${trimmedDescription ? `\nСуть: ${trimmedDescription}` : ""}\nВаш аккаунт уже найден — можно сразу открыть спор и ответить.`,
+    disputeId,
+    text: `📨 <b>${senderName}</b> приглашает вас в спор\n\nТема: <i>${disputeTitle}</i>${trimmedDescription ? `\nСуть: ${trimmedDescription}` : ""}\nСпор уже доступен — можно сразу открыть и ответить.`,
     url: `${APP_URL}/dispute/${disputeId}`,
   });
 }
@@ -410,11 +481,24 @@ export async function notifyDisputeResolved(
   disputeTitle: string,
   disputeId: string
 ): Promise<number | null> {
-  return upsertTelegramNotification({
+  return upsertDisputeLiveNotification({
     chatId,
-    dedupeKey: `dispute_resolved:${disputeId}`,
-    text: `✅ Спор завершён!\n\nСпор: <i>${disputeTitle}</i>\nМедиация окончена — посмотрите итоги.`,
+    disputeId,
+    text: `✅ Спор завершён\n\nТема: <i>${disputeTitle}</i>\nИтоговая медиация уже доступна.`,
     url: `${APP_URL}/dispute/${disputeId}/mediation`,
+  });
+}
+
+export async function notifyDisputeClosed(
+  chatId: number,
+  disputeTitle: string,
+  disputeId: string
+): Promise<number | null> {
+  return upsertDisputeLiveNotification({
+    chatId,
+    disputeId,
+    text: `🗂 Спор закрыт\n\nТема: <i>${disputeTitle}</i>\nДиалог перемещён в завершённое состояние.`,
+    url: `${APP_URL}/dispute/${disputeId}`,
   });
 }
 

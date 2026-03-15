@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import OnboardingGuide from "@/components/OnboardingGuide";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import DashboardDisputeCard from "@/components/DashboardDisputeCard";
 import type { Database, DisputeStatus } from "@/types/database";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
+type DisputeUserState = Database["public"]["Tables"]["dispute_user_state"]["Row"];
 
 const PAGE_SIZE = 10;
 
@@ -19,12 +21,17 @@ const STATUS_FILTERS: { value: "all" | DisputeStatus; label: string }[] = [
   { value: "closed", label: "Закрытые" },
 ];
 
+const VIEW_FILTERS = [
+  { value: "active", label: "Активные" },
+  { value: "archived", label: "Архив" },
+] as const;
+
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ error?: string; status?: string; page?: string; view?: string }>;
 }) {
-  const { error: errorMsg, status: statusParam, page: pageParam } = await searchParams;
+  const { error: errorMsg, status: statusParam, page: pageParam, view: viewParam } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,36 +45,68 @@ export default async function DashboardPage({
     .eq("id", user.id)
     .single<Pick<Profile, "display_name">>();
 
-  const activeStatus = STATUS_FILTERS.find((f) => f.value === statusParam)
+  const activeStatus = STATUS_FILTERS.find((filter) => filter.value === statusParam)
     ? (statusParam as "all" | DisputeStatus)
     : "all";
+  const activeView = VIEW_FILTERS.find((filter) => filter.value === viewParam)?.value ?? "active";
   const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10));
-  const from = (currentPage - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
 
-  let query = supabase
+  let disputeQuery = supabase
     .from("disputes")
-    .select("*", { count: "exact" })
+    .select("*")
     .or(`creator_id.eq.${user.id},opponent_id.eq.${user.id}`)
-    .order("updated_at", { ascending: false })
-    .range(from, to);
+    .order("updated_at", { ascending: false });
 
   if (activeStatus !== "all") {
-    query = query.eq("status", activeStatus);
+    disputeQuery = disputeQuery.eq("status", activeStatus);
   }
 
-  const { data: disputes, count } = await query.returns<Dispute[]>();
+  const [{ data: disputes }, { data: disputeStateRows }] = await Promise.all([
+    disputeQuery.returns<Dispute[]>(),
+    supabase
+      .from("dispute_user_state")
+      .select("dispute_id, is_archived")
+      .eq("user_id", user.id)
+      .returns<Pick<DisputeUserState, "dispute_id" | "is_archived">[]>(),
+  ]);
 
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
+  const archivedDisputeIds = new Set(
+    (disputeStateRows ?? [])
+      .filter((row) => row.is_archived)
+      .map((row) => row.dispute_id)
+  );
 
-  function buildHref(params: { status?: string; page?: number }) {
-    const p = new URLSearchParams();
-    const s = params.status ?? (activeStatus !== "all" ? activeStatus : undefined);
-    if (s && s !== "all") p.set("status", s);
-    if (params.page && params.page > 1) p.set("page", String(params.page));
-    const qs = p.toString();
+  const visibleDisputes = (disputes ?? []).filter((dispute) =>
+    activeView === "archived"
+      ? archivedDisputeIds.has(dispute.id)
+      : !archivedDisputeIds.has(dispute.id)
+  );
+
+  const totalPages = Math.max(1, Math.ceil(visibleDisputes.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const from = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedDisputes = visibleDisputes.slice(from, from + PAGE_SIZE);
+
+  function buildHref(params: { status?: string; page?: number; view?: string }) {
+    const urlParams = new URLSearchParams();
+    const nextStatus = params.status ?? (activeStatus !== "all" ? activeStatus : undefined);
+    const nextView = params.view ?? activeView;
+
+    if (nextStatus && nextStatus !== "all") {
+      urlParams.set("status", nextStatus);
+    }
+    if (nextView !== "active") {
+      urlParams.set("view", nextView);
+    }
+    if (params.page && params.page > 1) {
+      urlParams.set("page", String(params.page));
+    }
+
+    const qs = urlParams.toString();
     return `/dashboard${qs ? `?${qs}` : ""}`;
   }
+
+  const currentHref = buildHref({ page: safeCurrentPage });
 
   return (
     <>
@@ -105,7 +144,22 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* Status filter tabs */}
+        <div className="flex gap-1.5 mb-4 flex-wrap">
+          {VIEW_FILTERS.map((filter) => (
+            <Link
+              key={filter.value}
+              href={buildHref({ view: filter.value, page: 1 })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeView === filter.value
+                  ? "bg-cyan-500 text-slate-950"
+                  : "glass text-gray-400 hover:text-white"
+              }`}
+            >
+              {filter.label}
+            </Link>
+          ))}
+        </div>
+
         <div className="flex gap-1.5 mb-5 flex-wrap" data-tour="filters">
           {STATUS_FILTERS.map((filter) => (
             <Link
@@ -122,14 +176,20 @@ export default async function DashboardPage({
           ))}
         </div>
 
-        {!disputes || disputes.length === 0 ? (
+        {paginatedDisputes.length === 0 ? (
           <div className="glass rounded-2xl p-16 text-center">
-            <p className="text-4xl mb-4">⚖️</p>
+            <p className="text-4xl mb-4">{activeView === "archived" ? "🗂️" : "⚖️"}</p>
             <p className="text-white font-medium mb-2">
-              {activeStatus === "all" ? "У вас пока нет споров" : "Нет споров с таким статусом"}
+              {activeView === "archived"
+                ? "Архив пока пуст"
+                : activeStatus === "all"
+                ? "У вас пока нет споров"
+                : "Нет споров с таким статусом"}
             </p>
             <p className="text-sm text-gray-500">
-              {activeStatus === "all"
+              {activeView === "archived"
+                ? "Архивированные споры появятся здесь и вернутся в активные при новом действии."
+                : activeStatus === "all"
                 ? "Создайте новый спор или присоединитесь по инвайт-коду"
                 : "Попробуйте другой фильтр"}
             </p>
@@ -137,54 +197,37 @@ export default async function DashboardPage({
         ) : (
           <>
             <div className="flex flex-col gap-3">
-              {disputes.map((dispute) => (
-                <Link
+              {paginatedDisputes.map((dispute) => (
+                <DashboardDisputeCard
                   key={dispute.id}
-                  href={`/dispute/${dispute.id}`}
-                  className="card-gradient-top glass rounded-xl p-4 hover:bg-white/[0.06] transition-colors group"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h3 className="font-medium text-white group-hover:text-purple-200 transition-colors">
-                      {dispute.title}
-                    </h3>
-                    <StatusBadge status={dispute.status} />
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <p className="text-sm text-gray-500 line-clamp-1 flex-1">
-                      {dispute.description}
-                    </p>
-                    {dispute.status === "in_progress" && (
-                      <span className="flex-shrink-0 text-xs text-gray-600">
-                        {dispute.max_rounds}{" "}
-                        {dispute.max_rounds === 1
-                          ? "раунд"
-                          : dispute.max_rounds < 5
-                          ? "раунда"
-                          : "раундов"}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                  id={dispute.id}
+                  title={dispute.title}
+                  description={dispute.description}
+                  status={dispute.status}
+                  maxRounds={dispute.max_rounds}
+                  updatedAt={dispute.updated_at}
+                  archived={archivedDisputeIds.has(dispute.id)}
+                  returnTo={currentHref}
+                />
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
-                {currentPage > 1 && (
+                {safeCurrentPage > 1 && (
                   <Link
-                    href={buildHref({ page: currentPage - 1 })}
+                    href={buildHref({ page: safeCurrentPage - 1 })}
                     className="glass px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white transition-colors"
                   >
                     ← Назад
                   </Link>
                 )}
                 <span className="text-sm text-gray-500">
-                  {currentPage} / {totalPages}
+                  {safeCurrentPage} / {totalPages}
                 </span>
-                {currentPage < totalPages && (
+                {safeCurrentPage < totalPages && (
                   <Link
-                    href={buildHref({ page: currentPage + 1 })}
+                    href={buildHref({ page: safeCurrentPage + 1 })}
                     className="glass px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white transition-colors"
                   >
                     Вперёд →
@@ -194,35 +237,13 @@ export default async function DashboardPage({
             )}
           </>
         )}
+
+        {activeView === "archived" && visibleDisputes.length > 0 && (
+          <div className="mt-6 text-xs text-gray-500">
+            Архив действует только для вас. Новое действие по спору автоматически вернёт его в активные и снова покажет в Telegram.
+          </div>
+        )}
       </div>
     </>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const labels: Record<string, string> = {
-    open: "Открыт",
-    in_progress: "В процессе",
-    mediation: "Медиация",
-    resolved: "Решён",
-    closed: "Закрыт",
-  };
-
-  const colors: Record<string, string> = {
-    open: "bg-blue-500/15 text-blue-400 border border-blue-500/20",
-    in_progress: "bg-yellow-500/15 text-yellow-400 border border-yellow-500/20",
-    mediation: "bg-purple-500/15 text-purple-400 border border-purple-500/20",
-    resolved: "bg-green-500/15 text-green-400 border border-green-500/20",
-    closed: "bg-gray-500/15 text-gray-400 border border-gray-500/20",
-  };
-
-  return (
-    <span
-      className={`text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap ${
-        colors[status] ?? colors.closed
-      }`}
-    >
-      {labels[status] ?? status}
-    </span>
   );
 }
