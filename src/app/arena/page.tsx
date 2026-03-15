@@ -17,7 +17,7 @@ export default async function ArenaPage({
   const { data: challenges } = await supabase
     .from("challenges")
     .select(`
-      id, topic, position_hint, status, created_at,
+      id, topic, position_hint, status, category, created_at,
       profiles!challenges_author_id_fkey(id, display_name, bio)
     `)
     .eq("status", "open")
@@ -28,6 +28,7 @@ export default async function ArenaPage({
       topic: string;
       position_hint: string;
       status: string;
+      category: string | null;
       created_at: string;
       profiles: { id: string; display_name: string | null; bio: string | null } | null;
     }[]>();
@@ -47,6 +48,7 @@ export default async function ArenaPage({
     topic: c.topic,
     position_hint: c.position_hint,
     status: c.status,
+    category: c.category ?? "other",
     created_at: c.created_at,
     author: {
       id: c.profiles?.id ?? "",

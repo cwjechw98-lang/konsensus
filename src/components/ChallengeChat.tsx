@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { sendChallengeMessage, closeChallenge, requestChallengeMediation } from "@/lib/arena-actions";
@@ -31,8 +32,6 @@ export default function ChallengeChat({
   myName,
   opponentName,
   isClosed,
-  authorId,
-  acceptedById,
 }: ChallengeChatProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -197,9 +196,9 @@ export default function ChallengeChat({
       ) : (
         <div className="border-t border-white/8 p-4 text-center">
           <p className="text-sm text-gray-500">Дискуссия завершена</p>
-          <a href="/arena" className="text-sm text-purple-400 hover:underline mt-1 inline-block">
+          <Link href="/arena" className="text-sm text-purple-400 hover:underline mt-1 inline-block">
             ← Вернуться на Арену
-          </a>
+          </Link>
         </div>
       )}
     </div>

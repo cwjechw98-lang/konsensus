@@ -352,6 +352,38 @@ export interface Database {
           earned_at?: string;
         };
       };
+      user_unique_achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          dispute_id: string | null;
+          title: string;
+          description: string;
+          icon: string;
+          points: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          dispute_id?: string | null;
+          title: string;
+          description: string;
+          icon: string;
+          points?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          dispute_id?: string | null;
+          title?: string;
+          description?: string;
+          icon?: string;
+          points?: number;
+          created_at?: string;
+        };
+      };
       user_ai_profiles: {
         Row: {
           user_id: string;

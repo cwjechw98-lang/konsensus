@@ -339,6 +339,12 @@ export default function NewDisputePage() {
               Создать спор
             </button>
             <Link
+              href="/matchmaking"
+              className="glass px-6 py-2.5 rounded-lg font-medium text-gray-300 hover:text-white transition-colors"
+            >
+              Найти оппонента
+            </Link>
+            <Link
               href="/dashboard"
               className="glass px-6 py-2.5 rounded-lg font-medium text-gray-300 hover:text-white transition-colors"
             >

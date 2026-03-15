@@ -31,6 +31,9 @@ export async function Header() {
               <Link href="/arena" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Арена ⚔️
               </Link>
+              <Link href="/matchmaking" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
+                Оппоненты 🎯
+              </Link>
               <Link href="/profile" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Профиль
               </Link>

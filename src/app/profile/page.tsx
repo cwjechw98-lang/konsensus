@@ -10,6 +10,7 @@ import { fetchRPGStats } from "@/lib/rpg";
 import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ru-RU", {
@@ -54,9 +55,10 @@ export default async function ProfilePage({
     : null;
 
   // Parallel data fetch
-  const [pointsRes, achievementsRes, disputesRes, argsRes, rpgStats, aiProfile, counterparts] = await Promise.all([
+  const [pointsRes, achievementsRes, uniqueAchievementsRes, disputesRes, argsRes, rpgStats, aiProfile, counterparts] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
+    supabase.from("user_unique_achievements").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<UniqueAchievement[]>(),
     supabase.from("disputes").select("id, status, category", { count: "exact" }).or(`creator_id.eq.${user.id},opponent_id.eq.${user.id}`).returns<{ id: string; status: string; category: string | null }[]>(),
     supabase.from("arguments").select("*", { count: "exact", head: true }).eq("author_id", user.id),
     fetchRPGStats(user.id, supabase),
@@ -66,12 +68,12 @@ export default async function ProfilePage({
 
   const totalPoints = pointsRes.data?.total ?? 0;
   const earnedAchievements = achievementsRes.data ?? [];
+  const uniqueAchievements = uniqueAchievementsRes.data ?? [];
   const allDisputes = disputesRes.data ?? [];
   const disputeCount = disputesRes.count ?? 0;
   const argCount = argsRes.count ?? 0;
 
   const resolvedCount = allDisputes.filter((d) => d.status === "resolved").length;
-  const activeCount = allDisputes.filter((d) => ["open", "in_progress", "mediation"].includes(d.status)).length;
   const consensusRate = disputeCount > 0 ? Math.round((resolvedCount / disputeCount) * 100) : 0;
 
   // Category distribution
@@ -83,6 +85,26 @@ export default async function ProfilePage({
 
   const earnedMap = Object.fromEntries(earnedAchievements.map((a) => [a.achievement_id, a.earned_at]));
   const earnedIds = new Set(earnedAchievements.map((a) => a.achievement_id));
+  const recentItems = [
+    ...earnedAchievements.map((ea) => ({
+      type: "standard" as const,
+      created_at: ea.earned_at,
+      title: ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS]?.title ?? ea.achievement_id,
+      desc: ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS]?.desc ?? "",
+      icon: ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS]?.icon ?? "✨",
+      points: ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS]?.points ?? 0,
+    })),
+    ...uniqueAchievements.map((ua) => ({
+      type: "unique" as const,
+      created_at: ua.created_at,
+      title: ua.title,
+      desc: ua.description,
+      icon: ua.icon,
+      points: ua.points,
+    })),
+  ]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   // Group achievements by category
   const achievementsByCategory: Record<string, { id: string; ach: typeof ACHIEVEMENTS[keyof typeof ACHIEVEMENTS]; earned: boolean; earnedAt?: string }[]> = {};
@@ -236,27 +258,27 @@ export default async function ProfilePage({
           {/* Recent Achievements */}
           <div className="glass rounded-2xl p-6">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Последние достижения</h2>
-            {earnedAchievements.length === 0 ? (
+            {recentItems.length === 0 ? (
               <p className="text-sm text-gray-500">Пока нет достижений. Начните спорить!</p>
             ) : (
               <div className="space-y-2.5">
-                {earnedAchievements
-                  .sort((a, b) => new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime())
-                  .slice(0, 5)
-                  .map((ea) => {
-                    const ach = ACHIEVEMENTS[ea.achievement_id as keyof typeof ACHIEVEMENTS];
-                    if (!ach) return null;
-                    return (
-                      <div key={ea.achievement_id} className="flex items-center gap-3">
-                        <span className="text-xl">{ach.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{ach.title}</p>
-                          <p className="text-xs text-gray-500">{ach.desc}</p>
-                        </div>
-                        <span className="text-xs text-purple-400 font-semibold">+{ach.points}</span>
+                {recentItems.map((item, index) => (
+                  <div key={`${item.type}-${item.title}-${index}`} className="flex items-center gap-3">
+                    <span className="text-xl">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white truncate">{item.title}</p>
+                        {item.type === "unique" && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            AI
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
+                      <p className="text-xs text-gray-500">{item.desc}</p>
+                    </div>
+                    <span className="text-xs text-purple-400 font-semibold">+{item.points}</span>
+                  </div>
+                ))}
               </div>
             )}
             <a href="/profile?tab=achievements" className="block text-center text-xs text-purple-400 mt-4 hover:underline">
@@ -269,6 +291,46 @@ export default async function ProfilePage({
       {/* ────── ACHIEVEMENTS TAB ────── */}
       {activeTab === "achievements" && (
         <div className="space-y-6">
+          {uniqueAchievements.length > 0 && (
+            <div className="glass rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>✨</span>
+                  Уникальные от ИИ
+                </h3>
+                <span className="text-xs text-gray-500">{uniqueAchievements.length}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {uniqueAchievements.map((achievement) => (
+                  <div
+                    key={achievement.id}
+                    className="rounded-xl p-3 bg-purple-500/10 border border-purple-500/25"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-xl leading-none mt-0.5">{achievement.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">
+                          {achievement.title}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-tight">
+                          {achievement.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs text-purple-400 font-semibold">
+                            +{achievement.points}
+                          </span>
+                          <span className="text-xs text-gray-600" suppressHydrationWarning>
+                            {formatDate(achievement.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Progress bar */}
           <div className="glass rounded-2xl p-6">
             <div className="flex items-center justify-between mb-3">

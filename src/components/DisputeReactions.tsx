@@ -16,6 +16,7 @@ export default function DisputeReactions({ disputeId }: { disputeId: string }) {
 
   useEffect(() => {
     const { sessionId: sid } = getOrCreateSession();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSessionId(sid);
 
     const supabase = createClient();

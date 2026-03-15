@@ -14,7 +14,10 @@ export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on route change
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(false);
+  }, [pathname]);
 
   // Close on outside click
   useEffect(() => {
@@ -57,6 +60,9 @@ export function MobileMenu({ isLoggedIn }: MobileMenuProps) {
               </Link>
               <Link href="/arena" className={linkClass} onClick={() => setOpen(false)}>
                 Арена ⚔️
+              </Link>
+              <Link href="/matchmaking" className={linkClass} onClick={() => setOpen(false)}>
+                Оппоненты 🎯
               </Link>
               <Link href="/profile" className={linkClass} onClick={() => setOpen(false)}>
                 Профиль

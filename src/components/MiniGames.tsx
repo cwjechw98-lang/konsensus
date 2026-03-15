@@ -11,7 +11,10 @@ function ReactionGame() {
 
   useEffect(() => {
     const saved = localStorage.getItem("konsensus_reaction_best");
-    if (saved) setBest(Number(saved));
+    if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBest(Number(saved));
+    }
   }, []);
 
   const start = () => {
@@ -177,7 +180,10 @@ function MathGame() {
 
   useEffect(() => {
     if (!active || timeLeft <= 0) {
-      if (active && timeLeft <= 0) setActive(false);
+      if (active && timeLeft <= 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setActive(false);
+      }
       return;
     }
     const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);

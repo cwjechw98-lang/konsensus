@@ -206,6 +206,75 @@ export async function joinDispute(formData: FormData) {
   redirect(`/dispute/${dispute.id}`);
 }
 
+export async function joinDisputeFromMatchmaking(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const disputeId = (formData.get("dispute_id") as string) ?? "";
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("id, title, creator_id, opponent_id, status")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "id" | "title" | "creator_id" | "opponent_id" | "status">>();
+
+  if (!dispute || dispute.status !== "open") {
+    redirect("/matchmaking?error=" + encodeURIComponent("Спор уже недоступен"));
+  }
+
+  if (dispute.creator_id === user.id) {
+    redirect(`/dispute/${dispute.id}`);
+  }
+
+  if (dispute.opponent_id) {
+    redirect("/matchmaking?error=" + encodeURIComponent("У этого спора уже появился оппонент"));
+  }
+
+  const { error: joinError } = await supabase
+    .from("disputes")
+    .update({ opponent_id: user.id, status: "in_progress" } as never)
+    .eq("id", dispute.id)
+    .is("opponent_id", null)
+    .eq("status", "open");
+
+  if (joinError) {
+    redirect("/matchmaking?error=" + encodeURIComponent(joinError.message));
+  }
+
+  try {
+    const admin = createAdminClient();
+    await awardAchievement(user.id, "accepted_invite", admin);
+    await checkDisputeMilestones(user.id, admin);
+
+    const { data: creatorProfile } = await admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .eq("id", dispute.creator_id)
+      .single<{ telegram_chat_id: number | null }>();
+    if (creatorProfile?.telegram_chat_id) {
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single<{ display_name: string | null }>();
+      await notifyOpponentJoined(
+        creatorProfile.telegram_chat_id,
+        myProfile?.display_name ?? "Участник",
+        dispute.title,
+        dispute.id
+      );
+    }
+  } catch { /* non-critical */ }
+
+  redirect(`/dispute/${dispute.id}`);
+}
+
 export async function submitArgument(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -584,12 +653,60 @@ ${roundsText}
     .update({ status: "resolved" } as never)
     .eq("id", disputeId);
 
-  // Award resolution achievement to both participants
+  // Award resolution achievement to both participants + AI-generated achievements
   try {
     const admin = createAdminClient();
+    const { data: disputeAnalysis } = await admin
+      .from("dispute_analysis")
+      .select("plane, tone_level")
+      .eq("dispute_id", disputeId)
+      .single<{ plane: string; tone_level: number }>();
+
     await awardAchievement(dispute.creator_id, "resolution", admin);
     if (dispute.opponent_id) {
       await awardAchievement(dispute.opponent_id, "resolution", admin);
+    }
+
+    // AI-generated unique achievements
+    const { generateUniqueAchievement, saveUniqueAchievement } = await import("@/lib/ai-achievements");
+    const { updateAIProfileAfterDispute, updateCounterparts } = await import("@/lib/ai-profile");
+
+    const participants = [dispute.creator_id, dispute.opponent_id].filter(Boolean) as string[];
+    for (const pid of participants) {
+      const { count: argCount } = await admin
+        .from("arguments")
+        .select("*", { count: "exact", head: true })
+        .eq("dispute_id", disputeId)
+        .eq("author_id", pid);
+
+      const { count: evidenceCount } = await admin
+        .from("arguments")
+        .select("*", { count: "exact", head: true })
+        .eq("dispute_id", disputeId)
+        .eq("author_id", pid)
+        .not("evidence", "is", null);
+
+      const unique = await generateUniqueAchievement(pid, {
+        title: dispute.title,
+        plane: disputeAnalysis?.plane,
+        userArgCount: argCount ?? 0,
+        hadEvidence: (evidenceCount ?? 0) > 0,
+        reachedConsensus: true,
+        roundCount: dispute.max_rounds,
+        toneLevel: disputeAnalysis?.tone_level,
+      });
+
+      if (unique) {
+        await saveUniqueAchievement(pid, unique, disputeId);
+      }
+
+      // Update AI profile
+      await updateAIProfileAfterDispute(pid, { reachedConsensus: true });
+    }
+
+    // Update counterparts
+    if (dispute.opponent_id) {
+      await updateCounterparts(dispute.creator_id, dispute.opponent_id, true);
     }
   } catch { /* non-critical */ }
 

@@ -18,7 +18,7 @@ export async function createChallenge(formData: FormData) {
   // AI categorization (non-blocking fallback to 'other')
   const category = await categorizeTopicAI(topic, position_hint);
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("challenges")
     .insert({ author_id: user.id, topic, position_hint, category } as never)
     .select("id")

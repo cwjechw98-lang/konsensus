@@ -3,11 +3,25 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
+type TelegramWebApp = {
+  initData?: string;
+  ready?: () => void;
+  expand?: () => void;
+};
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+  }
+}
+
 // Dynamically load Telegram Web App SDK and return the WebApp object
-function loadTelegramSdk(): Promise<{ initData?: string; ready?: () => void; expand?: () => void } | null> {
+function loadTelegramSdk(): Promise<TelegramWebApp | null> {
   return new Promise((resolve) => {
     // Already loaded?
-    const existing = (window as any).Telegram?.WebApp;
+    const existing = window.Telegram?.WebApp;
     if (existing?.initData) {
       resolve(existing);
       return;
@@ -18,13 +32,13 @@ function loadTelegramSdk(): Promise<{ initData?: string; ready?: () => void; exp
     script.src = "https://telegram.org/js/telegram-web-app.js";
     script.onload = () => {
       // Give it a moment to initialize
-      setTimeout(() => resolve((window as any).Telegram?.WebApp ?? null), 200);
+      setTimeout(() => resolve(window.Telegram?.WebApp ?? null), 200);
     };
     script.onerror = () => resolve(null);
     document.head.appendChild(script);
 
     // Fallback timeout
-    setTimeout(() => resolve((window as any).Telegram?.WebApp ?? null), 5000);
+    setTimeout(() => resolve(window.Telegram?.WebApp ?? null), 5000);
   });
 }
 

@@ -5,11 +5,25 @@ import RPGProfileCard from "@/components/RPGProfileCard";
 import type { RPGStats } from "@/lib/rpg";
 import { acceptChallenge, createChallenge } from "@/lib/arena-actions";
 
+const CATEGORY_FILTERS: { value: string; label: string; icon: string }[] = [
+  { value: "all", label: "Все", icon: "🌐" },
+  { value: "politics", label: "Политика", icon: "🏛" },
+  { value: "technology", label: "Технологии", icon: "💻" },
+  { value: "philosophy", label: "Философия", icon: "🧠" },
+  { value: "lifestyle", label: "Быт", icon: "🏠" },
+  { value: "science", label: "Наука", icon: "🔬" },
+  { value: "culture", label: "Культура", icon: "🎭" },
+  { value: "economics", label: "Экономика", icon: "💰" },
+  { value: "relationships", label: "Отношения", icon: "💬" },
+  { value: "other", label: "Другое", icon: "📌" },
+];
+
 interface ChallengeWithAuthor {
   id: string;
   topic: string;
   position_hint: string;
   status: string;
+  category: string;
   created_at: string;
   author: {
     id: string;
@@ -120,7 +134,17 @@ function ChallengeCard({
         )}
       </div>
 
-      <h3 className="text-base font-semibold text-white mb-2 leading-snug">{challenge.topic}</h3>
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="text-base font-semibold text-white leading-snug flex-1">{challenge.topic}</h3>
+        {(() => {
+          const cat = CATEGORY_FILTERS.find((f) => f.value === challenge.category);
+          return cat ? (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-gray-500 flex-shrink-0">
+              {cat.icon}
+            </span>
+          ) : null;
+        })()}
+      </div>
       <p className="text-sm text-gray-400 leading-relaxed mb-4">
         <span className="text-gray-600 text-xs uppercase tracking-wide">Позиция: </span>
         {challenge.position_hint}
@@ -151,14 +175,42 @@ function ChallengeCard({
 
 export default function ChallengeBoard({ challenges, currentUserId }: ChallengeBoardProps) {
   const [showForm, setShowForm] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const filtered = categoryFilter === "all"
+    ? challenges
+    : challenges.filter((c) => c.category === categoryFilter);
+
+  // Only show categories that have challenges
+  const activeCats = new Set(challenges.map((c) => c.category));
 
   return (
     <div>
+      {/* Category filters */}
+      {challenges.length > 0 && (
+        <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+          {CATEGORY_FILTERS.filter((f) => f.value === "all" || activeCats.has(f.value)).map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setCategoryFilter(f.value)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                categoryFilter === f.value
+                  ? "bg-purple-600/25 text-purple-300 border border-purple-500/40"
+                  : "glass text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <span>{f.icon}</span>
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Header actions */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-gray-400">
-          {challenges.length > 0
-            ? `${challenges.length} открытых вызовов`
+          {filtered.length > 0
+            ? `${filtered.length} открытых вызовов`
             : "Нет активных вызовов"}
         </p>
         {currentUserId && (
@@ -175,11 +227,13 @@ export default function ChallengeBoard({ challenges, currentUserId }: ChallengeB
       {showForm && <CreateChallengeForm onClose={() => setShowForm(false)} />}
 
       {/* Challenges grid */}
-      {challenges.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">⚔️</p>
-          <p className="text-gray-400 text-sm">Первым брось вызов!</p>
-          {!currentUserId && (
+          <p className="text-gray-400 text-sm">
+            {challenges.length === 0 ? "Первым брось вызов!" : "Нет вызовов в этой категории"}
+          </p>
+          {!currentUserId && challenges.length === 0 && (
             <p className="text-gray-600 text-xs mt-2">
               <a href="/login" className="text-purple-400 hover:underline">Войдите</a>, чтобы создать вызов
             </p>
@@ -187,7 +241,7 @@ export default function ChallengeBoard({ challenges, currentUserId }: ChallengeB
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {challenges.map((c) => (
+          {filtered.map((c) => (
             <ChallengeCard key={c.id} challenge={c} currentUserId={currentUserId} />
           ))}
         </div>

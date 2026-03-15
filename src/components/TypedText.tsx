@@ -24,6 +24,7 @@ export default function TypedText() {
 
     if (deleting) {
       if (charIndex === 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDeleting(false);
         setPhraseIndex((i) => (i + 1) % PHRASES.length);
         return;

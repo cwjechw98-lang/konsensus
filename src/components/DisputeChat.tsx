@@ -43,7 +43,11 @@ function rnd<T>(arr: T[]): T {
 function useCountdown(until: number | null) {
   const [secs, setSecs] = useState(0);
   useEffect(() => {
-    if (!until) { setSecs(0); return; }
+    if (!until) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSecs(0);
+      return;
+    }
     const tick = () => setSecs(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
     tick();
     const id = setInterval(tick, 500);
@@ -69,6 +73,7 @@ export default function DisputeChat({ disputeId }: { disputeId: string }) {
   // Restore block from localStorage on mount
   useEffect(() => {
     const { sessionId: sid, nickname: nick } = getOrCreateSession();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSessionId(sid);
     setNickname(nick);
 
@@ -112,6 +117,7 @@ export default function DisputeChat({ disputeId }: { disputeId: string }) {
   // Clear expired block
   useEffect(() => {
     if (block && secs === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBlock(null);
       localStorage.removeItem(BLOCK_KEY(disputeId));
     }

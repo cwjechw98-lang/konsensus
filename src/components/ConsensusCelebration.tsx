@@ -95,6 +95,7 @@ export default function ConsensusCelebration({
     if (typeof window !== "undefined") {
       const shown = localStorage.getItem(PROFILE_HINT_KEY);
       if (!shown) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowHint(true);
       }
     }
