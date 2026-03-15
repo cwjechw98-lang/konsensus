@@ -4,6 +4,12 @@
 
 Ввести типы аккаунтов и уровни доверия, чтобы публичный слой Konsensus не деградировал в спам, накрутки и шум.
 
+## Статус блока
+
+- Стадия: `planned`
+- Ближайший релиз: `v1 basic / linked / trusted`
+- Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
+
 ## Зачем это нужно
 
 - публичные споры без trust model масштабируются плохо;
@@ -52,6 +58,34 @@
   - public comments
   - отдельные social features
 
+## Пакет реализации v1
+
+### Основные файлы
+
+- [src/types/database.ts](/C:/project21/konsensus/src/types/database.ts)
+- новая миграция в [supabase/migrations](/C:/project21/konsensus/supabase/migrations)
+- [src/lib/actions.ts](/C:/project21/konsensus/src/lib/actions.ts)
+- social/public surface компоненты, которые создают публичные споры и комментарии
+
+### Данные и сервер
+
+- добавить `trust_tier` в `profiles` или отдельный `user_access_state`
+- описать rule-based evaluator на базе способа входа, возраста аккаунта, dispute history и moderation flags
+- централизовать проверки tier в server actions публичного слоя
+
+### UI-поверхности
+
+- показать текущий tier в профиле
+- объяснить, какие действия открывает следующий tier
+- при блокировке публичного действия показывать понятный gating message
+
+### Критерий готовности v1
+
+- публичные операции реально проверяют tier
+- tiers объяснимы и не завязаны на платную KYC-схему
+- пользователь видит свой текущий уровень и путь к следующему
+- это можно позже расширить до audit trail и appeals
+
 ## Что пока не делать
 
 - документную верификацию
@@ -72,3 +106,10 @@
 - high-trust verification для публично значимых сценариев
 - расширенные community / moderation права
 - связка trust tiers с B2B и экспертными ролями
+
+## Что отложено после v1
+
+- автоматический пересчёт tier
+- audit trail изменения tier
+- document verification path
+- интеграция с appeals и reputation

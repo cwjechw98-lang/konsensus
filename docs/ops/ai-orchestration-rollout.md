@@ -6,6 +6,12 @@
 
 Первый шаг — не настоящие независимые модели, а role-based orchestration внутри текущего слоя [ai.ts](/C:/project21/konsensus/src/lib/ai.ts).
 
+## Статус блока
+
+- Стадия: `planned`
+- Ближайший релиз: `v1 role-based orchestration`
+- Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
+
 ## Текущее состояние
 
 Сейчас AI-слой уже разделён по feature-задачам:
@@ -91,6 +97,35 @@
 - текущий prompt становится orchestration-backed функцией
 - для финального анализа можно вызывать больше линз, чем в обычном раунде
 
+## Пакет реализации v1
+
+### Основные файлы
+
+- [src/lib/ai.ts](/C:/project21/konsensus/src/lib/ai.ts)
+- [src/lib/actions.ts](/C:/project21/konsensus/src/lib/actions.ts)
+- [docs/ops/model-strategy.md](/C:/project21/konsensus/docs/ops/model-strategy.md)
+
+### Что меняем в коде
+
+- добавить типы `AgentKey`, `AgentPlan`, `AgentOutput`
+- вынести role registry и routing rules в один конфиг внутри `ai.ts`
+- перевести `generateWaitingInsight`, `generateRoundInsights`, `generatePublicRoundSummary`
+- вынести финальную mediation в `generateFinalMediation`
+- сохранить тот же внешний формат outputs, чтобы UI не переписывать
+
+### UI-поверхности
+
+- прямых новых экранов нет
+- пользователь продолжает видеть текущие waiting/private/public AI-блоки
+- изменение должно проявляться только в качестве и глубине AI-разбора
+
+### Критерий готовности v1
+
+- orchestration живёт в одном слое и не размазан по server actions
+- waiting/private/public/final AI-функции идут через единый routing path
+- существующий dispute UI не требует structural rewrite
+- в docs зафиксировано, какие линзы вызываются в каких условиях
+
 ## Что пока не делаем
 
 На первом этапе не делать:
@@ -120,6 +155,13 @@
 ### v2
 - перейти от virtual subagents к реальному multi-provider / multi-model routing
 - при необходимости вынести тяжёлую mediation в отдельный execution path
+
+## Что отложено после v1
+
+- feature registry как отдельная конфигурация
+- таблица `ai_agent_runs`
+- routing с учётом AI-профиля пользователя
+- multi-provider / multi-model execution
 
 ## Почему это важно
 
