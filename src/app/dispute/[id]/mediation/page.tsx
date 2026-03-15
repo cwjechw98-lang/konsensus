@@ -10,6 +10,7 @@ import type { Database } from "@/types/database";
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type Mediation = Database["public"]["Tables"]["mediations"]["Row"];
 type Resolution = Database["public"]["Tables"]["resolutions"]["Row"];
+type RoundInsight = Database["public"]["Tables"]["round_insights"]["Row"];
 
 export default async function MediationPage({
   params,
@@ -44,6 +45,15 @@ export default async function MediationPage({
     .select("*")
     .eq("dispute_id", id)
     .single<Mediation>();
+
+  const { data: latestInsight } = await supabase
+    .from("round_insights")
+    .select("*")
+    .eq("dispute_id", id)
+    .eq("recipient_id", user.id)
+    .order("round", { ascending: false })
+    .limit(1)
+    .maybeSingle<RoundInsight>();
 
   // Fetch current resolution (graceful fallback)
   let resolution: Resolution | null = null;
@@ -105,6 +115,20 @@ export default async function MediationPage({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
+          {latestInsight?.content && (
+            <div className="bg-violet-950/40 border border-violet-500/20 rounded-xl p-4">
+              <h2 className="text-xs font-semibold text-violet-400 uppercase tracking-wide mb-2">
+                🤖 Разбор последнего раунда · только для вас
+              </h2>
+              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {latestInsight.content}
+              </p>
+              <p className="text-xs text-gray-600 mt-3">
+                Раунд {latestInsight.round}. Этот комментарий не показывается оппоненту и сохраняет логику персонального сопровождения до финальной медиации.
+              </p>
+            </div>
+          )}
+
           {/* AI unavailable fallback */}
           {!analysis?.summary_a && analysis?.raw && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-2">

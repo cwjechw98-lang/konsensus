@@ -469,7 +469,7 @@ export default function RealtimeDisputeClient({
                       <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
                         <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
                           <span>🤖</span>
-                          <span>Только для вас</span>
+                          <span>Разбор оппонента · Только для вас</span>
                         </p>
                         <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
                           {insights[round]}

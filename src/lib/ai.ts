@@ -486,6 +486,14 @@ Determine:
 4. The core tension (why they can't hear each other)
 5. A personalized insight for each participant
 
+Critical behavior:
+- Each participant should feel that the AI is helping THEM understand how to answer better
+- Do not sound like a referee or therapist
+- Do not say "you both", "both sides", or "let's reconcile"
+- Explain the opponent's logic in a way that lowers hostility and improves understanding
+- If useful, suggest one subtle angle the recipient may keep in mind in the next reply
+- Never declare a winner and never bluntly tell the recipient to surrender or agree
+
 ${TONE_GUIDE}
 
 heat_level guide (1-5): 1 = very calm, 2 = mild, 3 = moderate tension, 4 = heated, 5 = very intense
@@ -498,8 +506,8 @@ Return JSON:
   "tone_level": 1-5,
   "heat_level": 1-5,
   "core_tension": "one sentence: what makes them incompatible",
-  "insight_for_creator": "Personal message for ${creatorName}: explain WHY ${opponentName} thinks this way, from their perspective. Be diplomatic. Match the tone_level. 3-4 sentences max. Never say who is right.",
-  "insight_for_opponent": "Personal message for ${opponentName}: explain WHY ${creatorName} thinks this way, from their perspective. Be diplomatic. Match the tone_level. 3-4 sentences max. Never say who is right."
+  "insight_for_creator": "Direct private message to ${creatorName}. Explain WHY ${opponentName} thinks this way, what may be behind their reaction, and what nuance ${creatorName} may have missed. Make it feel strategically useful for ${creatorName}. Diplomatic, perceptive, 3-5 sentences max. Never say who is right.",
+  "insight_for_opponent": "Direct private message to ${opponentName}. Explain WHY ${creatorName} thinks this way, what may be behind their reaction, and what nuance ${opponentName} may have missed. Make it feel strategically useful for ${opponentName}. Diplomatic, perceptive, 3-5 sentences max. Never say who is right."
 }`;
 }
 
@@ -536,13 +544,20 @@ ${opponentName}: "${opponentArg.position}. ${opponentArg.reasoning}"
 
 Generate personalized insights and update heat level for round ${currentRound}.
 
+Critical behavior:
+- Each participant should feel privately assisted, not judged
+- The goal is to reduce misunderstanding by explaining the logic behind the opponent's answer
+- Do not sound like a final verdict, therapy session, or moral lecture
+- Avoid phrases like "you both need" or "the correct position is"
+- If helpful, include one subtle suggestion about what the recipient could clarify in the next round without ordering them around
+
 heat_level guide (1-5): 1 = very calm, 2 = mild, 3 = moderate tension, 4 = heated, 5 = very intense
 
 Return JSON:
 {
   "heat_level": 1-5,
-  "insight_for_creator": "Personal message for ${creatorName}: explain WHY ${opponentName} argues this way in round ${currentRound}. What drove this response? Be diplomatic, tone_level ${toneLevel}. 3-4 sentences.",
-  "insight_for_opponent": "Personal message for ${opponentName}: explain WHY ${creatorName} argues this way in round ${currentRound}. What drove this response? Be diplomatic, tone_level ${toneLevel}. 3-4 sentences."
+  "insight_for_creator": "Direct private message to ${creatorName}. Explain WHY ${opponentName} answered this way in round ${currentRound}, what may be informing that response, and what ${creatorName} may want to keep in mind before replying. Make it feel strategically helpful for ${creatorName}. Diplomatic, tone_level ${toneLevel}, 3-5 sentences.",
+  "insight_for_opponent": "Direct private message to ${opponentName}. Explain WHY ${creatorName} answered this way in round ${currentRound}, what may be informing that response, and what ${opponentName} may want to keep in mind before replying. Make it feel strategically helpful for ${opponentName}. Diplomatic, tone_level ${toneLevel}, 3-5 sentences."
 }`;
 }
 
