@@ -63,6 +63,7 @@ export interface Database {
           position_hint: string;
           status: ChallengeStatus;
           category: string | null;
+          max_rounds: number;
           accepted_by: string | null;
           created_at: string;
           expires_at: string;
@@ -74,6 +75,7 @@ export interface Database {
           position_hint: string;
           status?: ChallengeStatus;
           category?: string | null;
+          max_rounds?: number;
           accepted_by?: string | null;
           created_at?: string;
           expires_at?: string;
@@ -85,6 +87,7 @@ export interface Database {
           position_hint?: string;
           status?: ChallengeStatus;
           category?: string | null;
+          max_rounds?: number;
           accepted_by?: string | null;
           created_at?: string;
           expires_at?: string;

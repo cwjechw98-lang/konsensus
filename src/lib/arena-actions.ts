@@ -14,13 +14,14 @@ export async function createChallenge(formData: FormData) {
 
   const topic = (formData.get("topic") as string).trim();
   const position_hint = (formData.get("position_hint") as string).trim();
+  const max_rounds = Math.min(10, Math.max(1, parseInt(formData.get("max_rounds") as string) || 3));
 
   // AI categorization (non-blocking fallback to 'other')
   const category = await categorizeTopicAI(topic, position_hint);
 
   const { error } = await supabase
     .from("challenges")
-    .insert({ author_id: user.id, topic, position_hint, category } as never)
+    .insert({ author_id: user.id, topic, position_hint, category, max_rounds } as never)
     .select("id")
     .single<{ id: string }>();
 
@@ -104,67 +105,88 @@ export async function acceptChallenge(challengeId: string) {
 
 export async function sendChallengeMessage(
   challengeId: string,
-  content: string,
-  triggerAI?: boolean
+  content: string
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
   const admin = createAdminClient();
+  const trimmed = content.trim();
+  if (!trimmed) return;
+
+  const { data: challengeInfo } = await admin
+    .from("challenges")
+    .select("author_id, accepted_by, topic, status, max_rounds")
+    .eq("id", challengeId)
+    .single<{
+      author_id: string;
+      accepted_by: string | null;
+      topic: string;
+      status: string;
+      max_rounds: number;
+    }>();
+
+  if (!challengeInfo || challengeInfo.status !== "active" || !challengeInfo.accepted_by) return;
+
+  const isAuthor = challengeInfo.author_id === user.id;
+  const isOpponent = challengeInfo.accepted_by === user.id;
+  if (!isAuthor && !isOpponent) return;
+
+  const { data: existingMessages } = await admin
+    .from("challenge_messages")
+    .select("content, author_id, profiles(display_name)")
+    .eq("challenge_id", challengeId)
+    .eq("is_ai", false)
+    .order("created_at", { ascending: true })
+    .returns<{ content: string; author_id: string; profiles: { display_name: string | null } | null }[]>();
+
+  const myCount = (existingMessages ?? []).filter((msg) => msg.author_id === user.id).length;
+  const opponentId = isAuthor ? challengeInfo.accepted_by : challengeInfo.author_id;
+  const opponentCount = (existingMessages ?? []).filter((msg) => msg.author_id === opponentId).length;
+  const isMyTurn = isAuthor
+    ? myCount === opponentCount && myCount < challengeInfo.max_rounds
+    : myCount < opponentCount && myCount < challengeInfo.max_rounds;
+
+  if (!isMyTurn) return;
 
   // Insert user message
   await admin.from("challenge_messages").insert({
     challenge_id: challengeId,
     author_id: user.id,
-    content,
+    content: trimmed,
     is_ai: false,
   } as never);
 
   // Notify the other participant via Telegram
   try {
-    const { data: challengeInfo } = await admin
-      .from("challenges")
-      .select("author_id, accepted_by, topic")
-      .eq("id", challengeId)
-      .single<{ author_id: string; accepted_by: string | null; topic: string }>();
-    if (challengeInfo) {
-      const otherId = challengeInfo.author_id === user.id ? challengeInfo.accepted_by : challengeInfo.author_id;
-      if (otherId) {
-        const { data: otherProfile } = await admin
-          .from("profiles")
-          .select("telegram_chat_id, display_name")
-          .eq("id", otherId)
-          .single<{ telegram_chat_id: number | null; display_name: string | null }>();
-        const { data: myProfile } = await admin
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single<{ display_name: string | null }>();
-        if (otherProfile?.telegram_chat_id) {
-          await notifyChallengeMessage(
-            otherProfile.telegram_chat_id,
-            myProfile?.display_name ?? "Участник",
-            challengeInfo.topic,
-            challengeId
-          );
-        }
+    const otherId = challengeInfo.author_id === user.id ? challengeInfo.accepted_by : challengeInfo.author_id;
+    if (otherId) {
+      const { data: otherProfile } = await admin
+        .from("profiles")
+        .select("telegram_chat_id, display_name")
+        .eq("id", otherId)
+        .single<{ telegram_chat_id: number | null; display_name: string | null }>();
+      const { data: myProfile } = await admin
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single<{ display_name: string | null }>();
+      if (otherProfile?.telegram_chat_id) {
+        await notifyChallengeMessage(
+          otherProfile.telegram_chat_id,
+          myProfile?.display_name ?? "Участник",
+          challengeInfo.topic,
+          challengeId
+        );
       }
     }
   } catch { /* non-critical */ }
 
-  if (!triggerAI) return;
+  // The opponent completing a round is the single safe place to trigger AI commentary and final mediation.
+  if (!isOpponent) return;
 
-  // Fetch topic + recent messages for AI
-  const { data: challenge } = await admin
-    .from("challenges")
-    .select("topic, profiles!challenges_author_id_fkey(display_name), accepted_profile:profiles!challenges_accepted_by_fkey(display_name)")
-    .eq("id", challengeId)
-    .single<{
-      topic: string;
-      profiles: { display_name: string | null } | null;
-      accepted_profile: { display_name: string | null } | null;
-    }>();
+  const completedRound = myCount + 1;
 
   const { data: messages } = await admin
     .from("challenge_messages")
@@ -174,22 +196,44 @@ export async function sendChallengeMessage(
     .order("created_at", { ascending: true })
     .returns<{ content: string; author_id: string; profiles: { display_name: string | null } | null }[]>();
 
-  if (!challenge || !messages) return;
+  if (!messages) return;
 
   const formatted = messages.map((m) => ({
     author: m.profiles?.display_name ?? "Участник",
     content: m.content,
   }));
 
-  const aiComment = await generateChallengeInsight(formatted, challenge.topic);
-  if (!aiComment) return;
+  if (completedRound >= challengeInfo.max_rounds) {
+    const result = await generateChallengeMediation(formatted, challengeInfo.topic);
+    const summary = `🏁 Финал арены\n\n${result.summary}\n\nОбщее:\n${result.commonGround}\n\nВарианты решения:\n${result.solutions.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
 
-  await admin.from("challenge_messages").insert({
-    challenge_id: challengeId,
-    author_id: null,
-    content: aiComment,
-    is_ai: true,
-  } as never);
+    await admin.from("challenge_messages").insert({
+      challenge_id: challengeId,
+      author_id: null,
+      content: summary,
+      is_ai: true,
+    } as never);
+
+    await admin
+      .from("challenges")
+      .update({ status: "closed" } as never)
+      .eq("id", challengeId);
+
+    return;
+  }
+
+  // Keep arena commentary occasional to avoid token-heavy chatter.
+  if (completedRound % 2 === 0) {
+    const aiComment = await generateChallengeInsight(formatted, challengeInfo.topic);
+    if (aiComment) {
+      await admin.from("challenge_messages").insert({
+        challenge_id: challengeId,
+        author_id: null,
+        content: `🤖 Комментарий арены · Раунд ${completedRound}\n\n${aiComment}`,
+        is_ai: true,
+      } as never);
+    }
+  }
 }
 
 export async function closeChallenge(challengeId: string) {

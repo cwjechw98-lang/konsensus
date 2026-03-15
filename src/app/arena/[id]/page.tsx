@@ -23,7 +23,7 @@ export default async function ChallengePage({
   const { data: challenge } = await supabase
     .from("challenges")
     .select(`
-      id, topic, position_hint, status,
+      id, topic, position_hint, status, max_rounds,
       author_id, accepted_by,
       author_profile:profiles!challenges_author_id_fkey(id, display_name),
       accepted_profile:profiles!challenges_accepted_by_fkey(id, display_name)
@@ -34,6 +34,7 @@ export default async function ChallengePage({
       topic: string;
       position_hint: string;
       status: string;
+      max_rounds: number;
       author_id: string;
       accepted_by: string | null;
       author_profile: { id: string; display_name: string | null } | null;
@@ -63,7 +64,6 @@ export default async function ChallengePage({
 
   const authorName = challenge.author_profile?.display_name ?? "Участник 1";
   const acceptedName = challenge.accepted_profile?.display_name ?? "Участник 2";
-  const myName = user.id === challenge.author_id ? authorName : acceptedName;
   const opponentName = user.id === challenge.author_id ? acceptedName : authorName;
 
   return (
@@ -78,6 +78,13 @@ export default async function ChallengePage({
         <p className="text-sm text-gray-500 mt-1">
           {authorName} vs {acceptedName}
         </p>
+        <div className="mt-3 glass rounded-xl p-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Позиция инициатора</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{challenge.position_hint}</p>
+          <p className="text-xs text-gray-600 mt-3">
+            Формат арены: {challenge.max_rounds} {challenge.max_rounds === 1 ? "раунд" : challenge.max_rounds < 5 ? "раунда" : "раундов"} с автоматической медиацией в финале
+          </p>
+        </div>
       </div>
 
       {mediated && (
@@ -90,8 +97,8 @@ export default async function ChallengePage({
         challengeId={id}
         initialMessages={messages ?? []}
         currentUserId={user.id}
-        myName={myName}
         opponentName={opponentName}
+        maxRounds={challenge.max_rounds}
         isClosed={challenge.status === "closed"}
         authorId={challenge.author_id}
         acceptedById={challenge.accepted_by}

@@ -24,6 +24,7 @@ interface ChallengeWithAuthor {
   position_hint: string;
   status: string;
   category: string;
+  max_rounds: number;
   created_at: string;
   author: {
     id: string;
@@ -39,6 +40,8 @@ interface ChallengeBoardProps {
 }
 
 function CreateChallengeForm({ onClose }: { onClose: () => void }) {
+  const [rounds, setRounds] = useState(3);
+
   return (
     <div className="glass rounded-2xl p-6 border border-purple-500/30 mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -69,6 +72,26 @@ function CreateChallengeForm({ onClose }: { onClose: () => void }) {
             className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors text-sm resize-none"
           />
         </label>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm text-gray-300">Количество раундов</span>
+          <div className="flex gap-2 flex-wrap">
+            {[1, 2, 3, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setRounds(value)}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                  rounds === value
+                    ? "bg-purple-600 text-white"
+                    : "glass text-gray-400 hover:text-white"
+                }`}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="max_rounds" value={rounds} />
+        </div>
         <div className="flex gap-3">
           <button
             type="submit"
@@ -148,6 +171,9 @@ function ChallengeCard({
       <p className="text-sm text-gray-400 leading-relaxed mb-4">
         <span className="text-gray-600 text-xs uppercase tracking-wide">Позиция: </span>
         {challenge.position_hint}
+      </p>
+      <p className="text-xs text-gray-600 mb-4">
+        {challenge.max_rounds} {challenge.max_rounds === 1 ? "раунд" : challenge.max_rounds < 5 ? "раунда" : "раундов"} · авто-медиация в финале
       </p>
 
       <div className="flex items-center justify-between">

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { sendChallengeMessage, closeChallenge, requestChallengeMediation } from "@/lib/arena-actions";
+import { closeChallenge, sendChallengeMessage } from "@/lib/arena-actions";
 
 interface Message {
   id: string;
@@ -18,42 +18,90 @@ interface ChallengeChatProps {
   challengeId: string;
   initialMessages: Message[];
   currentUserId: string;
-  myName: string;
   opponentName: string;
+  maxRounds: number;
   isClosed: boolean;
   authorId: string;
   acceptedById: string | null;
+}
+
+type TimelineItem = Message & {
+  derivedRound: number | null;
+  startsRound: boolean;
+};
+
+function formatRoundLabel(value: number) {
+  return `${value} ${value === 1 ? "раунд" : value < 5 ? "раунда" : "раундов"}`;
 }
 
 export default function ChallengeChat({
   challengeId,
   initialMessages,
   currentUserId,
-  myName,
   opponentName,
-  isClosed,
+  maxRounds,
+  isClosed: initialClosed,
+  authorId,
+  acceptedById,
 }: ChallengeChatProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [isClosed, setIsClosed] = useState(initialClosed);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Count non-AI messages
-  const realMessageCount = messages.filter((m) => !m.is_ai).length;
-  // Last non-AI message
-  const lastRealMsg = [...messages].reverse().find((m) => !m.is_ai);
-  const isMyTurn = lastRealMsg ? lastRealMsg.author_id !== currentUserId : true;
-  const waitingForOpponent = !isMyTurn && !isClosed;
+  const humanMessages = useMemo(
+    () => messages.filter((message) => !message.is_ai),
+    [messages]
+  );
+
+  const myCount = humanMessages.filter((message) => message.author_id === currentUserId).length;
+  const opponentId = currentUserId === authorId ? acceptedById : authorId;
+  const opponentCount = humanMessages.filter((message) => message.author_id === opponentId).length;
+  const completedRounds = Math.min(
+    humanMessages.filter((message) => message.author_id === authorId).length,
+    humanMessages.filter((message) => message.author_id === acceptedById).length
+  );
+  const isAuthor = currentUserId === authorId;
+  const isMyTurn = !isClosed && !!acceptedById && (
+    isAuthor
+      ? myCount === opponentCount && myCount < maxRounds
+      : myCount < opponentCount && myCount < maxRounds
+  );
+  const waitingForOpponent = !isClosed && !!acceptedById && !isMyTurn && myCount < maxRounds;
+  const nextRound = Math.min(maxRounds, myCount + 1);
+
+  const timeline = useMemo<TimelineItem[]>(() => {
+    let authorTurns = 0;
+    let acceptedTurns = 0;
+    let lastRound = 0;
+
+    return messages.map((message) => {
+      if (message.is_ai || !message.author_id) {
+        return { ...message, derivedRound: lastRound || null, startsRound: false };
+      }
+
+      const derivedRound = message.author_id === authorId
+        ? ++authorTurns
+        : message.author_id === acceptedById
+          ? ++acceptedTurns
+          : null;
+
+      const startsRound = !!derivedRound && derivedRound !== lastRound;
+      if (derivedRound) lastRound = derivedRound;
+
+      return { ...message, derivedRound, startsRound };
+    });
+  }, [acceptedById, authorId, messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isClosed]);
 
-  // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel("challenge:" + challengeId)
+    const messagesChannel = supabase
+      .channel(`challenge:${challengeId}`)
       .on(
         "postgres_changes",
         {
@@ -63,16 +111,38 @@ export default function ChallengeChat({
           filter: `challenge_id=eq.${challengeId}`,
         },
         (payload) => {
-          const newMsg = payload.new as Message;
+          const newMessage = payload.new as Message;
           setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            if (prev.some((message) => message.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
           });
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const challengeChannel = supabase
+      .channel(`challenge-state:${challengeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "challenges",
+          filter: `id=eq.${challengeId}`,
+        },
+        (payload) => {
+          const status = payload.new.status as string | undefined;
+          if (status === "closed") {
+            setIsClosed(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(challengeChannel);
+    };
   }, [challengeId]);
 
   async function handleSend() {
@@ -82,12 +152,8 @@ export default function ChallengeChat({
     setInput("");
     setSending(true);
 
-    // Trigger AI after every 4 real messages
-    const newCount = realMessageCount + 1;
-    const triggerAI = newCount > 0 && newCount % 4 === 0;
-
     try {
-      await sendChallengeMessage(challengeId, content, triggerAI);
+      await sendChallengeMessage(challengeId, content);
     } finally {
       setSending(false);
     }
@@ -99,99 +165,162 @@ export default function ChallengeChat({
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
-      {/* Messages */}
-      <div className="h-[460px] overflow-y-auto p-5 flex flex-col gap-3">
-        {messages.length === 0 && (
+      <div className="border-b border-white/8 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h2 className="text-sm font-semibold text-white">Раундовая дискуссия</h2>
+          <span className="text-xs text-gray-500">
+            {completedRounds} / {maxRounds}
+          </span>
+        </div>
+        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-orange-500/60 rounded-full transition-all duration-500"
+            style={{ width: `${(completedRounds / maxRounds) * 100}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-600 mt-2">
+          Арена идёт по раундам. После {formatRoundLabel(maxRounds)} медиация запускается автоматически.
+        </p>
+      </div>
+
+      <div className="max-h-[560px] overflow-y-auto p-5 flex flex-col gap-3">
+        {timeline.length === 0 && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-600 text-sm">Начните дискуссию — напишите первое сообщение</p>
+            <p className="text-gray-600 text-sm">Инициатор начинает первый раунд.</p>
           </div>
         )}
 
-        {messages.map((msg) => {
-          if (msg.is_ai) {
+        {timeline.map((message) => {
+          if (message.startsRound && message.derivedRound) {
+            const separator = (
+              <div key={`round-${message.id}`} className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-white/6" />
+                <span className="text-xs text-gray-600 px-2">
+                  Раунд {message.derivedRound} из {maxRounds}
+                </span>
+                <div className="flex-1 h-px bg-white/6" />
+              </div>
+            );
+
+            const node = message.is_ai ? null : (
+              <div
+                key={message.id}
+                className={`flex flex-col ${message.author_id === currentUserId ? "items-end" : "items-start"}`}
+              >
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${
+                  message.author_id === currentUserId
+                    ? "bg-orange-600/20 border border-orange-500/30 text-white rounded-br-sm"
+                    : "bg-white/8 border border-white/10 text-gray-200 rounded-bl-sm"
+                }`}>
+                  {message.author_id !== currentUserId && (
+                    <p className="text-xs text-gray-500 font-medium mb-1">
+                      {message.profiles?.display_name ?? opponentName}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                </div>
+                <span className="text-xs text-gray-700 mt-1 px-1">{formatTime(message.created_at)}</span>
+              </div>
+            );
+
             return (
-              <div key={msg.id} className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 mx-4">
-                <p className="text-xs text-purple-400 font-semibold mb-1">🤖 Медиатор</p>
-                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              <div key={`group-${message.id}`} className="contents">
+                {separator}
+                {node}
               </div>
             );
           }
 
-          const isMe = msg.author_id === currentUserId;
-          const name = msg.profiles?.display_name ?? (isMe ? myName : opponentName);
-
-          return (
-            <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                isMe
-                  ? "bg-purple-600/80 text-white rounded-br-sm"
-                  : "bg-white/8 text-gray-200 rounded-bl-sm"
-              }`}>
-                {!isMe && (
-                  <p className="text-xs text-gray-500 font-medium mb-1">{name}</p>
-                )}
-                <p className="text-sm leading-relaxed">{msg.content}</p>
+          if (message.is_ai) {
+            return (
+              <div key={message.id} className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 mx-2">
+                <p className="text-xs text-purple-400 font-semibold mb-1">
+                  {message.content.startsWith("🏁") ? "🤖 Итог арены" : "🤖 Комментарий арены"}
+                </p>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{message.content}</p>
               </div>
-              <span className="text-xs text-gray-700 mt-1 px-1">{formatTime(msg.created_at)}</span>
+            );
+          }
+
+          const isMine = message.author_id === currentUserId;
+          return (
+            <div key={message.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+              <div className={`max-w-[82%] rounded-2xl px-4 py-3 ${
+                isMine
+                  ? "bg-orange-600/20 border border-orange-500/30 text-white rounded-br-sm"
+                  : "bg-white/8 border border-white/10 text-gray-200 rounded-bl-sm"
+              }`}>
+                {!isMine && (
+                  <p className="text-xs text-gray-500 font-medium mb-1">
+                    {message.profiles?.display_name ?? opponentName}
+                  </p>
+                )}
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              </div>
+              <span className="text-xs text-gray-700 mt-1 px-1">{formatTime(message.created_at)}</span>
             </div>
           );
         })}
 
         {waitingForOpponent && (
-          <div className="text-center py-2">
-            <p className="text-xs text-gray-600 italic">Ожидаем ответа от {opponentName}...</p>
+          <div className="glass rounded-xl p-4 text-center text-sm text-gray-500">
+            Раунд {Math.min(maxRounds, myCount)}: ждём ответ от {opponentName}.
+          </div>
+        )}
+
+        {isClosed && (
+          <div className="glass rounded-xl p-4 text-center text-sm text-emerald-300 border border-emerald-500/20">
+            Дискуссия завершена. Финальная медиация уже опубликована в ленте выше.
           </div>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
       {!isClosed ? (
         <div className="border-t border-white/8 p-4">
-          {waitingForOpponent ? (
+          {!acceptedById ? (
             <p className="text-center text-sm text-gray-500 py-2">
-              Ожидаем {opponentName}...
+              Ждём второго участника. Как только вызов примут, начнётся раунд 1.
+            </p>
+          ) : waitingForOpponent ? (
+            <p className="text-center text-sm text-gray-500 py-2">
+              Сейчас ход у {opponentName}. Медиация запустится автоматически после финального раунда.
             </p>
           ) : (
-            <div className="flex gap-2 mb-3">
-              <input
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-white">Ваш ход · Раунд {nextRound}</p>
+                <span className="text-xs text-gray-600">до 2000 символов</span>
+              </div>
+              <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                disabled={sending}
-                placeholder="Ваш аргумент..."
+                disabled={sending || !isMyTurn}
+                rows={4}
+                placeholder={isAuthor ? "Сформулируйте свой аргумент для текущего раунда..." : "Ответьте на аргумент оппонента в рамках текущего раунда..."}
                 maxLength={2000}
-                className="flex-1 border border-white/10 bg-white/5 rounded-xl px-4 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 text-sm transition-colors"
+                className="w-full border border-white/10 bg-white/5 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500/40 text-sm transition-colors resize-none"
               />
-              <button
-                onClick={handleSend}
-                disabled={sending || !input.trim()}
-                className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl font-medium transition-colors text-sm"
-              >
-                {sending ? "..." : "→"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSend}
+                  disabled={sending || !input.trim()}
+                  className="bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl font-medium transition-colors text-sm"
+                >
+                  {sending ? "Отправляем..." : `Отправить раунд ${nextRound}`}
+                </button>
+                <form action={closeChallenge.bind(null, challengeId)}>
+                  <button
+                    type="submit"
+                    className="text-xs text-gray-600 hover:text-gray-400 border border-white/8 hover:border-white/20 rounded-lg px-3 py-2 transition-colors h-full"
+                  >
+                    Закрыть вызов
+                  </button>
+                </form>
+              </div>
             </div>
           )}
-
-          <div className="flex gap-2">
-            <form action={requestChallengeMediation.bind(null, challengeId)} className="flex-1">
-              <button
-                type="submit"
-                className="w-full text-xs text-purple-400 hover:text-purple-300 border border-purple-500/20 hover:border-purple-500/40 rounded-lg py-2 transition-colors"
-              >
-                🤝 Запросить медиацию ИИ
-              </button>
-            </form>
-            <form action={closeChallenge.bind(null, challengeId)}>
-              <button
-                type="submit"
-                className="text-xs text-gray-600 hover:text-gray-400 border border-white/8 hover:border-white/20 rounded-lg px-3 py-2 transition-colors"
-              >
-                Закрыть
-              </button>
-            </form>
-          </div>
         </div>
       ) : (
         <div className="border-t border-white/8 p-4 text-center">
