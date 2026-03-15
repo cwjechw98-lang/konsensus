@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd } from "@/lib/actions";
+import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd, sendDisputeReminder } from "@/lib/actions";
 import WaitingTips from "@/components/WaitingTips";
 import MiniGames from "@/components/MiniGames";
 import WaitingAmbient from "@/components/WaitingAmbient";
@@ -801,6 +801,16 @@ export default function RealtimeDisputeClient({
               )}
               <WaitingAmbient />
               <WaitingTips />
+              <form action={sendDisputeReminder} className="flex justify-center">
+                <input type="hidden" name="dispute_id" value={dispute.id} />
+                <input type="hidden" name="return_to" value={`/dispute/${dispute.id}`} />
+                <button
+                  type="submit"
+                  className="text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
+                >
+                  Напомнить о споре
+                </button>
+              </form>
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />
@@ -830,6 +840,16 @@ export default function RealtimeDisputeClient({
               <WaitingAmbient />
               <WaitingTips />
               <MiniGames />
+              <form action={sendDisputeReminder} className="flex justify-center">
+                <input type="hidden" name="dispute_id" value={dispute.id} />
+                <input type="hidden" name="return_to" value={`/dispute/${dispute.id}`} />
+                <button
+                  type="submit"
+                  className="text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
+                >
+                  Напомнить о споре
+                </button>
+              </form>
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />

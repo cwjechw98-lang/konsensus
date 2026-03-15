@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { archiveDisputeForUser, unarchiveDisputeForUser } from "@/lib/actions";
+import { archiveDisputeForUser, closeDispute, unarchiveDisputeForUser } from "@/lib/actions";
 import type { DisputeStatus } from "@/types/database";
 
 type DashboardDisputeCardProps = {
@@ -11,6 +11,10 @@ type DashboardDisputeCardProps = {
   updatedAt: string;
   archived: boolean;
   returnTo: string;
+  pendingReminderCount: number;
+  lastRemindedAt: string | null;
+  lastReminderFrom: string | null;
+  canClose: boolean;
 };
 
 const STATUS_LABELS: Record<DisputeStatus, string> = {
@@ -30,7 +34,20 @@ const STATUS_COLORS: Record<DisputeStatus, string> = {
 };
 
 export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
-  const { id, title, description, status, maxRounds, updatedAt, archived, returnTo } = props;
+  const {
+    id,
+    title,
+    description,
+    status,
+    maxRounds,
+    updatedAt,
+    archived,
+    returnTo,
+    pendingReminderCount,
+    lastRemindedAt,
+    lastReminderFrom,
+    canClose,
+  } = props;
 
   return (
     <div className="card-gradient-top glass rounded-xl p-4">
@@ -48,31 +65,67 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-3 text-xs text-gray-600">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-3">
+        <span>
+          Обновлён: {new Date(updatedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
+        </span>
+        {status === "in_progress" && (
           <span>
-            Обновлён: {new Date(updatedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
+            {maxRounds} {maxRounds === 1 ? "раунд" : maxRounds < 5 ? "раунда" : "раундов"}
           </span>
-          {status === "in_progress" && (
-            <span>
-              {maxRounds} {maxRounds === 1 ? "раунд" : maxRounds < 5 ? "раунда" : "раундов"}
-            </span>
+        )}
+        {archived && (
+          <span className="text-cyan-300/80">В архиве</span>
+        )}
+      </div>
+
+      {archived && pendingReminderCount > 0 && (
+        <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <p className="font-medium">
+            Новых попыток возобновить спор: {pendingReminderCount}
+          </p>
+          <p className="mt-1 text-amber-100/80">
+            {lastReminderFrom ? `Последнее напоминание: ${lastReminderFrom}` : "Последнее напоминание уже зафиксировано"}
+            {lastRemindedAt ? ` · ${new Date(lastRemindedAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <form action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}>
+            <input type="hidden" name="dispute_id" value={id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <button
+              type="submit"
+              className="text-gray-500 hover:text-white transition-colors"
+            >
+              {archived ? "Продолжить" : "Архивировать"}
+            </button>
+          </form>
+
+          {archived && canClose && (status === "open" || status === "in_progress") && (
+            <form action={closeDispute}>
+              <input type="hidden" name="dispute_id" value={id} />
+              <button
+                type="submit"
+                className="text-gray-500 hover:text-red-300 transition-colors"
+              >
+                Закрыть
+              </button>
+            </form>
           )}
-          {archived && (
-            <span className="text-cyan-300/80">В архиве</span>
-          )}
+
+          <Link href={`/dispute/${id}`} className="text-gray-500 hover:text-white transition-colors">
+            Открыть
+          </Link>
         </div>
 
-        <form action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}>
-          <input type="hidden" name="dispute_id" value={id} />
-          <input type="hidden" name="return_to" value={returnTo} />
-          <button
-            type="submit"
-            className="text-xs text-gray-500 hover:text-white transition-colors"
-          >
-            {archived ? "Вернуть в активные" : "Архивировать"}
-          </button>
-        </form>
+        {archived && pendingReminderCount > 0 && (
+          <span className="text-[11px] uppercase tracking-[0.16em] text-amber-300/80">
+            Возврат в приоритете
+          </span>
+        )}
       </div>
     </div>
   );

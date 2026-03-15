@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { clearTelegramDisputeNotifications, notifyArgumentReceived, notifyDirectChallengeReceived, notifyDisputeClosed, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
+import { clearTelegramDisputeNotifications, notifyArgumentReceived, notifyDirectChallengeReceived, notifyDisputeClosed, notifyDisputeReminder, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
@@ -15,6 +15,11 @@ type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
 type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
 type DisputeUserStateInsert = Database["public"]["Tables"]["dispute_user_state"]["Insert"];
+type DisputeUserStateRow = Database["public"]["Tables"]["dispute_user_state"]["Row"];
+type DisputeReminderInsert = Database["public"]["Tables"]["dispute_reminders"]["Insert"];
+
+const REMINDER_LIMIT_PER_HOUR = 3;
+const REMINDER_LIMIT_PER_DAY = 15;
 
 async function findExistingUserByEmail(
   admin: ReturnType<typeof createAdminClient>,
@@ -47,7 +52,8 @@ async function upsertDisputeArchiveState(
   admin: ReturnType<typeof createAdminClient>,
   disputeId: string,
   userId: string,
-  isArchived: boolean
+  isArchived: boolean,
+  extra: Partial<DisputeUserStateInsert> = {}
 ) {
   const payload: DisputeUserStateInsert = {
     dispute_id: disputeId,
@@ -55,11 +61,27 @@ async function upsertDisputeArchiveState(
     is_archived: isArchived,
     archived_at: isArchived ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
+    ...extra,
   };
 
   await admin.from("dispute_user_state").upsert(payload as never, {
     onConflict: "dispute_id,user_id",
   });
+}
+
+async function getDisputeUserState(
+  admin: ReturnType<typeof createAdminClient>,
+  disputeId: string,
+  userId: string
+) {
+  const { data } = await admin
+    .from("dispute_user_state")
+    .select("*")
+    .eq("dispute_id", disputeId)
+    .eq("user_id", userId)
+    .maybeSingle<DisputeUserStateRow>();
+
+  return data;
 }
 
 async function unarchiveDisputeForParticipants(
@@ -70,9 +92,50 @@ async function unarchiveDisputeForParticipants(
   const participantIds = Array.from(new Set(userIds.filter(Boolean))) as string[];
   await Promise.all(
     participantIds.map((participantId) =>
-      upsertDisputeArchiveState(admin, disputeId, participantId, false)
+      upsertDisputeArchiveState(admin, disputeId, participantId, false, {
+        pending_reminder_count: 0,
+        last_reminded_at: null,
+        last_reminder_from_user_id: null,
+        reminder_notifications_muted: false,
+        rearchived_after_reminder_at: null,
+      })
     )
   );
+}
+
+async function countReminderAttempts(
+  admin: ReturnType<typeof createAdminClient>,
+  disputeId: string,
+  fromUserId: string
+) {
+  const now = Date.now();
+  const hourAgo = new Date(now - 60 * 60 * 1000).toISOString();
+  const dayAgo = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ count: hourCount }, { count: dayCount }] = await Promise.all([
+    admin
+      .from("dispute_reminders")
+      .select("*", { count: "exact", head: true })
+      .eq("dispute_id", disputeId)
+      .eq("from_user_id", fromUserId)
+      .gte("created_at", hourAgo),
+    admin
+      .from("dispute_reminders")
+      .select("*", { count: "exact", head: true })
+      .eq("dispute_id", disputeId)
+      .eq("from_user_id", fromUserId)
+      .gte("created_at", dayAgo),
+  ]);
+
+  return {
+    hourCount: hourCount ?? 0,
+    dayCount: dayCount ?? 0,
+  };
+}
+
+function withMessage(path: string, message: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}message=${encodeURIComponent(message)}`;
 }
 
 export async function createDispute(formData: FormData) {
@@ -928,7 +991,17 @@ export async function archiveDisputeForUser(formData: FormData) {
   }
 
   const admin = createAdminClient();
-  await upsertDisputeArchiveState(admin, disputeId, user.id, true);
+  const existingState = await getDisputeUserState(admin, disputeId, user.id);
+  const shouldMuteReminders =
+    Boolean(existingState?.last_reminded_at) || Boolean(existingState?.pending_reminder_count);
+
+  await upsertDisputeArchiveState(admin, disputeId, user.id, true, {
+    pending_reminder_count: existingState?.pending_reminder_count ?? 0,
+    last_reminded_at: existingState?.last_reminded_at ?? null,
+    last_reminder_from_user_id: existingState?.last_reminder_from_user_id ?? null,
+    reminder_notifications_muted: shouldMuteReminders,
+    rearchived_after_reminder_at: shouldMuteReminders ? new Date().toISOString() : null,
+  });
 
   const { data: profile } = await admin
     .from("profiles")
@@ -963,9 +1036,140 @@ export async function unarchiveDisputeForUser(formData: FormData) {
   }
 
   const admin = createAdminClient();
-  await upsertDisputeArchiveState(admin, disputeId, user.id, false);
+  await upsertDisputeArchiveState(admin, disputeId, user.id, false, {
+    pending_reminder_count: 0,
+    last_reminded_at: null,
+    last_reminder_from_user_id: null,
+    reminder_notifications_muted: false,
+    rearchived_after_reminder_at: null,
+  });
 
   redirect(returnTo);
+}
+
+export async function sendDisputeReminder(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const disputeId = (formData.get("dispute_id") as string) ?? "";
+  const returnTo = ((formData.get("return_to") as string) ?? `/dispute/${disputeId}`).trim();
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("id, title, status, creator_id, opponent_id")
+    .eq("id", disputeId)
+    .single<Pick<DisputeRow, "id" | "title" | "status" | "creator_id" | "opponent_id">>();
+
+  if (!dispute) {
+    redirect("/dashboard?error=" + encodeURIComponent("Спор не найден"));
+  }
+
+  const isParticipant = dispute.creator_id === user.id || dispute.opponent_id === user.id;
+  if (!isParticipant) {
+    redirect("/dashboard?error=" + encodeURIComponent("Нет доступа к этому спору"));
+  }
+
+  if (dispute.status !== "in_progress" || !dispute.opponent_id) {
+    redirect(withMessage(returnTo, "Напоминание доступно только для активного спора с оппонентом."));
+  }
+
+  const opponentId = dispute.creator_id === user.id ? dispute.opponent_id : dispute.creator_id;
+  const { data: args } = await supabase
+    .from("arguments")
+    .select("author_id, round")
+    .eq("dispute_id", disputeId)
+    .returns<Pick<ArgumentRow, "author_id" | "round">[]>();
+
+  const myArgCount = (args ?? []).filter((arg) => arg.author_id === user.id).length;
+  const opponentArgCount = (args ?? []).filter((arg) => arg.author_id === opponentId).length;
+
+  if (myArgCount <= opponentArgCount) {
+    redirect(withMessage(returnTo, "Напоминание можно отправить только когда сейчас ждут ответ оппонента."));
+  }
+
+  const admin = createAdminClient();
+  const { hourCount, dayCount } = await countReminderAttempts(admin, disputeId, user.id);
+
+  if (hourCount >= REMINDER_LIMIT_PER_HOUR) {
+    redirect(withMessage(returnTo, "Лимит напоминаний исчерпан: не больше 3 напоминаний в час по одному спору."));
+  }
+
+  if (dayCount >= REMINDER_LIMIT_PER_DAY) {
+    redirect(withMessage(returnTo, "Лимит напоминаний исчерпан: не больше 15 напоминаний в сутки по одному спору."));
+  }
+
+  const [recipientState, senderProfile, recipientProfile] = await Promise.all([
+    getDisputeUserState(admin, disputeId, opponentId),
+    admin
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single<{ display_name: string | null }>(),
+    admin
+      .from("profiles")
+      .select("telegram_chat_id")
+      .eq("id", opponentId)
+      .single<{ telegram_chat_id: number | null }>(),
+  ]);
+
+  const senderName = getDisplayName(senderProfile.data?.display_name, user);
+  let deliveredViaTelegram = false;
+  let suppressedReason: string | null = null;
+
+  if (recipientState?.is_archived) {
+    if (recipientState.reminder_notifications_muted) {
+      suppressedReason = "muted_after_rearchive";
+      await upsertDisputeArchiveState(admin, disputeId, opponentId, true, {
+        pending_reminder_count: Math.min((recipientState.pending_reminder_count ?? 0) + 1, REMINDER_LIMIT_PER_DAY),
+        last_reminded_at: new Date().toISOString(),
+        last_reminder_from_user_id: user.id,
+        reminder_notifications_muted: true,
+        rearchived_after_reminder_at: recipientState.rearchived_after_reminder_at ?? new Date().toISOString(),
+      });
+    } else {
+      await upsertDisputeArchiveState(admin, disputeId, opponentId, false, {
+        pending_reminder_count: 0,
+        last_reminded_at: new Date().toISOString(),
+        last_reminder_from_user_id: user.id,
+        reminder_notifications_muted: false,
+        rearchived_after_reminder_at: null,
+      });
+
+      if (recipientProfile.data?.telegram_chat_id) {
+        const sentMessageId = await notifyDisputeReminder(
+          recipientProfile.data.telegram_chat_id,
+          senderName,
+          dispute.title,
+          disputeId
+        );
+        deliveredViaTelegram = Boolean(sentMessageId);
+        if (!sentMessageId) {
+          suppressedReason = "telegram_delivery_failed";
+        }
+      } else {
+        suppressedReason = "no_telegram_chat";
+      }
+    }
+  } else {
+    suppressedReason = "recipient_active";
+  }
+
+  const reminderPayload: DisputeReminderInsert = {
+    dispute_id: disputeId,
+    from_user_id: user.id,
+    to_user_id: opponentId,
+    delivered_via_telegram: deliveredViaTelegram,
+    suppressed_reason: suppressedReason,
+  };
+
+  await admin.from("dispute_reminders").insert(reminderPayload as never);
+
+  if (recipientState?.is_archived && recipientState.reminder_notifications_muted) {
+    redirect(withMessage(returnTo, "Напоминание зафиксировано в архиве. Telegram больше не беспокоит оппонента по этому спору."));
+  }
+
+  redirect(withMessage(returnTo, "Напоминание отправлено. Спор снова отмечен как ожидающий ответа."));
 }
 
 export async function proposeEarlyEnd(formData: FormData) {

@@ -502,6 +502,20 @@ export async function notifyDisputeClosed(
   });
 }
 
+export async function notifyDisputeReminder(
+  chatId: number,
+  senderName: string,
+  disputeTitle: string,
+  disputeId: string
+): Promise<number | null> {
+  return upsertDisputeLiveNotification({
+    chatId,
+    disputeId,
+    text: `🔔 <b>${senderName}</b> напомнил о споре\n\nТема: <i>${disputeTitle}</i>\nОжидается ваш ответ — спор снова ждёт движения.`,
+    url: `${APP_URL}/dispute/${disputeId}`,
+  });
+}
+
 // Random AI joke/wisdom in bot (called occasionally)
 const BOT_JOKES = [
   "💡 Знаете ли вы, что 73% конфликтов решаются, когда обе стороны просто дослушивают друг друга?",

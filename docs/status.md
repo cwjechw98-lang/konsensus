@@ -7,7 +7,7 @@
 
 **Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена и закреплена QA-итерацией. Arena Live, spectator-layer, typing-индикаторы, Telegram surface/support/release-flow и обычный dispute-flow проверены Playwright-набором на desktop, wide и mobile.
 
-В работе: ручная проверка нового персонального архива споров, auto-unarchive при новых событиях и следующая итерация по расширению покрытия E2E на invite/email flow, Telegram Mini App happy-path и дополнительные server action сценарии.
+В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также следующая итерация по расширению покрытия E2E на invite/email flow, Telegram Mini App happy-path и дополнительные server action сценарии.
 
 ## Общий прогресс
 
@@ -86,6 +86,7 @@
 | 00016_arena_live_spectators.sql | challenge_watchers, challenge_comments, challenge_opinions, challenge_observer_hints, RLS для live spectator-layer |
 | 00017_dispute_ai_insights.sql | dispute_analysis, round_insights, waiting_insights, RLS и индексы для обычного AI-сопровождения спора |
 | 00018_dispute_user_state.sql | dispute_user_state (персональный архив споров), RLS и индексы для active/archive dashboard-фильтра и auto-unarchive |
+| 00019_dispute_reminders.sql | dispute_reminders + расширение dispute_user_state (лимиты reminders, pending count, mute после повторной архивации, архивный приоритет) |
 
 ## Ключевые компоненты
 
@@ -163,3 +164,4 @@
 | 2026-03-15 | В `AGENTS.md` зафиксировано отдельное правило процесса: `git add` / `git commit` / `git push` выполнять только последовательно, с ожиданием результата каждого шага без параллельного запуска |
 | 2026-03-16 | Собран пакет обычного dispute-flow: Google OAuth callback синхронизирует `display_name` в `profiles`, в споре и на странице ответа явнее разделены предмет спора и последний ответ оппонента, waiting-stage обозначен как приватная AI-подсказка, direct challenge / invite приведены к более целостным сообщениям, а блок мини-игр расширен до 6 локальных механик с случайной витриной |
 | 2026-03-16 | Добавлен персональный архив споров: спор можно скрыть только у себя, Telegram live-message по нему удаляется из чата, на dashboard появились фильтры `Активные / Архив`, а при новом аргументе, join, переходе в mediation/resolved/closed или принятии решения спор автоматически возвращается в активные |
+| 2026-03-16 | Reminder flow для архивированных споров: ожидание ответа теперь можно мягко напомнить кнопкой `Напомнить о споре`, действует лимит `3/час` и `15/сутки`, после повторной архивации Telegram больше не спамит, а попытки возобновления копятся как `pending reminders`, поднимают спор в архиве и сводятся в отдельный архивный бар на dashboard |

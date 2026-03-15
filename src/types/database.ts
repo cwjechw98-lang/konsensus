@@ -258,6 +258,11 @@ export interface Database {
           user_id: string;
           is_archived: boolean;
           archived_at: string | null;
+          pending_reminder_count: number;
+          last_reminded_at: string | null;
+          last_reminder_from_user_id: string | null;
+          reminder_notifications_muted: boolean;
+          rearchived_after_reminder_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -266,6 +271,11 @@ export interface Database {
           user_id: string;
           is_archived?: boolean;
           archived_at?: string | null;
+          pending_reminder_count?: number;
+          last_reminded_at?: string | null;
+          last_reminder_from_user_id?: string | null;
+          reminder_notifications_muted?: boolean;
+          rearchived_after_reminder_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -274,7 +284,41 @@ export interface Database {
           user_id?: string;
           is_archived?: boolean;
           archived_at?: string | null;
+          pending_reminder_count?: number;
+          last_reminded_at?: string | null;
+          last_reminder_from_user_id?: string | null;
+          reminder_notifications_muted?: boolean;
+          rearchived_after_reminder_at?: string | null;
           updated_at?: string;
+        };
+      };
+      dispute_reminders: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          from_user_id: string;
+          to_user_id: string;
+          created_at: string;
+          delivered_via_telegram: boolean;
+          suppressed_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          from_user_id: string;
+          to_user_id: string;
+          created_at?: string;
+          delivered_via_telegram?: boolean;
+          suppressed_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          dispute_id?: string;
+          from_user_id?: string;
+          to_user_id?: string;
+          created_at?: string;
+          delivered_via_telegram?: boolean;
+          suppressed_reason?: string | null;
         };
       };
       arguments: {

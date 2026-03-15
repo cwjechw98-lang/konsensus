@@ -65,10 +65,39 @@ export default async function DashboardPage({
     disputeQuery.returns<Dispute[]>(),
     supabase
       .from("dispute_user_state")
-      .select("dispute_id, is_archived")
+      .select("dispute_id, is_archived, pending_reminder_count, last_reminded_at, last_reminder_from_user_id")
       .eq("user_id", user.id)
-      .returns<Pick<DisputeUserState, "dispute_id" | "is_archived">[]>(),
+      .returns<
+        Pick<
+          DisputeUserState,
+          "dispute_id" | "is_archived" | "pending_reminder_count" | "last_reminded_at" | "last_reminder_from_user_id"
+        >[]
+      >(),
   ]);
+
+  const stateByDisputeId = new Map(
+    (disputeStateRows ?? []).map((row) => [row.dispute_id, row])
+  );
+
+  const reminderAuthorIds = Array.from(
+    new Set(
+      (disputeStateRows ?? [])
+        .map((row) => row.last_reminder_from_user_id)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  const { data: reminderProfiles } = reminderAuthorIds.length > 0
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", reminderAuthorIds)
+        .returns<Pick<Profile, "id" | "display_name">[]>()
+    : { data: [] as Pick<Profile, "id" | "display_name">[] };
+
+  const reminderProfileMap = new Map(
+    (reminderProfiles ?? []).map((row) => [row.id, row.display_name])
+  );
 
   const archivedDisputeIds = new Set(
     (disputeStateRows ?? [])
@@ -76,16 +105,49 @@ export default async function DashboardPage({
       .map((row) => row.dispute_id)
   );
 
-  const visibleDisputes = (disputes ?? []).filter((dispute) =>
+  const archivedReminderStates = (disputeStateRows ?? []).filter(
+    (row) => row.is_archived && row.pending_reminder_count > 0
+  );
+  const archivedReminderDisputeCount = archivedReminderStates.length;
+  const archivedReminderTotal = archivedReminderStates.reduce(
+    (sum, row) => sum + row.pending_reminder_count,
+    0
+  );
+
+  const filteredDisputes = (disputes ?? []).filter((dispute) =>
     activeView === "archived"
       ? archivedDisputeIds.has(dispute.id)
       : !archivedDisputeIds.has(dispute.id)
   );
 
-  const totalPages = Math.max(1, Math.ceil(visibleDisputes.length / PAGE_SIZE));
+  const sortedDisputes = [...filteredDisputes].sort((left, right) => {
+    if (activeView !== "archived") {
+      return new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime();
+    }
+
+    const leftState = stateByDisputeId.get(left.id);
+    const rightState = stateByDisputeId.get(right.id);
+    const leftPending = leftState?.pending_reminder_count ?? 0;
+    const rightPending = rightState?.pending_reminder_count ?? 0;
+
+    if (rightPending !== leftPending) {
+      return rightPending - leftPending;
+    }
+
+    const leftReminderAt = leftState?.last_reminded_at ? new Date(leftState.last_reminded_at).getTime() : 0;
+    const rightReminderAt = rightState?.last_reminded_at ? new Date(rightState.last_reminded_at).getTime() : 0;
+
+    if (rightReminderAt !== leftReminderAt) {
+      return rightReminderAt - leftReminderAt;
+    }
+
+    return new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime();
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedDisputes.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const from = (safeCurrentPage - 1) * PAGE_SIZE;
-  const paginatedDisputes = visibleDisputes.slice(from, from + PAGE_SIZE);
+  const paginatedDisputes = sortedDisputes.slice(from, from + PAGE_SIZE);
 
   function buildHref(params: { status?: string; page?: number; view?: string }) {
     const urlParams = new URLSearchParams();
@@ -144,6 +206,20 @@ export default async function DashboardPage({
           </div>
         )}
 
+        {activeView === "active" && archivedReminderDisputeCount > 0 && (
+          <Link
+            href={buildHref({ view: "archived", page: 1 })}
+            className="mb-4 block rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 transition-colors hover:bg-amber-500/15"
+          >
+            <p className="text-sm font-medium text-amber-200">
+              В архиве есть споры с новыми попытками возобновления
+            </p>
+            <p className="mt-1 text-xs text-amber-100/80">
+              Споров: {archivedReminderDisputeCount} · Напоминаний: {archivedReminderTotal}
+            </p>
+          </Link>
+        )}
+
         <div className="flex gap-1.5 mb-4 flex-wrap">
           {VIEW_FILTERS.map((filter) => (
             <Link
@@ -188,7 +264,7 @@ export default async function DashboardPage({
             </p>
             <p className="text-sm text-gray-500">
               {activeView === "archived"
-                ? "Архивированные споры появятся здесь и вернутся в активные при новом действии."
+                ? "Архивированные споры появятся здесь. Новые напоминания поднимут важные из них наверх."
                 : activeStatus === "all"
                 ? "Создайте новый спор или присоединитесь по инвайт-коду"
                 : "Попробуйте другой фильтр"}
@@ -197,19 +273,34 @@ export default async function DashboardPage({
         ) : (
           <>
             <div className="flex flex-col gap-3">
-              {paginatedDisputes.map((dispute) => (
-                <DashboardDisputeCard
-                  key={dispute.id}
-                  id={dispute.id}
-                  title={dispute.title}
-                  description={dispute.description}
-                  status={dispute.status}
-                  maxRounds={dispute.max_rounds}
-                  updatedAt={dispute.updated_at}
-                  archived={archivedDisputeIds.has(dispute.id)}
-                  returnTo={currentHref}
-                />
-              ))}
+              {paginatedDisputes.map((dispute) => {
+                const disputeState = stateByDisputeId.get(dispute.id);
+                const lastReminderFromUserId = disputeState?.last_reminder_from_user_id;
+                const lastReminderFrom =
+                  lastReminderFromUserId === user.id
+                    ? "Вы"
+                    : lastReminderFromUserId
+                    ? reminderProfileMap.get(lastReminderFromUserId) ?? "Оппонент"
+                    : null;
+
+                return (
+                  <DashboardDisputeCard
+                    key={dispute.id}
+                    id={dispute.id}
+                    title={dispute.title}
+                    description={dispute.description}
+                    status={dispute.status}
+                    maxRounds={dispute.max_rounds}
+                    updatedAt={dispute.updated_at}
+                    archived={archivedDisputeIds.has(dispute.id)}
+                    returnTo={currentHref}
+                    pendingReminderCount={disputeState?.pending_reminder_count ?? 0}
+                    lastRemindedAt={disputeState?.last_reminded_at ?? null}
+                    lastReminderFrom={lastReminderFrom}
+                    canClose={dispute.creator_id === user.id}
+                  />
+                );
+              })}
             </div>
 
             {totalPages > 1 && (
@@ -238,9 +329,9 @@ export default async function DashboardPage({
           </>
         )}
 
-        {activeView === "archived" && visibleDisputes.length > 0 && (
+        {activeView === "archived" && sortedDisputes.length > 0 && (
           <div className="mt-6 text-xs text-gray-500">
-            Архив действует только для вас. Новое действие по спору автоматически вернёт его в активные и снова покажет в Telegram.
+            Архив действует только для вас. Если спор повторно архивирован после напоминаний, Telegram больше не шумит, а новые попытки возобновления копятся на карточке.
           </div>
         )}
       </div>
