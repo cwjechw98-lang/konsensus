@@ -8,6 +8,7 @@ import { notifyArgumentReceived, notifyDirectChallengeReceived, notifyMediationR
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
+import { getDisplayName } from "@/lib/display-name";
 import { getAppUrl } from "@/lib/url";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
@@ -117,15 +118,25 @@ export async function createDispute(formData: FormData) {
     redirect("/dashboard?error=" + encodeURIComponent(error?.message ?? "Ошибка создания спора"));
   }
 
-  let creatorDisplayName = "Участник";
+  let creatorDisplayName = getDisplayName(null, user);
   try {
     const { data: myProfile } = await supabase
       .from("profiles")
       .select("display_name")
       .eq("id", user.id)
       .single<{ display_name: string | null }>();
-    creatorDisplayName = myProfile?.display_name ?? "Участник";
+    creatorDisplayName = getDisplayName(myProfile?.display_name, user);
+
+    if (!myProfile?.display_name?.trim()) {
+      const admin = createAdminClient();
+      await admin.from("profiles").upsert({
+        id: user.id,
+        display_name: creatorDisplayName,
+      } as never);
+    }
   } catch { /* non-critical */ }
+
+  const postCreateMessages: string[] = [];
 
   // Award first_dispute achievement
   try {
@@ -143,52 +154,85 @@ export async function createDispute(formData: FormData) {
     await checkDisputeMilestones(user.id, admin);
   } catch { /* achievements are non-critical */ }
 
-  // Email invite / direct challenge should not be skipped by unrelated achievement errors
-  try {
-    if (opponentEmail) {
-      const admin = createAdminClient();
+  if (opponentEmail) {
+    const admin = createAdminClient();
 
-      if (opponentId) {
-        const opponentUser = await admin.auth.admin.getUserById(opponentId);
-        if (opponentUser.data.user?.email) {
-          await sendDirectChallengeEmail({
-            toEmail: opponentUser.data.user.email,
-            toName: opponentUser.data.user.user_metadata?.display_name ?? "Участник",
-            fromName: creatorDisplayName,
-            disputeTitle: title,
-            disputeDescription: description,
-            disputeId: data.id,
-          });
+    if (opponentId) {
+      const opponentUser = await admin.auth.admin.getUserById(opponentId);
+      const { data: opponentProfile } = await admin
+        .from("profiles")
+        .select("display_name, telegram_chat_id")
+        .eq("id", opponentId)
+        .single<{ display_name: string | null; telegram_chat_id: number | null }>();
+
+      const opponentName = getDisplayName(
+        opponentProfile?.display_name,
+        opponentUser.data.user ?? null
+      );
+
+      if (!opponentProfile?.display_name?.trim()) {
+        await admin.from("profiles").upsert({
+          id: opponentId,
+          display_name: opponentName,
+          telegram_chat_id: opponentProfile?.telegram_chat_id ?? null,
+        } as never);
+      }
+
+      if (opponentUser.data.user?.email) {
+        if (!process.env.RESEND_API_KEY) {
+          postCreateMessages.push("Спор создан, но email-уведомление для оппонента недоступно: Resend не настроен.");
+        } else {
+          try {
+            await sendDirectChallengeEmail({
+              toEmail: opponentUser.data.user.email,
+              toName: opponentName,
+              fromName: creatorDisplayName,
+              disputeTitle: title,
+              disputeDescription: description,
+              disputeId: data.id,
+            });
+          } catch {
+            postCreateMessages.push("Спор создан, но email-уведомление для оппонента не отправилось.");
+          }
         }
+      }
 
-        const { data: opponentProfile } = await admin
-          .from("profiles")
-          .select("telegram_chat_id")
-          .eq("id", opponentId)
-          .single<{ telegram_chat_id: number | null }>();
+      if (opponentProfile?.telegram_chat_id) {
+        const sentMessageId = await notifyDirectChallengeReceived(
+          opponentProfile.telegram_chat_id,
+          creatorDisplayName,
+          title,
+          description,
+          data.id
+        );
 
-        if (opponentProfile?.telegram_chat_id) {
-          await notifyDirectChallengeReceived(
-            opponentProfile.telegram_chat_id,
-            creatorDisplayName,
-            title,
-            description,
-            data.id
-          );
+        if (!sentMessageId) {
+          postCreateMessages.push("Спор создан, но Telegram-уведомление для оппонента не отправилось.");
         }
+      }
+    } else {
+      const appUrl = await getAppUrl();
+
+      if (!process.env.RESEND_API_KEY) {
+        postCreateMessages.push("Спор создан, но письмо-приглашение не отправилось: Resend не настроен.");
       } else {
-        const appUrl = await getAppUrl();
-        await sendInviteEmail({
-          toEmail: opponentEmail,
-          disputeTitle: title,
-          creatorName: creatorDisplayName,
-          inviteUrl: `${appUrl}/dispute/join?code=${data.invite_code}`,
-        });
+        try {
+          await sendInviteEmail({
+            toEmail: opponentEmail,
+            disputeTitle: title,
+            creatorName: creatorDisplayName,
+            disputeDescription: description,
+            inviteUrl: `${appUrl}/dispute/join?code=${data.invite_code}`,
+          });
+        } catch {
+          postCreateMessages.push("Спор создан, но письмо-приглашение не отправилось.");
+        }
       }
     }
-  } catch { /* email is non-critical */ }
+  }
 
-  redirect(`/dispute/${data.id}`);
+  const message = postCreateMessages.join(" ");
+  redirect(message ? `/dispute/${data.id}?message=${encodeURIComponent(message)}` : `/dispute/${data.id}`);
 }
 
 export async function joinDispute(formData: FormData) {

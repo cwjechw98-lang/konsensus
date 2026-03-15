@@ -347,10 +347,10 @@ function RoundPackage({
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] text-gray-500 mb-1">
-                Итог раунда
+                Закрытый раунд
               </p>
               <p className="text-sm text-gray-400">
-                Публичное наблюдение и персональный разбор этого обмена.
+                Раунд завершён: теперь видно общее наблюдение и личный AI-разбор этого обмена.
               </p>
             </div>
             <span className="text-xs text-violet-300 border border-violet-500/20 bg-violet-500/10 rounded-full px-2.5 py-1 whitespace-nowrap">
@@ -428,6 +428,7 @@ export default function RealtimeDisputeClient({
   dispute,
   userId,
   profiles,
+  currentUserDisplayName,
   isParticipant,
   isCreator,
   roundInsights,
@@ -441,6 +442,7 @@ export default function RealtimeDisputeClient({
   dispute: DisputeSnap;
   userId: string;
   profiles: Profile[];
+  currentUserDisplayName: string;
   isParticipant: boolean;
   isCreator: boolean;
   roundInsights: Record<number, string>;
@@ -642,6 +644,7 @@ export default function RealtimeDisputeClient({
 
   const getName = (pid: string | null) => {
     if (!pid) return "Участник";
+    if (pid === userId) return currentUserDisplayName;
     return profiles.find((p) => p.id === pid)?.display_name ?? "Участник";
   };
 
@@ -788,14 +791,16 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Все ваши аргументы поданы. Ждём оппонента...
               </div>
-              <WaitingTips />
-              <WaitingAmbient />
               {currentWaitingInsight && (
-                <InsightBreakdown
-                  text={currentWaitingInsight}
-                  eyebrow="Пока оппонент думает..."
-                />
+                <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.05] p-3">
+                  <InsightBreakdown
+                    text={currentWaitingInsight}
+                    eyebrow="Приватная подсказка ИИ, пока ждёте ответ"
+                  />
+                </div>
               )}
+              <WaitingAmbient />
+              <WaitingTips />
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />
@@ -814,15 +819,17 @@ export default function RealtimeDisputeClient({
                 <span className="pulse-dot w-2 h-2 rounded-full bg-yellow-400 inline-block" />
                 Раунд {myArgCount} — ждём ответа оппонента...
               </div>
-              <WaitingTips />
-              <WaitingAmbient />
-              <MiniGames />
               {currentWaitingInsight && (
-                <InsightBreakdown
-                  text={currentWaitingInsight}
-                  eyebrow="Пока оппонент думает..."
-                />
+                <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.05] p-3">
+                  <InsightBreakdown
+                    text={currentWaitingInsight}
+                    eyebrow="Приватная подсказка ИИ, пока ждёте ответ"
+                  />
+                </div>
               )}
+              <WaitingAmbient />
+              <WaitingTips />
+              <MiniGames />
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />

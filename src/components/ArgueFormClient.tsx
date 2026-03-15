@@ -216,21 +216,29 @@ export default function ArgueFormClient({
     <div className="flex flex-col gap-4">
       {/* Opponent's last arg */}
       {lastOpponentArg && (
-        <div className="flex justify-start sticky top-4 z-10">
-          <div className="max-w-[85%] flex flex-col gap-1">
-            <span className="text-xs text-gray-500 px-1">
-              {opponentName} · Раунд {lastOpponentArg.round}
-            </span>
-            <div className="glass border-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
-              <p className="font-semibold text-white text-sm mb-1">{lastOpponentArg.position}</p>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{lastOpponentArg.reasoning}</p>
-              {lastOpponentArg.evidence && (
-                <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/8">
-                  📎 {lastOpponentArg.evidence}
-                </p>
-              )}
+        <div className="sticky top-4 z-10 rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.04] p-3 backdrop-blur-sm">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 mb-2">
+            Контекст перед вашим ходом
+          </p>
+          <div className="flex justify-start">
+            <div className="max-w-[85%] flex flex-col gap-1">
+              <span className="text-xs text-gray-500 px-1">
+                {opponentName} · Раунд {lastOpponentArg.round}
+              </span>
+              <div className="glass border-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
+                <p className="font-semibold text-white text-sm mb-1">{lastOpponentArg.position}</p>
+                <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{lastOpponentArg.reasoning}</p>
+                {lastOpponentArg.evidence && (
+                  <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-white/8">
+                    📎 {lastOpponentArg.evidence}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
+          <p className="text-xs text-cyan-100/70 mt-2 px-1">
+            Предмет спора остаётся выше на странице, а здесь показан именно последний ответ оппонента.
+          </p>
         </div>
       )}
 

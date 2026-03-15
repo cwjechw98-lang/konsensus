@@ -31,10 +31,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default async function DisputePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ message?: string }>;
 }) {
   const { id } = await params;
+  const { message } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -143,6 +146,7 @@ export default async function DisputePage({
   const appUrl = await getAppUrl();
   const inviteUrl = `${appUrl}/dispute/join?code=${dispute.invite_code}`;
   const creatorName = getName(dispute.creator_id) ?? "Участник";
+  const currentUserDisplayName = getName(user.id) ?? user.email?.split("@")[0] ?? "Участник";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -169,6 +173,12 @@ export default async function DisputePage({
       <p className="text-gray-400 text-sm mb-6 whitespace-pre-wrap">
         {dispute.description}
       </p>
+
+      {message && (
+        <div className="mb-6 rounded-xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+          {message}
+        </div>
+      )}
 
       {/* Участники */}
       <div className="glass rounded-xl p-4 mb-6 flex gap-8 flex-wrap">
@@ -273,6 +283,7 @@ export default async function DisputePage({
           id: p.id,
           display_name: p.display_name,
         }))}
+        currentUserDisplayName={currentUserDisplayName}
         isParticipant={isParticipant}
         isCreator={isCreator}
         roundInsights={insights.reduce<Record<number, string>>(

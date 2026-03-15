@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import ArgueFormClient from "@/components/ArgueFormClient";
 import WaitingAmbient from "@/components/WaitingAmbient";
 import type { Database } from "@/types/database";
+import { getDisplayName } from "@/lib/display-name";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
@@ -66,7 +67,8 @@ export default async function ArguePage({
     .returns<{ id: string; display_name: string | null }[]>();
 
   const getName = (pid: string) =>
-    profiles?.find((p) => p.id === pid)?.display_name ?? "Участник";
+    profiles?.find((p) => p.id === pid)?.display_name ??
+    (pid === user.id ? getDisplayName(null, user) : "Участник");
 
   return (
     <div className="max-w-lg mx-auto px-4 py-10">
@@ -103,6 +105,12 @@ export default async function ArguePage({
             <p className="text-2xl mb-3">✓</p>
             <p className="font-semibold text-white mb-2">Аргумент принят</p>
             <p className="text-gray-400 text-sm">Ожидаем ответа оппонента...</p>
+          </div>
+          <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.05] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 mb-1">Приватная фаза ожидания</p>
+            <p className="text-sm text-cyan-100/90">
+              Пока идёт пауза между ходами, ИИ готовит личную подсказку только для вас.
+            </p>
           </div>
           <WaitingAmbient />
         </div>

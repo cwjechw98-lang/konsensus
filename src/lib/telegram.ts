@@ -399,7 +399,7 @@ export async function notifyDirectChallengeReceived(
   return upsertTelegramNotification({
     chatId,
     dedupeKey: `direct_challenge:${disputeId}`,
-    text: `📨 <b>${senderName}</b> приглашает вас в спор\n\nСпор: <i>${disputeTitle}</i>${trimmedDescription ? `\nСуть: ${trimmedDescription}` : ""}\nВаш аккаунт уже найден — можно сразу открыть и ответить.`,
+    text: `📨 <b>${senderName}</b> приглашает вас в спор\n\nТема: <i>${disputeTitle}</i>${trimmedDescription ? `\nСуть: ${trimmedDescription}` : ""}\nВаш аккаунт уже найден — можно сразу открыть спор и ответить.`,
     url: `${APP_URL}/dispute/${disputeId}`,
   });
 }

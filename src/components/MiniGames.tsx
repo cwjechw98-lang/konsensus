@@ -2,6 +2,44 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+const SYMBOLS = ["▲", "■", "●", "◆", "✦", "✚"];
+
+function buildSequenceTask() {
+  const start = Math.floor(Math.random() * 8) + 1;
+  const step = Math.floor(Math.random() * 4) + 1;
+  const nextValue = start + step * 3;
+  const generated = [start, start + step, start + step * 2];
+  const wrongA = nextValue + (Math.random() > 0.5 ? step : -step);
+  const wrongB = nextValue + (Math.random() > 0.5 ? step * 2 : -step * 2);
+
+  return {
+    sequence: generated,
+    options: [nextValue, wrongA, wrongB].sort(() => Math.random() - 0.5),
+    answer: nextValue,
+  };
+}
+
+function buildSymbolTask() {
+  const nextTarget = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+  const pool = [nextTarget];
+
+  while (pool.length < 4) {
+    const candidate = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+    if (!pool.includes(candidate)) {
+      pool.push(candidate);
+    }
+  }
+
+  return {
+    target: nextTarget,
+    choices: pool.sort(() => Math.random() - 0.5),
+  };
+}
+
+function pickFeaturedGames() {
+  return [...GAMES].sort(() => Math.random() - 0.5).slice(0, 3).map((game) => game.id);
+}
+
 // ── Reaction Time Game ──
 function ReactionGame() {
   const [state, setState] = useState<"idle" | "waiting" | "ready" | "done">("idle");
@@ -232,18 +270,178 @@ function MathGame() {
   );
 }
 
+function BiggerNumberGame() {
+  const [left, setLeft] = useState(0);
+  const [right, setRight] = useState(0);
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(20);
+  const [active, setActive] = useState(false);
+
+  const nextRound = useCallback(() => {
+    setLeft(Math.floor(Math.random() * 90) + 10);
+    setRight(Math.floor(Math.random() * 90) + 10);
+  }, []);
+
+  const start = () => {
+    setScore(0);
+    setTimeLeft(20);
+    setActive(true);
+    nextRound();
+  };
+
+  useEffect(() => {
+    if (!active || timeLeft <= 0) {
+      if (active && timeLeft <= 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setActive(false);
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [active, timeLeft]);
+
+  const choose = (picked: "left" | "right") => {
+    if (!active) return;
+    const correct = left === right ? picked : (left > right ? "left" : "right");
+    if (picked === correct) {
+      setScore((prev) => prev + 1);
+    }
+    nextRound();
+  };
+
+  return (
+    <div className="text-center">
+      <h3 className="text-sm font-bold text-white mb-3">📊 Больше число</h3>
+      {!active && score === 0 && (
+        <button onClick={start} className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl text-sm font-semibold">
+          20 секунд!
+        </button>
+      )}
+      {active && (
+        <>
+          <p className="text-xs text-gray-500 mb-3">Нажмите на большее число</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => choose("left")} className="rounded-xl bg-white/8 hover:bg-white/12 px-4 py-6 text-2xl font-bold text-white">
+              {left}
+            </button>
+            <button onClick={() => choose("right")} className="rounded-xl bg-white/8 hover:bg-white/12 px-4 py-6 text-2xl font-bold text-white">
+              {right}
+            </button>
+          </div>
+          <div className="flex justify-between mt-3 text-xs text-gray-500">
+            <span>Очки: {score}</span>
+            <span>⏱ {timeLeft}с</span>
+          </div>
+        </>
+      )}
+      {!active && score > 0 && (
+        <div>
+          <p className="text-lg font-bold text-white">{score} правильных ответов</p>
+          <button onClick={start} className="mt-3 text-xs text-gray-400 hover:text-white">Ещё раз</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SequenceGame() {
+  const [task, setTask] = useState(() => buildSequenceTask());
+  const [score, setScore] = useState(0);
+
+  const nextTask = useCallback(() => {
+    setTask(buildSequenceTask());
+  }, []);
+
+  const choose = (value: number) => {
+    if (value === task.answer) {
+      setScore((prev) => prev + 1);
+    } else {
+      setScore(0);
+    }
+    nextTask();
+  };
+
+  return (
+    <div className="text-center">
+      <h3 className="text-sm font-bold text-white mb-3">🔺 Последовательность</h3>
+      <p className="text-xl font-bold text-white tracking-wide">
+        {task.sequence.join(" · ")} · ?
+      </p>
+      <p className="text-xs text-gray-500 mt-2">Выберите следующее число</p>
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        {task.options.map((option) => (
+          <button
+            key={option}
+            onClick={() => choose(option)}
+            className="rounded-xl bg-white/8 hover:bg-white/12 px-3 py-3 text-white font-semibold"
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-purple-400 mt-3">Серия: {score}</p>
+    </div>
+  );
+}
+
+function SymbolMatchGame() {
+  const [task, setTask] = useState(() => buildSymbolTask());
+  const [score, setScore] = useState(0);
+
+  const nextTask = useCallback(() => {
+    setTask(buildSymbolTask());
+  }, []);
+
+  const choose = (symbol: string) => {
+    if (symbol === task.target) {
+      setScore((prev) => prev + 1);
+    } else {
+      setScore((prev) => Math.max(0, prev - 1));
+    }
+    nextTask();
+  };
+
+  return (
+    <div className="text-center">
+      <h3 className="text-sm font-bold text-white mb-3">🎯 Найди символ</h3>
+      <p className="text-xs text-gray-500 mb-2">Нажмите на такой же символ</p>
+      <div className="text-4xl font-bold text-white mb-4">{task.target}</div>
+      <div className="grid grid-cols-2 gap-2">
+        {task.choices.map((symbol, index) => (
+          <button
+            key={`${symbol}-${index}`}
+            onClick={() => choose(symbol)}
+            className="rounded-xl bg-white/8 hover:bg-white/12 px-4 py-4 text-2xl text-white"
+          >
+            {symbol}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-purple-400 mt-3">Точность: {score}</p>
+    </div>
+  );
+}
+
 // ── Main component ──
 const GAMES = [
   { id: "reaction", label: "⚡ Реакция", component: ReactionGame },
   { id: "memory", label: "🧠 Память", component: MemoryGame },
   { id: "math", label: "🔢 Математика", component: MathGame },
+  { id: "bigger", label: "📊 Больше", component: BiggerNumberGame },
+  { id: "sequence", label: "🔺 Последовательность", component: SequenceGame },
+  { id: "symbol", label: "🎯 Символ", component: SymbolMatchGame },
 ] as const;
 
 export default function MiniGames() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [featuredGames] = useState(() => pickFeaturedGames());
 
   const GameComponent = GAMES.find((g) => g.id === activeGame)?.component;
+  const featured = GAMES.filter((game) => featuredGames.includes(game.id));
+  const remaining = GAMES.filter((game) => !featuredGames.includes(game.id));
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
@@ -260,17 +458,42 @@ export default function MiniGames() {
       {!collapsed && (
         <div className="px-4 pb-4">
           {!activeGame && (
-            <div className="grid grid-cols-3 gap-2">
-              {GAMES.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => setActiveGame(g.id)}
-                  className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-center"
-                >
-                  <span className="text-lg">{g.label.split(" ")[0]}</span>
-                  <p className="text-xs text-gray-400 mt-1">{g.label.split(" ").slice(1).join(" ")}</p>
-                </button>
-              ))}
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-purple-300/80 mb-2">
+                  Сегодняшняя подборка
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {featured.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => setActiveGame(g.id)}
+                      className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 transition-colors text-center"
+                    >
+                      <span className="text-lg">{g.label.split(" ")[0]}</span>
+                      <p className="text-xs text-gray-300 mt-1">{g.label.split(" ").slice(1).join(" ")}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500 mb-2">
+                  Все мини-игры
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[...featured, ...remaining].map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => setActiveGame(g.id)}
+                      className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-center"
+                    >
+                      <span className="text-lg">{g.label.split(" ")[0]}</span>
+                      <p className="text-xs text-gray-400 mt-1">{g.label.split(" ").slice(1).join(" ")}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

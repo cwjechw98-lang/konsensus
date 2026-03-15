@@ -94,12 +94,14 @@ export async function sendInviteEmail({
   toEmail,
   disputeTitle,
   creatorName,
+  disputeDescription,
   inviteUrl,
 }: {
 
   toEmail: string;
   disputeTitle: string;
   creatorName: string;
+  disputeDescription?: string;
   inviteUrl: string;
 }) {
   if (!resend) return;
@@ -121,6 +123,12 @@ export async function sendInviteEmail({
         <p style="margin:0 0 8px;color:#d1d5db;font-size:14px;">
           <b style="color:#a78bfa">${creatorName}</b> хочет разрешить спор вместе с вами с помощью ИИ-медиатора.
         </p>
+        ${disputeDescription ? `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin:0 0 18px;">
+          <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Суть спора</p>
+          <p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.6;">${disputeDescription}</p>
+        </div>
+        ` : ""}
         <p style="margin:0 0 24px;color:#6b7280;font-size:13px;">
           Перейдите по ссылке, чтобы принять участие. Каждый аргумент анализируется ИИ — финальное решение предложит нейтральный медиатор.
         </p>
@@ -174,7 +182,7 @@ export async function sendDirectChallengeEmail({
         </p>
         ${disputeDescription ? `
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin:0 0 18px;">
-          <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Описание</p>
+          <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Суть спора</p>
           <p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.6;">${disputeDescription}</p>
         </div>
         ` : ""}
