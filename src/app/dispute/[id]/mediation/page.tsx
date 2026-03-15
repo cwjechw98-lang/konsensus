@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { triggerMediation } from "@/lib/actions";
 import MediationClient from "@/components/MediationClient";
 import SubmitButton from "@/components/SubmitButton";
+import InsightBreakdown from "@/components/InsightBreakdown";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -116,17 +117,11 @@ export default async function MediationPage({
       ) : (
         <div className="flex flex-col gap-4">
           {latestInsight?.content && (
-            <div className="bg-violet-950/40 border border-violet-500/20 rounded-xl p-4">
-              <h2 className="text-xs font-semibold text-violet-400 uppercase tracking-wide mb-2">
-                🤖 Разбор последнего раунда · только для вас
-              </h2>
-              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {latestInsight.content}
-              </p>
-              <p className="text-xs text-gray-600 mt-3">
-                Раунд {latestInsight.round}. Этот комментарий не показывается оппоненту и сохраняет логику персонального сопровождения до финальной медиации.
-              </p>
-            </div>
+            <InsightBreakdown
+              text={latestInsight.content}
+              eyebrow="Разбор последнего раунда · только для вас"
+              note={`Раунд ${latestInsight.round}. Этот комментарий не показывается оппоненту и сохраняет логику персонального сопровождения до финальной медиации.`}
+            />
           )}
 
           {/* AI unavailable fallback */}

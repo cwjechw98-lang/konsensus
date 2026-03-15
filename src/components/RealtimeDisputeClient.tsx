@@ -8,6 +8,7 @@ import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd } from "@/lib/actions"
 import WaitingTips from "@/components/WaitingTips";
 import MiniGames from "@/components/MiniGames";
 import WaitingAmbient from "@/components/WaitingAmbient";
+import InsightBreakdown from "@/components/InsightBreakdown";
 
 type Arg = {
   id: string;
@@ -467,15 +468,10 @@ export default function RealtimeDisputeClient({
                   {/* Private AI insight — only for current user */}
                   {roundArgs.length === 2 && insights[round] && (
                     <div className="mx-auto max-w-[90%] mt-2">
-                      <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
-                        <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
-                          <span>🤖</span>
-                          <span>Разбор оппонента · Только для вас</span>
-                        </p>
-                        <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                          {insights[round]}
-                        </p>
-                      </div>
+                      <InsightBreakdown
+                        text={insights[round]}
+                        eyebrow="Разбор оппонента · Только для вас"
+                      />
                     </div>
                   )}
                 </div>
@@ -498,15 +494,10 @@ export default function RealtimeDisputeClient({
               <WaitingTips />
               <WaitingAmbient />
               {currentWaitingInsight && (
-                <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
-                  <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
-                    <span>🤖</span>
-                    <span>Пока оппонент думает...</span>
-                  </p>
-                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {currentWaitingInsight}
-                  </p>
-                </div>
+                <InsightBreakdown
+                  text={currentWaitingInsight}
+                  eyebrow="Пока оппонент думает..."
+                />
               )}
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
@@ -530,15 +521,10 @@ export default function RealtimeDisputeClient({
               <WaitingAmbient />
               <MiniGames />
               {currentWaitingInsight && (
-                <div className="bg-violet-950/40 border border-violet-500/20 rounded-2xl px-4 py-3">
-                  <p className="text-xs text-violet-400 font-semibold mb-1.5 flex items-center gap-1.5">
-                    <span>🤖</span>
-                    <span>Пока оппонент думает...</span>
-                  </p>
-                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {currentWaitingInsight}
-                  </p>
-                </div>
+                <InsightBreakdown
+                  text={currentWaitingInsight}
+                  eyebrow="Пока оппонент думает..."
+                />
               )}
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
