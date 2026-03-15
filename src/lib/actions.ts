@@ -925,7 +925,7 @@ export async function evaluateArgument(
   reasoning: string,
   disputeTitle: string,
   disputeDescription: string
-): Promise<{ score: number; strengths: string[]; suggestion: string } | null> {
+): Promise<{ score: number; strengths: string[]; suggestion: string; escalation_risk: number; escalation_warning: string } | null> {
   const pos = position.trim();
   const rea = reasoning.trim();
   if (!pos || !rea) return null;
@@ -949,11 +949,15 @@ export async function evaluateArgument(
 4 = сильный (чёткая позиция, хорошее обоснование)
 5 = убедительный (всё чётко, есть логика и детали)
 
+Также определи, может ли этот аргумент усилить конфликт (агрессивный тон, обвинения, провокации).
+
 Верни JSON:
 {
   "score": число 1-5,
   "strengths": ["1-2 коротких сильных стороны аргумента, если есть"],
-  "suggestion": "одна конкретная рекомендация как усилить аргумент (1 предложение)"
+  "suggestion": "одна конкретная рекомендация как усилить аргумент (1 предложение)",
+  "escalation_risk": число 0-3 (0=нет риска, 1=мягкий, 2=заметный, 3=высокий),
+  "escalation_warning": "если risk>=2, короткое предупреждение (1 предложение), иначе пустая строка"
 }`;
 
     const response = await groq.chat.completions.create({
@@ -968,6 +972,8 @@ export async function evaluateArgument(
       score: Math.min(5, Math.max(1, Math.round(Number(result.score) || 3))),
       strengths: Array.isArray(result.strengths) ? result.strengths.slice(0, 2) : [],
       suggestion: (result.suggestion as string) ?? "",
+      escalation_risk: Math.min(3, Math.max(0, Math.round(Number(result.escalation_risk) || 0))),
+      escalation_warning: (result.escalation_warning as string) ?? "",
     };
   } catch {
     return null;

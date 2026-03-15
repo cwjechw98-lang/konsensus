@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { deleteTelegramMessage } from "@/lib/telegram";
+import { deleteTelegramMessage, getRandomBotJoke } from "@/lib/telegram";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -315,9 +315,10 @@ export async function POST(req: NextRequest) {
   // ── /start without token ──────────────────────────────────────────────────
   if (text === "/start") {
     if (me) {
+      const joke = Math.random() < 0.3 ? `\n\n${getRandomBotJoke()}` : "";
       await reply(
         chatId,
-        `👋 Привет, <b>${me.display_name ?? "участник"}</b>! Ты уже привязан к Konsensus.\n\nИспользуй кнопки меню ниже 👇`
+        `👋 Привет, <b>${me.display_name ?? "участник"}</b>! Ты уже привязан к Konsensus.\n\nИспользуй кнопки меню ниже 👇${joke}`
       );
     } else {
       await replyUnlinked(
@@ -444,7 +445,8 @@ export async function POST(req: NextRequest) {
 
   // ── Default ───────────────────────────────────────────────────────────────
   if (me) {
-    await reply(chatId, "Используй кнопки меню ниже 👇 или /help для списка команд.", undefined, userMsgId);
+    const joke = Math.random() < 0.4 ? `\n\n${getRandomBotJoke()}` : "";
+    await reply(chatId, `Используй кнопки меню ниже 👇 или /help для списка команд.${joke}`, undefined, userMsgId);
   } else {
     await replyUnlinked(
       chatId,

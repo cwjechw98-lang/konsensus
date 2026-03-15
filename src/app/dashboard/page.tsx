@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import OnboardingGuide from "@/components/OnboardingGuide";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import type { Database, DisputeStatus } from "@/types/database";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -71,6 +72,7 @@ export default async function DashboardPage({
   return (
     <>
       <OnboardingGuide />
+      <OnboardingTour page="dashboard" />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
@@ -89,6 +91,7 @@ export default async function DashboardPage({
             </Link>
             <Link
               href="/dispute/new"
+              data-tour="create-dispute"
               className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
             >
               + Новый спор
@@ -103,7 +106,7 @@ export default async function DashboardPage({
         )}
 
         {/* Status filter tabs */}
-        <div className="flex gap-1.5 mb-5 flex-wrap">
+        <div className="flex gap-1.5 mb-5 flex-wrap" data-tour="filters">
           {STATUS_FILTERS.map((filter) => (
             <Link
               key={filter.value}

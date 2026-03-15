@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import CursorGlow from "@/components/CursorGlow";
 import RippleEffect from "@/components/RippleEffect";
 import AchievementToast from "@/components/AchievementToast";
+import { BrowserNotificationPermission } from "@/components/BrowserNotifications";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({
         <CursorGlow />
         <RippleEffect />
         <AchievementToast />
+        <BrowserNotificationPermission />
         <Header />
         <main className="flex-1 pt-14">{children}</main>
       </body>

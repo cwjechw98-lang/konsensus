@@ -8,6 +8,8 @@ type EvalResult = {
   score: number;
   strengths: string[];
   suggestion: string;
+  escalation_risk: number;
+  escalation_warning: string;
 };
 
 const SCORE_LABEL = ["", "Слабый", "Средний", "Хороший", "Сильный", "Убедительный"];
@@ -265,6 +267,21 @@ function EvalCard({ result, error }: { result: EvalResult | null; error: boolean
           <span className="text-purple-400 mt-0.5 flex-shrink-0">💡</span>
           <span>{result.suggestion}</span>
         </p>
+      )}
+      {result.escalation_risk >= 2 && result.escalation_warning && (
+        <div className="mt-2.5 pt-2.5 border-t border-white/8">
+          <p className="text-sm flex items-start gap-1.5">
+            <span className={`mt-0.5 flex-shrink-0 ${result.escalation_risk >= 3 ? "text-red-400" : "text-orange-400"}`}>
+              {result.escalation_risk >= 3 ? "🔥" : "⚠️"}
+            </span>
+            <span className={result.escalation_risk >= 3 ? "text-red-400" : "text-orange-400"}>
+              {result.escalation_warning}
+            </span>
+          </p>
+          <p className="text-xs text-gray-600 mt-1 ml-5">
+            Вы можете отправить как есть или смягчить формулировки.
+          </p>
+        </div>
       )}
     </div>
   );

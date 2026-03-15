@@ -124,7 +124,57 @@ export async function notifyDisputeResolved(
   );
 }
 
-// NEW: Notify about a new challenge on the arena (for digest/broadcast)
+// Random AI joke/wisdom in bot (called occasionally)
+const BOT_JOKES = [
+  "💡 Знаете ли вы, что 73% конфликтов решаются, когда обе стороны просто дослушивают друг друга?",
+  "🤖 Совет дня: перед ответом сделайте вдох. Ваш аргумент станет на 40% убедительнее.",
+  "🧠 Факт: люди чаще соглашаются с теми, кто признаёт часть их правоты.",
+  "⚡ Спорщик-профи отличается от новичка не силой аргументов, а умением слушать.",
+  "🎯 Лайфхак: начните аргумент словами «Я понимаю твою позицию, и при этом...» — эффект +200%.",
+  "🌊 Помните: цель спора — не победа, а истина. Побеждают оба, когда находят общее.",
+  "🔥 Горячий факт: самые длинные споры обычно про самые простые вещи.",
+  "🎪 ИИ-медиатор обработал уже сотни аргументов. Ваш следующий может стать легендарным!",
+  "🧘 Мудрость: если вы не можете объяснить позицию оппонента — вы ещё не поняли спор.",
+  "🏆 Самое ценное достижение — не «Победитель», а «Дипломат». Подумайте над этим.",
+];
+
+export function getRandomBotJoke(): string {
+  return BOT_JOKES[Math.floor(Math.random() * BOT_JOKES.length)];
+}
+
+// Broadcast message to all linked Telegram users
+export async function broadcastToAll(text: string): Promise<number> {
+  if (!BOT_TOKEN) return 0;
+
+  // Import admin client dynamically to avoid circular deps
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data: users } = await admin
+    .from("profiles")
+    .select("telegram_chat_id")
+    .not("telegram_chat_id", "is", null)
+    .returns<{ telegram_chat_id: number }[]>();
+
+  let sent = 0;
+  for (const u of users ?? []) {
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: u.telegram_chat_id,
+          text,
+          parse_mode: "HTML",
+        }),
+      });
+      sent++;
+    } catch { /* skip failed */ }
+  }
+  return sent;
+}
+
+// Notify about a new challenge on the arena (for digest/broadcast)
 export async function notifyNewChallenge(
   chatId: number,
   authorName: string,
