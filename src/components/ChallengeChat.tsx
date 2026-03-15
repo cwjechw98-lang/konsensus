@@ -325,7 +325,14 @@ export default function ChallengeChat({
       const formData = new FormData();
       formData.set("challenge_id", challengeId);
       formData.set("content", commentInput.trim());
-      await addChallengeComment(formData);
+      const savedComment = await addChallengeComment(formData);
+      if (savedComment) {
+        setObserverComments((prev) => (
+          prev.some((comment) => comment.id === savedComment.id)
+            ? prev
+            : [...prev, savedComment]
+        ));
+      }
       setCommentInput("");
     } finally {
       setCommentSending(false);

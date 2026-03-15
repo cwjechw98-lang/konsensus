@@ -16,7 +16,7 @@ const TIPS = [
 ];
 
 export default function WaitingTips() {
-  const [idx, setIdx] = useState(() => Math.floor(Math.random() * TIPS.length));
+  const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {

@@ -115,7 +115,7 @@
 
 ## Фаза 11: Инфраструктура (бэклог)
 - [ ] E2E тестирование основных сценариев (Playwright)
-  Старт выполнен: добавлен базовый Playwright-контур и public smoke tests
+  Существенно продвинуто: стабилен Playwright-контур на `desktop` / `desktop-wide` / `mobile`, добавлены `public-smoke` и `arena-live` suites, текущий полный прогон проходит `33/33`
 - [ ] Unit-тесты для server actions
 - [ ] Error tracking (Sentry)
 - [ ] Supabase Metrics Dashboard (мониторинг)

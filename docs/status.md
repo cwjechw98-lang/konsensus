@@ -5,9 +5,9 @@
 
 ## Текущий этап
 
-**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Arena Live с spectator-view, Telegram-подписки на battle, observer-layer, typing-индикаторы и новый зрительский режим `Теневой медиатор` вместо слабого idle-placeholder.
+**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена и закреплена QA-итерацией. Arena Live, spectator-layer, typing-индикаторы, Telegram surface/support/release-flow и обычный dispute-flow проверены Playwright-набором на desktop, wide и mobile.
 
-В работе: следующая итерация по тестам и QA для arena live, mobile, spectator-layer и обычного dispute-flow после применения свежей SQL-миграции AI-инсайтов.
+В работе: следующая итерация по расширению покрытия E2E на invite/email flow, Telegram Mini App happy-path и дополнительные server action сценарии.
 
 ## Общий прогресс
 
@@ -40,6 +40,7 @@
 
 ### Фаза 10: Инфраструктура
 - [ ] E2E тесты (Playwright)
+  Существенный прогресс: стабилен multi-viewport контур на `desktop`, `desktop-wide`, `mobile`; полный текущий набор проходит `33/33`
 - [ ] Error tracking (Sentry)
 - [ ] Unit-тесты server actions
 - [ ] Мониторинг запросов
@@ -155,3 +156,5 @@
 | 2026-03-15 | Production visibility для support/release доведена до конца: Vercel env добавлены вручную через dashboard, выполнен redeploy production |
 | 2026-03-15 | Bubble idle-game на арене заменена на `Теневого медиатора`: spectator-панель теперь открывается по кнопке, даёт прогноз следующей реакции и тематический параллельный кейс по теме battle |
 | 2026-03-15 | Найден и исправлен разрыв в обычном AI-flow: реальные SQL-таблицы `round_insights` / `waiting_insights` / `dispute_analysis` оформлены в миграцию `00017`, Telegram Mini App auth усилен через `magiclink` verifyOtp + profile upsert, invite email теперь явно сообщает об ошибке и шлётся и для незарегистрированного email |
+| 2026-03-15 | QA-итерация закрыта: Playwright переведён на стабильный локальный порт `3100`, добавлены проекты `desktop` / `desktop-wide` / `mobile`, public smoke и arena-live suites проходят полностью (`33/33`) |
+| 2026-03-15 | По пути исправлены UX-мелочи, выявленные тестами: optimistic append для observer comments в Arena Live и детерминированный первый рендер `WaitingTips` без hydration-mismatch |

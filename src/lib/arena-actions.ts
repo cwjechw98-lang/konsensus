@@ -450,12 +450,23 @@ export async function addChallengeComment(formData: FormData) {
     .eq("id", user.id)
     .single<{ display_name: string | null }>();
 
-  await admin.from("challenge_comments").insert({
-    challenge_id: challengeId,
-    author_id: user.id,
-    author_name: profile?.display_name ?? "Наблюдатель",
-    content,
-  } as never);
+  const { data } = await admin
+    .from("challenge_comments")
+    .insert({
+      challenge_id: challengeId,
+      author_id: user.id,
+      author_name: profile?.display_name ?? "Наблюдатель",
+      content,
+    } as never)
+    .select("id, content, author_name, created_at")
+    .single<{
+      id: string;
+      content: string;
+      author_name: string;
+      created_at: string;
+    }>();
+
+  return data ?? null;
 }
 
 export async function submitChallengeOpinion(formData: FormData) {
