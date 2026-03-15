@@ -72,6 +72,188 @@ function PublicRoundCard({ summary, round }: { summary: PublicSummary; round: nu
   );
 }
 
+function getConvergenceDirection(convergence: number) {
+  if (convergence >= 2) {
+    return {
+      label: "Сближение усилилось",
+      tone: "Стороны начали заметнее двигаться навстречу.",
+      chipClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+
+  if (convergence === 1) {
+    return {
+      label: "Осторожное сближение",
+      tone: "В аргументах уже есть пространство для компромисса.",
+      chipClass: "border-emerald-500/15 bg-emerald-500/8 text-emerald-200",
+    };
+  }
+
+  if (convergence === 0) {
+    return {
+      label: "Баланс без сдвига",
+      tone: "Позиции зафиксированы, но диалог ещё можно развернуть.",
+      chipClass: "border-white/10 bg-white/5 text-gray-300",
+    };
+  }
+
+  if (convergence === -1) {
+    return {
+      label: "Появилось расхождение",
+      tone: "Стороны уцепились за разные трактовки одной темы.",
+      chipClass: "border-orange-500/20 bg-orange-500/10 text-orange-300",
+    };
+  }
+
+  return {
+    label: "Расхождение усилилось",
+    tone: "Обмен стал жёстче, и общая точка пока отдаляется.",
+    chipClass: "border-red-500/20 bg-red-500/10 text-red-300",
+  };
+}
+
+function getMomentumLabel(current: number, previous?: number) {
+  if (previous === undefined) {
+    return {
+      label: "Первый замер динамики",
+      tone: "Это стартовая точка, от которой будет видно движение разговора.",
+      chipClass: "border-sky-500/20 bg-sky-500/10 text-sky-300",
+    };
+  }
+
+  const delta = current - previous;
+
+  if (delta >= 2) {
+    return {
+      label: "Сильный шаг к консенсусу",
+      tone: "Этот обмен заметно сократил дистанцию между позициями.",
+      chipClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+
+  if (delta === 1) {
+    return {
+      label: "Диалог стал мягче",
+      tone: "В ответах появилось больше почвы для взаимного понимания.",
+      chipClass: "border-emerald-500/15 bg-emerald-500/8 text-emerald-200",
+    };
+  }
+
+  if (delta === 0) {
+    return {
+      label: "Траектория без изменения",
+      tone: "Разговор держится на прежнем уровне сближения и напряжения.",
+      chipClass: "border-white/10 bg-white/5 text-gray-300",
+    };
+  }
+
+  if (delta === -1) {
+    return {
+      label: "Диалог стал жёстче",
+      tone: "После этого обмена стороны чуть дальше от общей формулировки.",
+      chipClass: "border-orange-500/20 bg-orange-500/10 text-orange-300",
+    };
+  }
+
+  return {
+    label: "Резкий откат",
+    tone: "Этот раунд ощутимо увеличил дистанцию и усложнил компромисс.",
+    chipClass: "border-red-500/20 bg-red-500/10 text-red-300",
+  };
+}
+
+function getHeatSnapshot(level: number, isLatestRound: boolean) {
+  if (!isLatestRound || level < 1 || level > 5) {
+    return {
+      label: "Температура раунда не зафиксирована",
+      tone: "Для прошлых раундов сохраняем общий фокус на смысле обмена.",
+      chipClass: "border-white/10 bg-white/5 text-gray-400",
+    };
+  }
+
+  if (level <= 2) {
+    return {
+      label: "Разговор держится спокойно",
+      tone: "Даже при разногласии участники пока не уходят в эскалацию.",
+      chipClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+
+  if (level === 3) {
+    return {
+      label: "Есть рабочее напряжение",
+      tone: "Тон стал плотнее, но диалог ещё хорошо управляем.",
+      chipClass: "border-yellow-500/20 bg-yellow-500/10 text-yellow-300",
+    };
+  }
+
+  if (level === 4) {
+    return {
+      label: "Накал заметно вырос",
+      tone: "Лучше опираться на факты и формулировки без уколов.",
+      chipClass: "border-orange-500/20 bg-orange-500/10 text-orange-300",
+    };
+  }
+
+  return {
+    label: "Спор на высокой температуре",
+    tone: "Сейчас особенно важно не усиливать ответ эмоциональным нажимом.",
+    chipClass: "border-red-500/20 bg-red-500/10 text-red-300",
+  };
+}
+
+function RoundDynamics({
+  summary,
+  previousSummary,
+  heatLevel,
+  isLatestRound,
+}: {
+  summary: PublicSummary;
+  previousSummary?: PublicSummary;
+  heatLevel: number;
+  isLatestRound: boolean;
+}) {
+  const convergenceState = getConvergenceDirection(summary.convergence);
+  const momentumState = getMomentumLabel(summary.convergence, previousSummary?.convergence);
+  const heatState = getHeatSnapshot(heatLevel, isLatestRound);
+
+  const cards = [
+    {
+      title: "Дистанция позиций",
+      ...convergenceState,
+    },
+    {
+      title: "Сдвиг после обмена",
+      ...momentumState,
+    },
+    {
+      title: "Температура диалога",
+      ...heatState,
+    },
+  ];
+
+  return (
+    <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-3">
+      {cards.map((card) => (
+        <div
+          key={card.title}
+          className={`rounded-2xl border px-3 py-3 ${card.chipClass}`}
+        >
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/55 mb-1.5">
+            {card.title}
+          </p>
+          <p className="text-sm font-semibold mb-1">
+            {card.label}
+          </p>
+          <p className="text-xs leading-relaxed text-white/70">
+            {card.tone}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RoundArgumentCard({
   arg,
   isMe,
@@ -121,7 +303,10 @@ function RoundPackage({
   currentUserId,
   getName,
   publicSummary,
+  previousPublicSummary,
   privateInsight,
+  heatLevel,
+  isLatestAnalyzedRound,
 }: {
   round: number;
   maxRounds: number;
@@ -129,7 +314,10 @@ function RoundPackage({
   currentUserId: string;
   getName: (pid: string | null) => string;
   publicSummary?: PublicSummary;
+  previousPublicSummary?: PublicSummary;
   privateInsight?: string;
+  heatLevel: number;
+  isLatestAnalyzedRound: boolean;
 }) {
   const hasAnalysis = roundArgs.length === 2 && (publicSummary || privateInsight);
 
@@ -169,6 +357,15 @@ function RoundPackage({
               AI-пакет
             </span>
           </div>
+
+          {publicSummary && (
+            <RoundDynamics
+              summary={publicSummary}
+              previousSummary={previousPublicSummary}
+              heatLevel={heatLevel}
+              isLatestRound={isLatestAnalyzedRound}
+            />
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             {publicSummary && (
@@ -431,6 +628,8 @@ export default function RealtimeDisputeClient({
   };
 
   const rounds = Array.from({ length: dispute.max_rounds }, (_, i) => i + 1);
+  const analyzedRounds = rounds.filter((round) => publicSummaries[round] || insights[round]);
+  const latestAnalyzedRound = analyzedRounds.length > 0 ? Math.max(...analyzedRounds) : 0;
 
   const opponentId = isCreator ? dispute.opponent_id : dispute.creator_id;
 
@@ -543,7 +742,10 @@ export default function RealtimeDisputeClient({
                   currentUserId={userId}
                   getName={getName}
                   publicSummary={publicSummaries[round]}
+                  previousPublicSummary={publicSummaries[round - 1]}
                   privateInsight={insights[round]}
+                  heatLevel={heatLevel}
+                  isLatestAnalyzedRound={round === latestAnalyzedRound}
                 />
               );
             })}
