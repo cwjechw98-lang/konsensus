@@ -7,7 +7,7 @@
 
 **Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена и закреплена QA-итерацией. Arena Live, spectator-layer, typing-индикаторы, Telegram surface/support/release-flow и обычный dispute-flow проверены Playwright-набором на desktop, wide и mobile.
 
-В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также подготовка следующего AI-слоя. Мягкая многоагентная архитектура оформлена как staged rollout: сначала role-based orchestration внутри текущего `src/lib/ai.ts`, затем feature registry, `ai_agent_runs` и только после этого real multi-model routing.
+В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также упаковка следующих стратегических пластов в отдельные staged-rollout блоки. Помимо AI orchestration, отдельно зафиксированы profile quests, reputation, education layer, appeals и trust tiers как возвращаемые продуктовые направления с v1-порогом входа и дальнейшим хвостом развития.
 
 ## Общий прогресс
 
@@ -167,3 +167,4 @@
 | 2026-03-16 | Reminder flow для архивированных споров: ожидание ответа теперь можно мягко напомнить кнопкой `Напомнить о споре`, действует лимит `3/час` и `15/сутки`, после повторной архивации Telegram больше не спамит, а попытки возобновления копятся как `pending reminders`, поднимают спор в архиве и сводятся в отдельный архивный бар на dashboard |
 | 2026-03-16 | Концепт проекта переведён из `docx` в Markdown: основной source of truth теперь в `тз и концепция/Konsensus_TZ_v0.1.md`, а `docs/concept.md` сокращён до входной точки. В Markdown-концепт добавлен синтез исходных архивов идеи и выделены 4 стратегических продуктовых слоя: многоагентный ИИ, профилирование, репутация как качество диалога и образовательный контур |
 | 2026-03-16 | Многоагентный AI-слой оформлен как возвращаемый блок развития: создан `docs/ops/ai-orchestration-rollout.md`, где зафиксирован v1-подход через virtual subagents (`legal/empathy/mediation/fact lenses`) внутри текущего `src/lib/ai.ts`, а также следующий хвост развития: feature registry, `ai_agent_runs`, AI-profile-driven routing и real multi-model routing |
+| 2026-03-16 | Остальные стратегические продуктовые пласты тоже оформлены как отдельные rollout-блоки: `profile-quests-rollout.md`, `reputation-rollout.md`, `education-layer-rollout.md`, `appeals-rollout.md`, `trust-tiers-rollout.md`. Каждый блок зафиксирован как staged направление: что можно сделать уже сейчас в v1, что не делать сразу и что нужно будет добить позже |

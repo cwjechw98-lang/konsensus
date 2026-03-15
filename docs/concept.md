@@ -32,3 +32,13 @@ Konsensus — не сервис для победы в споре. Это сре
 - глобальные институциональные сценарии уровня международной дипломатической площадки
 
 Эти идеи остаются перспективными, но как отдельные продуктовые ветки, а не как следующий слой MVP.
+
+## Отдельные rollout-блоки
+
+Следующие стратегические пласты оформлены как отдельные возвращаемые планы:
+- [ai-orchestration-rollout.md](/C:/project21/konsensus/docs/ops/ai-orchestration-rollout.md)
+- [profile-quests-rollout.md](/C:/project21/konsensus/docs/ops/profile-quests-rollout.md)
+- [reputation-rollout.md](/C:/project21/konsensus/docs/ops/reputation-rollout.md)
+- [education-layer-rollout.md](/C:/project21/konsensus/docs/ops/education-layer-rollout.md)
+- [appeals-rollout.md](/C:/project21/konsensus/docs/ops/appeals-rollout.md)
+- [trust-tiers-rollout.md](/C:/project21/konsensus/docs/ops/trust-tiers-rollout.md)
