@@ -385,6 +385,25 @@ export async function notifyOpponentJoined(
   });
 }
 
+export async function notifyDirectChallengeReceived(
+  chatId: number,
+  senderName: string,
+  disputeTitle: string,
+  disputeDescription: string,
+  disputeId: string
+): Promise<number | null> {
+  const description = disputeDescription.trim();
+  const trimmedDescription =
+    description.length > 220 ? `${description.slice(0, 217)}...` : description;
+
+  return upsertTelegramNotification({
+    chatId,
+    dedupeKey: `direct_challenge:${disputeId}`,
+    text: `📨 <b>${senderName}</b> приглашает вас в спор\n\nСпор: <i>${disputeTitle}</i>${trimmedDescription ? `\nСуть: ${trimmedDescription}` : ""}\nВаш аккаунт уже найден — можно сразу открыть и ответить.`,
+    url: `${APP_URL}/dispute/${disputeId}`,
+  });
+}
+
 // NEW: Notify when dispute is fully resolved (consensus reached)
 export async function notifyDisputeResolved(
   chatId: number,

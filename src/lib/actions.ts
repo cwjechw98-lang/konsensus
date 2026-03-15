@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArgumentNotification, sendMediationReadyNotification, sendInviteEmail, sendDirectChallengeEmail } from "@/lib/email";
-import { notifyArgumentReceived, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
+import { notifyArgumentReceived, notifyDirectChallengeReceived, notifyMediationReady, notifyOpponentJoined, notifyDisputeResolved } from "@/lib/telegram";
 import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSummary, categorizeTopicAI } from "@/lib/ai";
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
@@ -13,6 +13,33 @@ import { getAppUrl } from "@/lib/url";
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
 type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
+
+async function findExistingUserByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string
+) {
+  let page = 1;
+
+  while (page <= 20) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error) throw error;
+
+    const found = data.users.find(
+      (candidate) => candidate.email?.toLowerCase() === email && !candidate.is_anonymous
+    );
+
+    if (found) return found;
+    if (data.users.length < 200) break;
+
+    page += 1;
+  }
+
+  return null;
+}
 
 export async function createDispute(formData: FormData) {
   const supabase = await createClient();
@@ -59,10 +86,7 @@ export async function createDispute(formData: FormData) {
   if (opponentEmail) {
     try {
       const admin = createAdminClient();
-      const { data: userList } = await admin.auth.admin.listUsers();
-      const found = userList?.users?.find(
-        (u) => u.email?.toLowerCase() === opponentEmail && !u.is_anonymous
-      );
+      const found = await findExistingUserByEmail(admin, opponentEmail);
       if (found && found.id !== user.id) {
         opponentId = found.id;
         initialStatus = "in_progress";
@@ -132,8 +156,25 @@ export async function createDispute(formData: FormData) {
             toName: opponentUser.data.user.user_metadata?.display_name ?? "Участник",
             fromName: creatorDisplayName,
             disputeTitle: title,
+            disputeDescription: description,
             disputeId: data.id,
           });
+        }
+
+        const { data: opponentProfile } = await admin
+          .from("profiles")
+          .select("telegram_chat_id")
+          .eq("id", opponentId)
+          .single<{ telegram_chat_id: number | null }>();
+
+        if (opponentProfile?.telegram_chat_id) {
+          await notifyDirectChallengeReceived(
+            opponentProfile.telegram_chat_id,
+            creatorDisplayName,
+            title,
+            description,
+            data.id
+          );
         }
       } else {
         const appUrl = await getAppUrl();

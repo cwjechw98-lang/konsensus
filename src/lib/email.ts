@@ -142,12 +142,14 @@ export async function sendDirectChallengeEmail({
   toName,
   fromName,
   disputeTitle,
+  disputeDescription,
   disputeId,
 }: {
   toEmail: string;
   toName: string;
   fromName: string;
   disputeTitle: string;
+  disputeDescription?: string;
   disputeId: string;
 }) {
   if (!resend) return;
@@ -170,6 +172,12 @@ export async function sendDirectChallengeEmail({
         <p style="margin:0 0 8px;color:#d1d5db;font-size:14px;">
           <b style="color:#a78bfa">${fromName}</b> выбрал вас оппонентом в споре.
         </p>
+        ${disputeDescription ? `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin:0 0 18px;">
+          <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;">Описание</p>
+          <p style="margin:0;color:#d1d5db;font-size:14px;line-height:1.6;">${disputeDescription}</p>
+        </div>
+        ` : ""}
         <p style="margin:0 0 24px;color:#6b7280;font-size:13px;">
           Спор уже начался — ваш ход. Войдите и подайте первый аргумент.
         </p>
