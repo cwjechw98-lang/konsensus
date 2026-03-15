@@ -153,6 +153,7 @@
   Первый шаг: `basic / linked / trusted` без тяжёлой KYC-модели
 - [x] Ops-документация: local-only настройки, release-flow, model-strategy
 - [x] Витрина поддержки проекта: support links через env, отдельная страница и ссылки в веб-интерфейсе
+- [x] Подготовлен маркетинговый контент-пакет для Boosty: уровни поддержки, цели, блок `О проекте`, стартовые посты, витринный paid-post и промпты визуалов в `docs/marketing/boosty/`
 - [x] Vercel production env для support/release visibility
   Env добавлены через Vercel dashboard, production redeploy выполнен
 
