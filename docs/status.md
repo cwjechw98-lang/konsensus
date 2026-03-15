@@ -5,9 +5,9 @@
 
 ## Текущий этап
 
-**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Telegram CTA в вебе, release automation в бот и канал, support hub и ops-документация.
+**Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена. Добавлены Arena Live с spectator-view, Telegram-подписки на battle, observer-layer и typing-индикаторы в арене и основном споре.
 
-В работе: первая инфраструктурная итерация для E2E через Playwright.
+В работе: внешняя настройка Vercel env для support/release visibility и следующая итерация по тестам.
 
 ## Общий прогресс
 
@@ -22,6 +22,7 @@
 - [x] "Всезнающий Сурок" — AI-комментатор каждые 5 сообщений
 - [x] Антиспам: блокировки 1 мин → 5 мин, DDoS-защита
 - [x] Арена вызовов /arena (доска, hover RPG-тултипы, раундовая дискуссия, авто-медиация)
+- [x] Arena Live: публичные active battle, spectator-view без логина, observer chat, delayed observer hints, Telegram watch
 - [x] RPG-профиль (4 стата, 6 классов, bio, debate_stance)
 - [x] Шаблоны тем споров
 - [x] Поиск оппонента (матчинг по темам, фильтры, join open-спора)
@@ -44,6 +45,8 @@
 - [x] Release automation для Telegram (структурированный payload, bot + channel, branded release image, publish script)
 - [x] Ops-слой проекта (`local-only`, `release-flow`, `model-strategy`)
 - [x] Support hub с env-конфигурируемыми ссылками
+- [~] Production visibility для support/release env
+  В коде и `.env.local` подготовлено, но production-применение ждёт авторизованный доступ к Vercel CLI / dashboard
 
 ## Стек технологий
 
@@ -77,6 +80,8 @@
 | 00012_user_unique_achievements.sql | user_unique_achievements (AI-награды, отдельное хранение) |
 | 00013_telegram_message_index.sql | telegram_message_index в profiles (дедупликация и обновление bot-уведомлений) |
 | 00014_arena_rounds.sql | max_rounds в challenges (раундовая механика арены) |
+| 00015_release_announcements.sql | release_announcements (структурированные релизы, bot + channel publish) |
+| 00016_arena_live_spectators.sql | challenge_watchers, challenge_comments, challenge_opinions, challenge_observer_hints, RLS для live spectator-layer |
 
 ## Ключевые компоненты
 
@@ -91,6 +96,9 @@
 | AchievementToast | Глобальный тост разблокировки ачивки |
 | AnimatedCounter | Анимированный счётчик очков |
 | WaitingTips | Rotating советы дебатёра во время ожидания |
+| ArenaLiveBoard | Блок активных battle на `/arena` |
+| SpectatorPulseGame | Локальная idle-игра для зрителей battle |
+| ChallengeChat | Раундовая арена + spectator mode + observer layer + Telegram watch |
 
 ## Git-ветки
 
@@ -139,3 +147,7 @@
 | 2026-03-15 | Добавлена витрина поддержки проекта: отдельная страница `/support`, footer и ссылки через env на Boosty/crypto/альтернативный способ |
 | 2026-03-15 | Release subsystem расширен до структурированных релизов: таблица `release_announcements`, branded-image, publish в бот и канал, локальный `npm run release:telegram` |
 | 2026-03-15 | Добавлен ops-слой документации: `docs/ops/local-only.md`, `docs/ops/release-flow.md`, `docs/ops/model-strategy.md` |
+| 2026-03-15 | Arena Live: на `/arena` добавлен список активных battle, `/arena/[id]` теперь имеет participant/spectator mode, observer chat, delayed spectator opinions и локальную idle-игру |
+| 2026-03-15 | Добавлены Telegram-подписки на battle и dedupe-уведомления для наблюдателей по завершению раунда, ответу и финалу |
+| 2026-03-15 | Typing indicators добавлены и в основной dispute-flow, и в arena battle через Supabase Realtime broadcast |
+| 2026-03-15 | Production visibility для support/release проверена: локальный env подготовлен, но Vercel CLI не авторизован, поэтому prod env и redeploy требуют внешнего ручного шага |

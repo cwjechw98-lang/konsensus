@@ -43,6 +43,10 @@ export async function updateSession(request: NextRequest) {
     segments[1] !== "new" &&
     segments[1] !== "join";
 
+  const isPublicArenaView =
+    segments[0] === "arena" &&
+    segments.length === 2;
+
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
@@ -55,7 +59,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/tg") ||
     pathname.startsWith("/dispute/join") ||
-    isPublicDisputeView;
+    isPublicDisputeView ||
+    isPublicArenaView;
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

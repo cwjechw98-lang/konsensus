@@ -3,9 +3,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateChallengeInsight, generateChallengeMediation } from "@/lib/ai";
-import { notifyChallengeAccepted, notifyChallengeMessage, notifyNewChallenge } from "@/lib/telegram";
+import { generateChallengeInsight, generateChallengeMediation, generateChallengeObserverHint, moderateChallengeOpinion } from "@/lib/ai";
+import { notifyBattleWatcherUpdate, notifyChallengeAccepted, notifyChallengeMessage, notifyNewChallenge } from "@/lib/telegram";
 import { categorizeTopicAI } from "@/lib/ai";
+
+const MAX_OPINIONS_PER_CHALLENGE = 3;
+const OPINION_COOLDOWN_MS = 90_000;
+const MAX_COMMENT_LENGTH = 400;
+const MAX_OPINION_LENGTH = 280;
 
 export async function createChallenge(formData: FormData) {
   const supabase = await createClient();
@@ -183,6 +188,28 @@ export async function sendChallengeMessage(
     }
   } catch { /* non-critical */ }
 
+  try {
+    const { data: watchers } = await admin
+      .from("challenge_watchers")
+      .select("profiles!challenge_watchers_user_id_fkey(telegram_chat_id)")
+      .eq("challenge_id", challengeId)
+      .eq("notify_in_telegram", true)
+      .returns<{ profiles: { telegram_chat_id: number | null } | null }[]>();
+
+    const replyRound = Math.min(challengeInfo.max_rounds, myCount + 1);
+    for (const watcher of watchers ?? []) {
+      if (watcher.profiles?.telegram_chat_id) {
+        await notifyBattleWatcherUpdate(
+          watcher.profiles.telegram_chat_id,
+          challengeId,
+          challengeInfo.topic,
+          "reply",
+          replyRound
+        );
+      }
+    }
+  } catch { /* non-critical */ }
+
   // The opponent completing a round is the single safe place to trigger AI commentary and final mediation.
   if (!isOpponent) return;
 
@@ -219,6 +246,26 @@ export async function sendChallengeMessage(
       .update({ status: "closed" } as never)
       .eq("id", challengeId);
 
+    try {
+      const { data: watchers } = await admin
+        .from("challenge_watchers")
+        .select("profiles!challenge_watchers_user_id_fkey(telegram_chat_id)")
+        .eq("challenge_id", challengeId)
+        .eq("notify_in_telegram", true)
+        .returns<{ profiles: { telegram_chat_id: number | null } | null }[]>();
+
+      for (const watcher of watchers ?? []) {
+        if (watcher.profiles?.telegram_chat_id) {
+          await notifyBattleWatcherUpdate(
+            watcher.profiles.telegram_chat_id,
+            challengeId,
+            challengeInfo.topic,
+            "closed"
+          );
+        }
+      }
+    } catch { /* non-critical */ }
+
     return;
   }
 
@@ -234,6 +281,60 @@ export async function sendChallengeMessage(
       } as never);
     }
   }
+
+  try {
+    const { data: approvedOpinions } = await admin
+      .from("challenge_opinions")
+      .select("id, content")
+      .eq("challenge_id", challengeId)
+      .eq("round", completedRound)
+      .eq("moderation_status", "approved")
+      .limit(8)
+      .returns<{ id: string; content: string }[]>();
+
+    if ((approvedOpinions ?? []).length > 0) {
+      const hint = await generateChallengeObserverHint(
+        challengeInfo.topic,
+        completedRound,
+        formatted,
+        approvedOpinions ?? []
+      );
+
+      if (hint) {
+        await admin.from("challenge_observer_hints").upsert({
+          challenge_id: challengeId,
+          round: completedRound,
+          content: hint,
+        } as never, { onConflict: "challenge_id,round" });
+
+        await admin
+          .from("challenge_opinions")
+          .update({ is_selected: true } as never)
+          .in("id", (approvedOpinions ?? []).map((op) => op.id));
+      }
+    }
+  } catch { /* non-critical */ }
+
+  try {
+    const { data: watchers } = await admin
+      .from("challenge_watchers")
+      .select("profiles!challenge_watchers_user_id_fkey(telegram_chat_id)")
+      .eq("challenge_id", challengeId)
+      .eq("notify_in_telegram", true)
+      .returns<{ profiles: { telegram_chat_id: number | null } | null }[]>();
+
+    for (const watcher of watchers ?? []) {
+      if (watcher.profiles?.telegram_chat_id) {
+        await notifyBattleWatcherUpdate(
+          watcher.profiles.telegram_chat_id,
+          challengeId,
+          challengeInfo.topic,
+          "round_complete",
+          completedRound
+        );
+      }
+    }
+  } catch { /* non-critical */ }
 }
 
 export async function closeChallenge(challengeId: string) {
@@ -295,4 +396,105 @@ export async function requestChallengeMediation(challengeId: string) {
     .eq("id", challengeId);
 
   redirect("/arena/" + challengeId + "?mediated=1");
+}
+
+export async function toggleChallengeWatch(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const challengeId = (formData.get("challenge_id") as string) ?? "";
+  const admin = createAdminClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("telegram_chat_id")
+    .eq("id", user.id)
+    .single<{ telegram_chat_id: number | null }>();
+
+  if (!profile?.telegram_chat_id) {
+    redirect(`/arena/${challengeId}?error=telegram_required`);
+  }
+
+  const { data: existing } = await admin
+    .from("challenge_watchers")
+    .select("id")
+    .eq("challenge_id", challengeId)
+    .eq("user_id", user.id)
+    .single<{ id: string }>();
+
+  if (existing) {
+    await admin.from("challenge_watchers").delete().eq("id", existing.id);
+  } else {
+    await admin.from("challenge_watchers").insert({
+      challenge_id: challengeId,
+      user_id: user.id,
+      notify_in_telegram: true,
+    } as never);
+  }
+}
+
+export async function addChallengeComment(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const challengeId = (formData.get("challenge_id") as string) ?? "";
+  const content = ((formData.get("content") as string) ?? "").trim();
+  if (!content || content.length > MAX_COMMENT_LENGTH) return;
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single<{ display_name: string | null }>();
+
+  await admin.from("challenge_comments").insert({
+    challenge_id: challengeId,
+    author_id: user.id,
+    author_name: profile?.display_name ?? "Наблюдатель",
+    content,
+  } as never);
+}
+
+export async function submitChallengeOpinion(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const challengeId = (formData.get("challenge_id") as string) ?? "";
+  const round = Math.max(1, parseInt((formData.get("round") as string) ?? "1"));
+  const content = ((formData.get("content") as string) ?? "").trim();
+  if (!content || content.length > MAX_OPINION_LENGTH) return;
+
+  const admin = createAdminClient();
+  const { count: totalOpinions } = await admin
+    .from("challenge_opinions")
+    .select("*", { count: "exact", head: true })
+    .eq("challenge_id", challengeId)
+    .eq("user_id", user.id);
+
+  if ((totalOpinions ?? 0) >= MAX_OPINIONS_PER_CHALLENGE) return;
+
+  const cooldownFrom = new Date(Date.now() - OPINION_COOLDOWN_MS).toISOString();
+  const { count: recent } = await admin
+    .from("challenge_opinions")
+    .select("*", { count: "exact", head: true })
+    .eq("challenge_id", challengeId)
+    .eq("user_id", user.id)
+    .gte("created_at", cooldownFrom);
+
+  if ((recent ?? 0) > 0) return;
+
+  const moderation = await moderateChallengeOpinion(content);
+
+  await admin.from("challenge_opinions").insert({
+    challenge_id: challengeId,
+    user_id: user.id,
+    round,
+    content,
+    moderation_status: moderation.approved ? "approved" : "rejected",
+    is_selected: false,
+  } as never);
 }

@@ -464,6 +464,108 @@ ${history}
   }
 }
 
+export async function moderateChallengeOpinion(content: string): Promise<{
+  approved: boolean;
+  reason: string;
+}> {
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 120,
+      response_format: { type: "json_object" },
+      messages: [{
+        role: "user",
+        content: `Ты модерируешь короткое мнение наблюдателя в дискуссии. Отвечай строго JSON.
+
+Проверь текст на:
+- прямые оскорбления
+- токсичное подстрекательство
+- спам или бессмысленный шум
+- попытку командовать участниками в грубой форме
+
+Если мнение можно использовать как часть общего наблюдения, одобри его.
+
+Текст:
+"${content}"
+
+Верни JSON:
+{
+  "approved": true или false,
+  "reason": "коротко на русском, почему одобрено или отклонено"
+}`,
+      }],
+    });
+
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    return {
+      approved: Boolean(result.approved),
+      reason: (result.reason as string) ?? "",
+    };
+  } catch {
+    return {
+      approved: true,
+      reason: "Мнение принято без ИИ-модерации",
+    };
+  }
+}
+
+export async function generateChallengeObserverHint(
+  topic: string,
+  round: number,
+  messages: { author: string; content: string }[],
+  opinions: { content: string }[]
+): Promise<string> {
+  if (opinions.length === 0) return "";
+
+  try {
+    const Groq = (await import("groq-sdk")).default;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const dialogue = messages.map((m) => `${m.author}: "${m.content}"`).join("\n");
+    const crowd = opinions.map((op, index) => `${index + 1}. ${op.content}`).join("\n");
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 220,
+      response_format: { type: "json_object" },
+      messages: [{
+        role: "user",
+        content: `Ты ИИ-медиатор. На основе коротких мнений наблюдателей сформируй мягкий приватный hint для участников. Отвечай строго JSON на русском.
+
+Тема: "${topic}"
+Раунд: ${round}
+
+Диалог:
+${dialogue}
+
+Одобренные мнения наблюдателей:
+${crowd}
+
+Правила:
+- не перечисляй мнения по одному
+- не говори "зрители считают"
+- не давай сырые цитаты
+- сделай 2-3 предложения
+- тон: нейтральный, мягкий, полезный, без ощущения давления толпы
+- hint должен звучать как дополнительный угол взгляда, который может помочь участникам лучше понять друг друга
+
+Верни JSON:
+{
+  "hint": "краткий aggregated hint на русском"
+}`,
+      }],
+    });
+
+    const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    return (result.hint as string) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 async function saveInsights(
   admin: ReturnType<typeof createAdminClient>,
   disputeId: string,

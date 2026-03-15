@@ -458,7 +458,9 @@ export default function RealtimeDisputeClient({
   const [heatLevel, setHeatLevel] = useState(initialHeatLevel);
   const [earlyEndProposedBy, setEarlyEndProposedBy] = useState<string | null>(initialEarlyEndProposedBy);
   const [currentWaitingInsight, setCurrentWaitingInsight] = useState(initialWaitingInsight);
+  const [typingName, setTypingName] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
@@ -613,12 +615,28 @@ export default function RealtimeDisputeClient({
       )
       .subscribe();
 
+    const typingChannel = supabase
+      .channel(`dispute-typing:${dispute.id}`)
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const row = payload as { name?: string; isTyping?: boolean };
+        if (!row?.isTyping) {
+          setTypingName("");
+          return;
+        }
+        setTypingName(row.name ?? "Оппонент");
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setTypingName(""), 2400);
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(insightsChannel);
       supabase.removeChannel(publicSummariesChannel);
       supabase.removeChannel(analysisChannel);
       supabase.removeChannel(waitingChannel);
+      supabase.removeChannel(typingChannel);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, [dispute.id, userId, scrollToBottom, router, status]);
 
@@ -655,6 +673,13 @@ export default function RealtimeDisputeClient({
         <div className="mb-4 bg-purple-500/15 border border-purple-500/25 text-purple-300 text-sm px-4 py-3 rounded-xl flex items-center gap-2 animate-pulse">
           <span className="pulse-dot w-2 h-2 rounded-full bg-purple-400 inline-block" />
           {newArgFlash}
+        </div>
+      )}
+
+      {typingName && status === "in_progress" && (
+        <div className="mb-4 border border-cyan-500/15 bg-cyan-500/[0.06] text-cyan-200 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+          <span className="pulse-dot w-2 h-2 rounded-full bg-cyan-300 inline-block" />
+          {typingName} печатает ответ...
         </div>
       )}
 

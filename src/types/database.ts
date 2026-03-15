@@ -119,6 +119,91 @@ export interface Database {
           created_at?: string;
         };
       };
+      challenge_watchers: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          user_id: string;
+          notify_in_telegram: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          user_id: string;
+          notify_in_telegram?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          notify_in_telegram?: boolean;
+        };
+      };
+      challenge_comments: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          author_id: string | null;
+          author_name: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          author_id?: string | null;
+          author_name: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
+      challenge_opinions: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          user_id: string;
+          round: number;
+          content: string;
+          moderation_status: string;
+          is_selected: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          user_id: string;
+          round: number;
+          content: string;
+          moderation_status?: string;
+          is_selected?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          moderation_status?: string;
+          is_selected?: boolean;
+        };
+      };
+      challenge_observer_hints: {
+        Row: {
+          id: string;
+          challenge_id: string;
+          round: number;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenge_id: string;
+          round: number;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          content?: string;
+        };
+      };
       disputes: {
         Row: {
           id: string;

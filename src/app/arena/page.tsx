@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchRPGStats } from "@/lib/rpg";
 import ChallengeBoard from "@/components/ChallengeBoard";
+import ArenaLiveBoard from "@/components/ArenaLiveBoard";
 
 export const revalidate = 0;
 
@@ -63,6 +64,47 @@ export default async function ArenaPage({
     },
   }));
 
+  const { data: activeChallenges } = await supabase
+    .from("challenges")
+    .select(`
+      id, topic, status, max_rounds, author_id, accepted_by,
+      author_profile:profiles!challenges_author_id_fkey(display_name),
+      accepted_profile:profiles!challenges_accepted_by_fkey(display_name)
+    `)
+    .eq("status", "active")
+    .not("accepted_by", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(20)
+    .returns<{
+      id: string;
+      topic: string;
+      status: string;
+      max_rounds: number;
+      author_id: string;
+      accepted_by: string | null;
+      author_profile: { display_name: string | null } | null;
+      accepted_profile: { display_name: string | null } | null;
+    }[]>();
+
+  const activeIds = (activeChallenges ?? []).map((challenge) => challenge.id);
+  const { data: activeMessages } = activeIds.length > 0
+    ? await supabase
+      .from("challenge_messages")
+      .select("challenge_id, is_ai")
+      .in("challenge_id", activeIds)
+      .returns<{ challenge_id: string; is_ai: boolean }[]>()
+    : { data: [] as { challenge_id: string; is_ai: boolean }[] };
+
+  const liveChallenges = (activeChallenges ?? []).map((challenge) => ({
+    id: challenge.id,
+    topic: challenge.topic,
+    max_rounds: challenge.max_rounds,
+    message_count: (activeMessages ?? []).filter((message) => message.challenge_id === challenge.id && !message.is_ai).length,
+    author_name: challenge.author_profile?.display_name ?? "Участник 1",
+    opponent_name: challenge.accepted_profile?.display_name ?? "Участник 2",
+    status: challenge.status,
+  }));
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="mb-8">
@@ -78,7 +120,10 @@ export default async function ArenaPage({
         </div>
       )}
 
-      <ChallengeBoard challenges={challengesWithStats} currentUserId={user?.id ?? null} />
+      <div className="grid grid-cols-1 gap-8">
+        <ArenaLiveBoard challenges={liveChallenges} />
+        <ChallengeBoard challenges={challengesWithStats} currentUserId={user?.id ?? null} />
+      </div>
     </div>
   );
 }

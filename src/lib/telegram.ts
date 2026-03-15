@@ -474,3 +474,24 @@ export async function notifyNewChallenge(
     `${APP_URL}/arena`
   );
 }
+
+export async function notifyBattleWatcherUpdate(
+  chatId: number,
+  challengeId: string,
+  topic: string,
+  event: "round_complete" | "reply" | "closed",
+  round?: number
+): Promise<number | null> {
+  const labelMap = {
+    round_complete: round ? `⚔️ Раунд ${round} завершён` : "⚔️ Раунд завершён",
+    reply: round ? `💬 Появился ответ в раунде ${round}` : "💬 В battle появился ответ",
+    closed: "🏁 Battle завершён",
+  };
+
+  return upsertTelegramNotification({
+    chatId,
+    dedupeKey: `battle_watch:${challengeId}:${event}:${round ?? 0}`,
+    text: `${labelMap[event]}\n\nТема: <i>${topic}</i>`,
+    url: `${APP_URL}/arena/${challengeId}`,
+  });
+}

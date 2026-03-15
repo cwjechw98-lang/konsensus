@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { submitArgument, evaluateArgument } from "@/lib/actions";
+import { createClient } from "@/lib/supabase/client";
 
 type EvalResult = {
   score: number;
@@ -63,6 +65,37 @@ export default function ArgueFormClient({
   const [evalError, setEvalError] = useState(false);
   const positionRef = useRef<HTMLInputElement>(null);
   const reasoningRef = useRef<HTMLTextAreaElement>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase.channel(`dispute-typing:${disputeId}`).subscribe();
+    typingChannelRef.current = channel;
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [disputeId]);
+
+  function emitTyping(isTyping: boolean) {
+    if (!typingChannelRef.current) return;
+    void typingChannelRef.current.send({
+      type: "broadcast",
+      event: "typing",
+      payload: {
+        name: userName,
+        isTyping,
+      },
+    });
+  }
+
+  function scheduleTyping() {
+    emitTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => emitTyping(false), 1800);
+  }
 
   async function handleEvaluate() {
     const position = (isFirstRound ? positionRef.current?.value : "Ответ") ?? "";
@@ -91,7 +124,7 @@ export default function ArgueFormClient({
   if (isFirstRound) {
     return (
       <div className="glass rounded-2xl p-4 sm:p-8">
-        <form action={submitArgument} className="flex flex-col gap-5">
+        <form action={submitArgument} className="flex flex-col gap-5" onSubmit={() => emitTyping(false)}>
           <input type="hidden" name="dispute_id" value={disputeId} />
 
           <label className="flex flex-col gap-1.5">
@@ -102,7 +135,10 @@ export default function ArgueFormClient({
               type="text"
               required
               maxLength={300}
-              onChange={() => { if (evalResult) setEvalResult(null); }}
+              onChange={() => {
+                if (evalResult) setEvalResult(null);
+                scheduleTyping();
+              }}
               className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
               placeholder="«Я считаю, что...»"
             />
@@ -116,7 +152,11 @@ export default function ArgueFormClient({
               required
               rows={6}
               maxLength={2000}
-              onChange={() => { if (evalResult) setEvalResult(null); }}
+              onChange={() => {
+                if (evalResult) setEvalResult(null);
+                scheduleTyping();
+              }}
+              onBlur={() => emitTyping(false)}
               className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-y"
               placeholder="Подробно объясните свою позицию..."
             />
@@ -182,7 +222,7 @@ export default function ArgueFormClient({
             {userName} <span className="text-purple-500">(вы)</span>
           </span>
 
-          <form action={submitArgument} className="flex flex-col gap-3">
+          <form action={submitArgument} className="flex flex-col gap-3" onSubmit={() => emitTyping(false)}>
             <input type="hidden" name="dispute_id" value={disputeId} />
             <input type="hidden" name="position" value="Ответ" />
 
@@ -194,7 +234,11 @@ export default function ArgueFormClient({
                 rows={4}
                 maxLength={2000}
                 autoFocus
-                onChange={() => { if (evalResult) setEvalResult(null); }}
+                onChange={() => {
+                  if (evalResult) setEvalResult(null);
+                  scheduleTyping();
+                }}
+                onBlur={() => emitTyping(false)}
                 className="w-full bg-transparent text-white placeholder:text-gray-600 focus:outline-none resize-y text-sm leading-relaxed"
                 placeholder="Ваш ответ..."
               />
