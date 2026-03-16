@@ -221,6 +221,9 @@
 - [x] Scheduled editorial posting
   Выполнено: release subsystem умеет отложенную публикацию через cron-runner и schedule fields в `release_announcements`
 
+- [x] Cleanup build-warning по editorial OG-route
+  Выполнено: из `/api/releases/[slug]/image` убран принудительный `edge runtime`, после чего `next build` больше не показывает warning про отключение static generation
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

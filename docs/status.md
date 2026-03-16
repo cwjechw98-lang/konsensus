@@ -271,3 +271,4 @@
 | 2026-03-16 | Реализован `Appeals v1.1`: добавлены поля manual override (`00025`), admin-only moderation queue внутри `AI-профиля`, ручной override поверх auto-review и применение effective result в profile/reputation слоях |
 | 2026-03-16 | Закрыт cleanup старых lint-warning: удалён неиспользуемый `code` prop из `GuestJoinButton`, а `TelegramConnect` очищен от неиспользуемого `useTransition` state |
 | 2026-03-16 | Реализован `Scheduled editorial posting`: `release_announcements` расширен schedule-полями (`00026`), `/api/telegram/broadcast` умеет schedule через `scheduleAt`, добавлен cron-runner `/api/telegram/editorial/run` и daily Vercel Cron в `vercel.json` |
+| 2026-03-16 | Убран build-warning Next.js про `edge runtime`: OG-route релизной карточки `/api/releases/[slug]/image` больше не форсирует `runtime = "edge"`, после чего `next build` проходит без предупреждения о выключении static generation |
