@@ -28,6 +28,8 @@
   Апелляции на автоматические AI-выводы и репутационные следствия.
 - [trust-tiers-rollout.md](/C:/project21/konsensus/docs/ops/trust-tiers-rollout.md)
   Типы аккаунтов и trust tiers для публичного слоя без тяжёлой KYC-модели.
+- [navigation-onboarding-rollout.md](/C:/project21/konsensus/docs/ops/navigation-onboarding-rollout.md)
+  Product shell, default route, заметный support-layer, mobile navigation и first-run onboarding.
 
 ## Смежные ops-документы
 

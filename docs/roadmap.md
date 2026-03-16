@@ -72,6 +72,9 @@
 - [x] Google OAuth callback синхронизирует `display_name` в `profiles`, чтобы обычный dispute-flow не падал в `Участник`
 - [x] Dashboard получил фильтр `Активные / Архив`, а споры архивируются явным действием без скрытых жестов
 - [x] Dashboard показывает архивный бар с попытками возобновления и поднимает архивные споры с pending reminders выше остальных
+- [ ] Navigation + Onboarding v1
+  Утверждённый пакет зафиксирован в `docs/ops/navigation-onboarding-rollout.md`
+  Что входит: auth-aware redirect с `/`, top-level IA `Споры / Открытые / Арена / События / Профиль`, постоянный support-layer и двухслойный first-run onboarding
 
 ## Фаза 8: Социальный слой ✅ (частично)
 - [x] Публичные споры (поле is_public, тумблер при создании)
