@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { submitArgument, evaluateArgument } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
+import SubmitButton from "@/components/SubmitButton";
 
 type EvalResult = {
   score: number;
@@ -187,12 +188,12 @@ export default function ArgueFormClient({
           <EvalCard result={evalResult} error={evalError} />
 
           <div className="flex flex-wrap gap-3 mt-2">
-            <button
-              type="submit"
-              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
+            <SubmitButton
+              pendingText="Отправляем аргумент..."
+              className="btn-ripple rounded-lg bg-purple-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Подать аргумент
-            </button>
+            </SubmitButton>
             <button
               type="button"
               data-tour="evaluate"
@@ -296,12 +297,12 @@ export default function ArgueFormClient({
               >
                 Отмена
               </Link>
-              <button
-                type="submit"
-                className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-xl font-semibold transition-colors text-sm"
+              <SubmitButton
+                pendingText="Отправляем..."
+                className="btn-ripple rounded-xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Отправить →
-              </button>
+              </SubmitButton>
             </div>
           </form>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { archiveDisputeForUser, closeDispute, unarchiveDisputeForUser } from "@/lib/actions";
 import type { DisputeStatus } from "@/types/database";
+import SubmitButton from "@/components/SubmitButton";
 
 type DashboardDisputeCardProps = {
   id: string;
@@ -96,23 +97,23 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
           <form action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}>
             <input type="hidden" name="dispute_id" value={id} />
             <input type="hidden" name="return_to" value={returnTo} />
-            <button
-              type="submit"
-              className="text-gray-500 hover:text-white transition-colors"
+            <SubmitButton
+              pendingText={archived ? "Возвращаем..." : "Архивируем..."}
+              className="text-gray-500 transition-colors hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {archived ? "Продолжить" : "Архивировать"}
-            </button>
+            </SubmitButton>
           </form>
 
           {archived && canClose && (status === "open" || status === "in_progress") && (
             <form action={closeDispute}>
               <input type="hidden" name="dispute_id" value={id} />
-              <button
-                type="submit"
-                className="text-gray-500 hover:text-red-300 transition-colors"
+              <SubmitButton
+                pendingText="Закрываем..."
+                className="text-gray-500 transition-colors hover:text-red-300 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Закрыть
-              </button>
+              </SubmitButton>
             </form>
           )}
 

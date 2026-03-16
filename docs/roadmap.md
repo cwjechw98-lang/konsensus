@@ -173,10 +173,11 @@
 
 - [x] AI orchestration v1
 - [x] Navigation + Onboarding v1.1
-- [ ] Perceived Performance v1
-  Первый следующий пакет: мгновенный `pending` на CTA, route-level loading/skeletons и приоритетная отрисовка основных блоков до вторичных догрузок
+- [x] Perceived Performance v1
+  Зафиксирован в `docs/ops/perceived-performance-rollout.md`
+  Реализовано: route-level `loading.tsx`, общий loading-shell и pending-state на ключевых server-action CTA
 - [ ] Activity Feed v1
-  После performance-пакета превратить `События` в реальный activity feed: release cards, arena activity, публичные dispute events
+  Следующий основной пакет: превратить `События` в реальный activity feed — release cards, arena activity, публичные dispute events
 - [ ] Landing v2 implementation
   После feed-пакета пересобрать лендинг по `docs/ops/landing-v2-rollout.md`
 

@@ -8,6 +8,7 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import RPGProfileCard from "@/components/RPGProfileCard";
 import PageContextCard from "@/components/PageContextCard";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import SubmitButton from "@/components/SubmitButton";
 import { fetchRPGStats } from "@/lib/rpg";
 import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
 
@@ -585,12 +586,12 @@ export default async function ProfilePage({
                   placeholder="Я спорю, потому что..."
                 />
               </label>
-              <button
-                type="submit"
-                className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors"
+              <SubmitButton
+                pendingText="Сохраняем..."
+                className="btn-ripple rounded-lg bg-purple-600 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Сохранить
-              </button>
+              </SubmitButton>
             </form>
           </div>
 

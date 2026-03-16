@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { acceptSolution } from "@/lib/actions";
 import ConsensusCelebration from "@/components/ConsensusCelebration";
+import SubmitButton from "@/components/SubmitButton";
 
 type ResolutionRow = {
   id: string;
@@ -119,12 +120,12 @@ export default function MediationClient({
                   <form action={acceptSolution}>
                     <input type="hidden" name="dispute_id" value={disputeId} />
                     <input type="hidden" name="solution_index" value={i} />
-                    <button
-                      type="submit"
-                      className="flex-shrink-0 text-sm bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg transition-colors"
+                    <SubmitButton
+                      pendingText="Принимаем..."
+                      className="flex-shrink-0 rounded-lg bg-purple-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Принять
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </div>

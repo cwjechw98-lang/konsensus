@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import RPGProfileCard from "@/components/RPGProfileCard";
 import type { RPGStats } from "@/lib/rpg";
 import { acceptChallenge, createChallenge } from "@/lib/arena-actions";
+import SubmitButton from "@/components/SubmitButton";
 
 const CATEGORY_FILTERS: { value: string; label: string; icon: string }[] = [
   { value: "all", label: "Все", icon: "🌐" },
@@ -93,12 +94,12 @@ function CreateChallengeForm({ onClose }: { onClose: () => void }) {
           <input type="hidden" name="max_rounds" value={rounds} />
         </div>
         <div className="flex gap-3">
-          <button
-            type="submit"
-            className="flex-1 btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors text-sm"
+          <SubmitButton
+            pendingText="Публикуем вызов..."
+            className="btn-ripple flex-1 rounded-lg bg-purple-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Бросить вызов ⚔️
-          </button>
+          </SubmitButton>
           <button
             type="button"
             onClick={onClose}
@@ -182,12 +183,12 @@ function ChallengeCard({
         </span>
         {canAccept ? (
           <form action={acceptChallenge.bind(null, challenge.id)}>
-            <button
-              type="submit"
-              className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-lg font-medium transition-colors"
+            <SubmitButton
+              pendingText="Входим..."
+              className="btn-ripple rounded-lg bg-purple-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Принять вызов ⚔️
-            </button>
+            </SubmitButton>
           </form>
         ) : isOwnChallenge ? (
           <span className="text-xs text-gray-600 italic">Ваш вызов</span>

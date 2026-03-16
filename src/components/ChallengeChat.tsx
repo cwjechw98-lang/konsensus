@@ -13,6 +13,7 @@ import {
 } from "@/lib/arena-actions";
 import WaitingAmbient from "@/components/WaitingAmbient";
 import ShadowMediatorPanel from "@/components/ShadowMediatorPanel";
+import SubmitButton from "@/components/SubmitButton";
 
 interface Message {
   id: string;
@@ -538,12 +539,12 @@ export default function ChallengeChat({
                     {sending ? "Отправляем..." : `Отправить раунд ${nextRound}`}
                   </button>
                   <form action={closeChallenge.bind(null, challengeId)}>
-                    <button
-                      type="submit"
-                      className="text-xs text-gray-600 hover:text-gray-400 border border-white/8 hover:border-white/20 rounded-lg px-3 py-2 transition-colors h-full"
+                    <SubmitButton
+                      pendingText="Закрываем..."
+                      className="h-full rounded-lg border border-white/8 px-3 py-2 text-xs text-gray-600 transition-colors hover:border-white/20 hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Закрыть вызов
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>

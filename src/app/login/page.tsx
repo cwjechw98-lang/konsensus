@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 import TelegramAuthButton from "@/components/TelegramAuthButton";
+import SubmitButton from "@/components/SubmitButton";
 
 // Переводим английские ошибки Supabase на русский
 const translateError = (msg: string): string => {
@@ -136,12 +137,12 @@ async function LoginForm({
         />
       </label>
 
-      <button
-        type="submit"
-        className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors mt-2"
+      <SubmitButton
+        pendingText="Входим..."
+        className="btn-ripple mt-2 rounded-lg bg-purple-600 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         Войти
-      </button>
+      </SubmitButton>
     </form>
   );
 }

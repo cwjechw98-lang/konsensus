@@ -3,6 +3,7 @@ import { joinDispute } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import GuestJoinButton from "@/components/GuestJoinButton";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function JoinDisputePage({
   searchParams,
@@ -122,12 +123,12 @@ export default async function JoinDisputePage({
                 /* Залогинен — сразу присоединяемся */
                 <form action={joinDispute} className="flex flex-col gap-3">
                   <input type="hidden" name="code" value={code} />
-                  <button
-                    type="submit"
-                    className="btn-ripple w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold transition-colors text-sm"
+                  <SubmitButton
+                    pendingText="Подключаем к спору..."
+                    className="btn-ripple w-full rounded-xl bg-purple-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Принять вызов →
-                  </button>
+                  </SubmitButton>
                   <p className="text-xs text-center text-gray-600">
                     Вы войдёте как <span className="text-gray-400">{user.email}</span>
                   </p>
@@ -210,12 +211,12 @@ export default async function JoinDisputePage({
                   placeholder="abc123def456"
                 />
               </label>
-              <button
-                type="submit"
-                className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
+              <SubmitButton
+                pendingText="Ищем спор..."
+                className="btn-ripple rounded-lg bg-purple-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Присоединиться
-              </button>
+              </SubmitButton>
             </form>
           ) : (
             <div className="text-center">

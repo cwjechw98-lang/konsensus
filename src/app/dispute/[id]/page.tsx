@@ -7,6 +7,7 @@ import ShareInviteButton from "@/components/ShareInviteButton";
 import RealtimeDisputeClient from "@/components/RealtimeDisputeClient";
 import DisputeReactions from "@/components/DisputeReactions";
 import DisputeChat from "@/components/DisputeChat";
+import SubmitButton from "@/components/SubmitButton";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -243,12 +244,12 @@ export default async function DisputePage({
       {isCreator && (dispute.status === "open" || dispute.status === "in_progress") && (
         <form action={closeDispute} className="mb-6">
           <input type="hidden" name="dispute_id" value={dispute.id} />
-          <button
-            type="submit"
-            className="text-xs text-gray-600 hover:text-red-400 border border-white/8 hover:border-red-500/30 rounded-lg px-3 py-1.5 transition-colors"
+          <SubmitButton
+            pendingText="Закрываем..."
+            className="rounded-lg border border-white/8 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Закрыть спор
-          </button>
+          </SubmitButton>
         </form>
       )}
 

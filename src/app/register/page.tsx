@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/url";
 import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 import TelegramAuthButton from "@/components/TelegramAuthButton";
+import SubmitButton from "@/components/SubmitButton";
 
 const translateError = (msg: string): string => {
   if (msg.includes("User already registered") || msg.includes("already been registered"))
@@ -120,12 +121,12 @@ export default async function RegisterPage({
               />
             </label>
 
-            <button
-              type="submit"
-              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white rounded-lg py-2.5 font-semibold transition-colors mt-2"
+            <SubmitButton
+              pendingText="Создаём аккаунт..."
+              className="btn-ripple mt-2 rounded-lg bg-purple-600 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Зарегистрироваться
-            </button>
+            </SubmitButton>
           </form>
         </div>
 

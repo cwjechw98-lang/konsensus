@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createDispute } from "@/lib/actions";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import PageContextCard from "@/components/PageContextCard";
+import SubmitButton from "@/components/SubmitButton";
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 type Template = {
@@ -355,12 +356,12 @@ export default function NewDisputePage() {
           </div>
 
           <div className="flex gap-3 mt-2">
-            <button
-              type="submit"
-              className="btn-ripple bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors"
+            <SubmitButton
+              pendingText="Создаём спор..."
+              className="btn-ripple rounded-lg bg-purple-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Создать спор
-            </button>
+            </SubmitButton>
             <Link
               href="/matchmaking"
               className="glass px-6 py-2.5 rounded-lg font-medium text-gray-300 hover:text-white transition-colors"

@@ -9,6 +9,7 @@ import WaitingTips from "@/components/WaitingTips";
 import MiniGames from "@/components/MiniGames";
 import WaitingAmbient from "@/components/WaitingAmbient";
 import InsightBreakdown from "@/components/InsightBreakdown";
+import SubmitButton from "@/components/SubmitButton";
 
 type Arg = {
   id: string;
@@ -703,21 +704,21 @@ export default function RealtimeDisputeClient({
           <div className="flex gap-2">
             <form action={acceptEarlyEnd}>
               <input type="hidden" name="dispute_id" value={dispute.id} />
-              <button
-                type="submit"
-                className="btn-ripple bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              <SubmitButton
+                pendingText="Принимаем..."
+                className="btn-ripple rounded-lg border border-yellow-500/30 bg-yellow-500/20 px-4 py-1.5 text-sm font-medium text-yellow-400 transition-colors hover:bg-yellow-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Принять
-              </button>
+              </SubmitButton>
             </form>
             <form action={declineEarlyEnd}>
               <input type="hidden" name="dispute_id" value={dispute.id} />
-              <button
-                type="submit"
-                className="glass text-gray-400 hover:text-white px-4 py-1.5 rounded-lg text-sm transition-colors"
+              <SubmitButton
+                pendingText="Отклоняем..."
+                className="glass rounded-lg px-4 py-1.5 text-sm text-gray-400 transition-colors hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Отклонить
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>
@@ -730,9 +731,12 @@ export default function RealtimeDisputeClient({
           <p className="text-sm text-yellow-400/80">Ожидаем согласия оппонента...</p>
           <form action={declineEarlyEnd} className="ml-auto">
             <input type="hidden" name="dispute_id" value={dispute.id} />
-            <button type="submit" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+            <SubmitButton
+              pendingText="Отменяем..."
+              className="text-xs text-gray-600 transition-colors hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               Отменить
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}
@@ -804,19 +808,22 @@ export default function RealtimeDisputeClient({
               <form action={sendDisputeReminder} className="flex justify-center">
                 <input type="hidden" name="dispute_id" value={dispute.id} />
                 <input type="hidden" name="return_to" value={`/dispute/${dispute.id}`} />
-                <button
-                  type="submit"
-                  className="text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
+                <SubmitButton
+                  pendingText="Напоминаем..."
+                  className="text-xs text-cyan-300 transition-colors hover:text-cyan-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Напомнить о споре
-                </button>
+                </SubmitButton>
               </form>
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />
-                  <button type="submit" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                  <SubmitButton
+                    pendingText="Отправляем..."
+                    className="text-xs text-gray-600 transition-colors hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
                     Предложить завершить досрочно
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
             </div>
@@ -843,19 +850,22 @@ export default function RealtimeDisputeClient({
               <form action={sendDisputeReminder} className="flex justify-center">
                 <input type="hidden" name="dispute_id" value={dispute.id} />
                 <input type="hidden" name="return_to" value={`/dispute/${dispute.id}`} />
-                <button
-                  type="submit"
-                  className="text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
+                <SubmitButton
+                  pendingText="Напоминаем..."
+                  className="text-xs text-cyan-300 transition-colors hover:text-cyan-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Напомнить о споре
-                </button>
+                </SubmitButton>
               </form>
               {!earlyEndProposedBy && (
                 <form action={proposeEarlyEnd}>
                   <input type="hidden" name="dispute_id" value={dispute.id} />
-                  <button type="submit" className="text-xs text-gray-600 hover:text-gray-400 transition-colors text-center w-full">
+                  <SubmitButton
+                    pendingText="Отправляем..."
+                    className="w-full text-center text-xs text-gray-600 transition-colors hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
                     Предложить завершить досрочно
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
             </div>
@@ -872,9 +882,12 @@ export default function RealtimeDisputeClient({
             {!earlyEndProposedBy && myArgCount > 0 && (
               <form action={proposeEarlyEnd}>
                 <input type="hidden" name="dispute_id" value={dispute.id} />
-                <button type="submit" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                <SubmitButton
+                  pendingText="Отправляем..."
+                  className="text-xs text-gray-600 transition-colors hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
                   Предложить завершить досрочно
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>

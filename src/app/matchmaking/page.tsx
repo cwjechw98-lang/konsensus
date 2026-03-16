@@ -5,6 +5,7 @@ import { joinDisputeFromMatchmaking } from "@/lib/actions";
 import { acceptChallenge } from "@/lib/arena-actions";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import PageContextCard from "@/components/PageContextCard";
+import SubmitButton from "@/components/SubmitButton";
 
 const CATEGORY_INFO: Record<string, { label: string; icon: string }> = {
   politics: { label: "Политика", icon: "🏛" },
@@ -186,12 +187,12 @@ export default async function MatchmakingPage({
                   </div>
                   <form action={joinDisputeFromMatchmaking} className="flex-shrink-0">
                     <input type="hidden" name="dispute_id" value={d.id} />
-                    <button
-                      type="submit"
-                      className="text-xs bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    <SubmitButton
+                      pendingText="Входим..."
+                      className="rounded-lg bg-purple-600/20 px-3 py-1.5 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Вступить в спор →
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -223,12 +224,12 @@ export default async function MatchmakingPage({
                     </p>
                   </div>
                   <form action={acceptChallenge.bind(null, c.id)} className="flex-shrink-0">
-                    <button
-                      type="submit"
-                      className="text-xs bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    <SubmitButton
+                      pendingText="Подключаем..."
+                      className="rounded-lg bg-orange-600/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Принять вызов →
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
