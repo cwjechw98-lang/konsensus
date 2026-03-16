@@ -6,6 +6,7 @@ import RippleEffect from "@/components/RippleEffect";
 import AchievementToast from "@/components/AchievementToast";
 import { BrowserNotificationPermission } from "@/components/BrowserNotifications";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { PageScrollProgress } from "@/components/PageScrollProgress";
 import { SupportStrip } from "@/components/SupportStrip";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupportLinks, isKonsensusAdminEmail } from "@/lib/site-config";
@@ -57,6 +58,7 @@ export default async function RootLayout({
         <AchievementToast />
         <BrowserNotificationPermission />
         <Header isLoggedIn={Boolean(user)} isAdmin={isAdmin} />
+        <PageScrollProgress />
         <main className={`flex-1 pt-14 ${showSupportStrip ? "pb-32 md:pb-0" : showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
         {showSupportStrip && <SupportStrip mobileOnly />}
         {showMobileShell && <MobileBottomNav />}

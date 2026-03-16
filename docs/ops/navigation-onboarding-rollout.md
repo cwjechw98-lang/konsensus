@@ -10,8 +10,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_1`
-- Текущий релиз: `Navigation + Onboarding v1.1`
+- Стадия: `implemented_v1_2`
+- Текущий релиз: `Navigation + Onboarding v1.2`
 - Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
 
 ### Выполнено в v1
@@ -20,7 +20,7 @@
 - Desktop shell получил более явный top-level набор: `События / Споры / Открытые / Арена / Профиль`
 - `Поддержать` сохранён как постоянный акцентный CTA в верхнем shell
 - На mobile основная навигация вынесена из hamburger в fixed bottom navigation
-- Для mobile добавлен постоянный support-strip с `Boosty` / `Crypto`
+- Для mobile support-strip больше не навязывается на каждом экране: он ограничен профильным/support-контекстом и может быть скрыт
 - Welcome onboarding на dashboard переписан в более сильный overview с крупным текстом и превью разделов
 - Page-level coach marks на dashboard синхронизированы с welcome-layer и больше не конфликтуют по таймингу
 - Contextual help расширен на ключевые внутренние экраны:
@@ -34,6 +34,8 @@
 - Переименованы пользовательские тексты разделов:
   - `Лента` -> `События`
   - `Оппоненты` -> `Открытые`
+- Добавлен верхний progress-indicator скролла, чтобы длинные mobile/TG-поверхности читались легче
+- Bottom nav получил safe-area padding для Telegram/iPhone-контекста
 
 ## Утверждённые продуктовые решения
 
@@ -66,8 +68,8 @@ Desktop:
 
 Mobile:
 - рабочая навигация должна быть постоянной
-- support-strip с `Boosty` и `Crypto` должен оставаться видимым
-- support-strip не должен растворяться внутри скрытого меню
+- support-strip не должен быть навязчивым рекламным баннером на каждом экране
+- быстрый доступ к поддержке остаётся в `Профиле`, `/support` и в самом лендинге
 
 ### 4. Mobile navigation
 
@@ -171,6 +173,10 @@ Mobile:
 
 ### v1.2
 - `События` вынесены в отдельный rollout [activity-feed-rollout.md](/C:/project21/konsensus/docs/ops/activity-feed-rollout.md) и реализованы как `Activity Feed v1`
+- mini-app polish:
+  - support-strip ограничен релевантными экранами;
+  - добавлен progress bar при длинном скролле;
+  - safe-area для mobile shell учтена лучше
 
 ### v1.3
 - учесть adaptive home по состоянию пользователя:

@@ -52,6 +52,7 @@ export function MobileBottomNav() {
     <nav
       aria-label="Основная навигация"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0814]/95 backdrop-blur-xl md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto grid max-w-5xl grid-cols-5 px-2 py-2">
         {NAV_ITEMS.map((item) => {

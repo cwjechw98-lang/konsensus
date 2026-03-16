@@ -248,6 +248,9 @@
 - [x] Editorial Ops finalization
   Выполнено: bulk actions, delivery summary cards, workflow timeline, ручная корректировка release type и conflict guards для multi-admin сценариев
 
+- [x] Telegram Mini-App UX cleanup
+  Выполнено: landing переведён на человеческий copy без dev-терминов, support-strip убран из каждого мобильного экрана, добавлен scroll progress bar и улучшен safe-area у нижнего shell
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

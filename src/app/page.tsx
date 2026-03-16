@@ -38,21 +38,24 @@ type LandingRelease = Pick<
 const STEPS = [
   {
     step: "01",
+    icon: "🧩",
     title: "Запустите спор",
     description:
-      "Сформулируйте тему, выберите раунды и задайте рамку, в которой разговор не разваливается в хаос.",
+      "Коротко сформулируйте тему и задайте число раундов. Система сразу собирает разговор в понятную рамку.",
   },
   {
     step: "02",
+    icon: "📨",
     title: "Пригласите человека",
     description:
-      "По email, Telegram, invite-коду или через открытую арену. Подключение не должно быть препятствием.",
+      "По email, Telegram, invite-коду или через открытую арену. Вход в спор не должен быть сложным.",
   },
   {
     step: "03",
+    icon: "🛰️",
     title: "Получите AI-медиацию",
     description:
-      "После каждого раунда видна динамика спора, а в конце ИИ собирает варианты решения вместо выбора победителя.",
+      "После каждого раунда видно, куда движется спор. В конце ИИ собирает варианты решения, а не объявляет победителя.",
   },
 ];
 
@@ -61,28 +64,28 @@ const PROOF_BLOCKS = [
     eyebrow: "Структурированный спор",
     title: "Каждый ход идёт по раундам, а не тонет в перебиваниях",
     description:
-      "Внутри одного цикла видны тема, последний ответ оппонента, оценка аргумента и понятный следующий шаг.",
+      "В каждом ходе видны тема, последний ответ оппонента и понятный следующий шаг. Не нужно собирать контекст по кускам.",
     chips: ["Раунды", "Контекст ответа", "Оценка аргумента"],
   },
   {
-    eyebrow: "AI после каждого раунда",
+    eyebrow: "Подсказка после раунда",
     title: "ИИ помогает увидеть логику второй стороны, а не объявляет победителя",
     description:
-      "Публичная карточка показывает сближение, приватный insight подсказывает следующий ход, waiting-layer поддерживает ожидание.",
-    chips: ["Public summary", "Private insight", "Waiting insight"],
+      "После раунда видно, где вы сблизились, что лучше уточнить и какой следующий ход снизит напряжение.",
+    chips: ["Общий итог", "Личный разбор", "Подсказка в ожидании"],
   },
   {
     eyebrow: "Арена и наблюдение",
     title: "Открытые бои и spectator-режим делают продукт живым, а не стерильным",
     description:
-      "Есть live battle, observer chat, delayed hints и открытые вызовы, к которым можно присоединиться.",
-    chips: ["Live battle", "Observer mode", "Open challenges"],
+      "Есть live battle, чат наблюдателей, delayed hints и открытые вызовы, к которым можно присоединиться.",
+    chips: ["Живые бои", "Режим наблюдателя", "Открытые вызовы"],
   },
   {
     eyebrow: "Профиль и возврат",
     title: "Пользователь возвращается не только спорить, но и видеть собственный прогресс",
     description:
-      "Профиль собирает ачивки, AI-профиль, архив споров и историю качества диалога.",
+      "Профиль собирает ачивки, AI-профиль, архив споров и историю вашего стиля диалога.",
     chips: ["AI-профиль", "Архив", "Ачивки"],
   },
 ];
@@ -184,7 +187,7 @@ function HeroPreview({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="glass rounded-3xl border border-cyan-500/15 bg-cyan-500/[0.05] p-5">
           <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-300">
-            AI round package
+            После раунда
           </p>
           <p className="mt-3 text-sm font-medium text-white">
             Сближение позиций: +1
@@ -196,7 +199,7 @@ function HeroPreview({
 
         <div className="glass rounded-3xl border border-emerald-500/15 bg-emerald-500/[0.05] p-5">
           <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-300">
-            arena live
+            Открытая арена
           </p>
           <p className="mt-3 text-sm font-medium text-white">
             {challenge
@@ -212,14 +215,9 @@ function HeroPreview({
       </div>
 
       <div className="glass rounded-3xl border border-amber-500/15 bg-amber-500/[0.05] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
-            последнее обновление
-          </p>
-          <span className="text-xs text-gray-500">
-            {release ? formatTime(release.created_at) : "сегодня"}
-          </span>
-        </div>
+        <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
+          Что нового
+        </p>
         <h4 className="mt-3 text-base font-semibold text-white">
           {release?.title ?? "Продукт обновляется и меняется не только на словах"}
         </h4>
@@ -359,12 +357,12 @@ export default async function HomePage({
         <div className="mx-auto max-w-6xl">
           <ScrollReveal>
             <div className="mb-10 max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-                Три шага
-              </p>
-              <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-                Не длинная инструкция, а короткий путь к первому результату
-              </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
+              Три шага
+            </p>
+            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
+              Не длинная инструкция, а короткий путь к первому результату
+            </h2>
             </div>
           </ScrollReveal>
 
@@ -372,7 +370,12 @@ export default async function HomePage({
             {STEPS.map((step, index) => (
               <ScrollReveal key={step.step} delay={index * 80}>
                 <div className="glass rounded-3xl border border-white/10 p-6">
-                  <p className="text-4xl font-bold text-white/15">{step.step}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-2xl">
+                      {step.icon}
+                    </span>
+                    <p className="text-4xl font-bold text-white/15">{step.step}</p>
+                  </div>
                   <h3 className="mt-5 text-xl font-semibold text-white">{step.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-gray-300">
                     {step.description}
@@ -390,15 +393,15 @@ export default async function HomePage({
             <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
-                  Proof blocks
+                  Что уже работает
                 </p>
                 <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-                  Продукт нужно показывать через поверхности, а не через лекцию
+                  Не обещания, а конкретные рабочие поверхности
                 </h2>
               </div>
               <p className="max-w-xl text-sm leading-relaxed text-gray-400">
-                Поэтому ниже не список обещаний, а короткие блоки о том, что уже
-                существует внутри Konsensus и зачем к этому хочется возвращаться.
+                Ниже короткие карточки о том, что уже есть внутри Konsensus и зачем
+                к этому реально возвращаться.
               </p>
             </div>
           </ScrollReveal>
@@ -443,7 +446,7 @@ export default async function HomePage({
             <ScrollReveal>
               <div className="glass rounded-3xl border border-emerald-500/15 bg-emerald-500/[0.05] p-6">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-300">
-                  live surface
+                  Живая среда
                 </p>
                 <h3 className="mt-4 text-2xl font-semibold text-white">
                   Арена, публичные споры и релизы уже работают как единый поток
@@ -510,7 +513,7 @@ export default async function HomePage({
 
               <ScrollReveal delay={140}>
                 <SurfaceCard
-                  eyebrow="Public preview"
+                  eyebrow="Публичный спор"
                   title={
                     featuredDispute?.title ??
                     "Публичные споры видны как реальные истории, а не как абстракция"
@@ -520,7 +523,7 @@ export default async function HomePage({
                       ? `${featuredDispute.description} · Обновлён ${formatTime(
                           featuredDispute.updated_at
                         )}`
-                      : "Когда спор становится публичным, он попадает в событийную поверхность и начинает работать на вовлечение."
+                      : "Когда спор становится публичным, он попадает в событийную ленту и становится точкой входа для новых людей."
                   }
                   chips={[
                     featuredDispute
@@ -548,16 +551,14 @@ export default async function HomePage({
                 <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">
-                      Support bridge
+                      Поддержка развития
                     </p>
                     <h2 className="mt-4 text-3xl font-bold text-white">
-                      Поддержка нужна не для декоративного баннера, а для темпа развития
+                      Поддержка нужна, чтобы продукт становился сильнее, а не зависал в черновике
                     </h2>
                     <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-                      Konsensus уже состоит из споров, арены, AI-сопровождения,
-                      Telegram и release-flow. Поддержка помогает не замораживать
-                      продукт на черновом уровне, а доводить его до более сильной
-                      модели и стабильной инфраструктуры.
+                      Konsensus уже состоит из споров, арены, AI-сопровождения и Telegram.
+                      Поддержка помогает ускорять UX, инфраструктуру и более сильную AI-модель.
                     </p>
 
                     <div className="mt-6 flex flex-wrap gap-3">

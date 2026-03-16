@@ -1,18 +1,33 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { SUPPORT_LINKS, hasSupportLinks } from "@/lib/site-config";
 
 export function SupportStrip({ mobileOnly = false }: { mobileOnly?: boolean }) {
-  if (!hasSupportLinks()) return null;
+  const pathname = usePathname();
+  const [dismissed, setDismissed] = useState(false);
+
+  const shouldShow = useMemo(() => {
+    if (!hasSupportLinks() || dismissed) return false;
+
+    if (!mobileOnly) return true;
+
+    return pathname.startsWith("/profile") || pathname.startsWith("/support");
+  }, [dismissed, mobileOnly, pathname]);
+
+  if (!shouldShow) return null;
 
   return (
     <div
-      className={`${mobileOnly ? "fixed inset-x-0 bottom-[72px] z-40 md:hidden" : ""}`}
+      className={`${mobileOnly ? "fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 md:hidden" : ""}`}
       aria-label="Поддержка проекта"
     >
       <div className={`${mobileOnly ? "mx-auto max-w-5xl px-3" : ""}`}>
         <div className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#120d1e]/90 px-3 py-2 backdrop-blur-xl">
           <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-300/80 sm:inline">
-            Поддержать
+            Поддержка
           </span>
           {SUPPORT_LINKS.boosty && (
             <Link
@@ -44,6 +59,16 @@ export function SupportStrip({ mobileOnly = false }: { mobileOnly?: boolean }) {
               Поддержка
             </Link>
           )}
+          {mobileOnly ? (
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              className="ml-1 rounded-full border border-white/10 bg-black/10 px-2 py-1 text-[11px] text-gray-400 transition-colors hover:text-white"
+              aria-label="Скрыть блок поддержки"
+            >
+              ×
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
