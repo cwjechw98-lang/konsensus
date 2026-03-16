@@ -179,8 +179,12 @@
 - [x] Activity Feed v1
   Зафиксирован в `docs/ops/activity-feed-rollout.md`
   Реализовано: `События` собраны из release cards, arena activity и публичных dispute events вместо простого списка публичных споров
-- [ ] Landing v2 implementation
-  Следующий основной пакет: пересобрать лендинг по `docs/ops/landing-v2-rollout.md`
+- [x] Landing v2 implementation
+  Зафиксирован в `docs/ops/landing-v2-rollout.md`
+  Реализовано: product-first hero, 3-step flow, proof blocks, activity bridge и support bridge вместо длинного scroll-essay
+
+- [ ] Profile Quests v1
+  Следующий основной пакет: вернуться к стратегическим rollout-блокам и начать `docs/ops/profile-quests-rollout.md`
 
 ## Отдельно зафиксированные вещи
 
