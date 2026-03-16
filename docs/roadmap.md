@@ -242,6 +242,9 @@
 - [x] Editorial Ops v1.3
   Выполнено: active draft показывает compare до/после rebase, история draft-ов получила фильтры, а `/ops/editorial` яснее показывает workflow и scheduled state
 
+- [x] Editorial Ops v1.4
+  Выполнено: release workflow получил явные типы сценариев, compare переключается между несколькими rebase snapshot'ами, а history поддерживает поиск и фильтр `With rebase`
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

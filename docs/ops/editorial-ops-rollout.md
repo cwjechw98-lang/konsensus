@@ -11,8 +11,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_3`
-- Ближайший шаг: `v1.4 workflow depth`
+- Стадия: `implemented_v1_4`
+- Ближайший шаг: `v1.5 release workflow polish`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -100,6 +100,19 @@
 - history получила client-side фильтры `Все / Published / Cancelled`;
 - status-подача draft workflow стала более явной: badge-статусы и компактный workflow-hint на editorial dashboard.
 
+### v1.4
+
+- compare умеет переключаться между несколькими rebase-снимками;
+- history получила поиск и отдельный фильтр `With rebase`;
+- release workflow внутри `/ops` теперь подаётся через более явные типы сценариев (`Product update`, `UX refresh`, `Ops notice`, `Mixed release`).
+
+### Выполнено в v1.4
+
+- в active draft добавлены workflow-kind badges и delivery-label;
+- rebase compare теперь переключается между несколькими snapshot'ами, а не только последним;
+- history умеет фильтровать rebase-rich drafts и искать по title/slug/commit/features;
+- тип release-сценария вычисляется server-side и используется в UI как отдельный слой подачи.
+
 ### v2
 
 - unified ops console;
@@ -108,4 +121,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Editorial Ops, следующий слой — углубление workflow: compare нескольких rebase-снимков, richer history tooling и более точная типизация release сценариев внутри `/ops`.
+- если возвращаться к Editorial Ops, следующий слой — углубление release workflow: bulk actions для drafts, richer delivery analytics внутри `/ops` и более точная ручная корректировка generated release types.

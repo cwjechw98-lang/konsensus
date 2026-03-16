@@ -53,6 +53,7 @@ export type EditorialDraftRecord = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  workflowKind: "product_update" | "ux_refresh" | "ops_notice" | "mixed_release";
 };
 
 export type EditorialOverview = {
@@ -103,7 +104,30 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    workflowKind: deriveWorkflowKind(
+      generationContext.releaseTypeHint ?? "feature",
+      (row.target ?? "both") as ReleaseTarget
+    ),
   };
+}
+
+function deriveWorkflowKind(
+  releaseTypeHint: EditorialDraftRecord["generationContext"]["releaseTypeHint"],
+  target: ReleaseTarget
+): EditorialDraftRecord["workflowKind"] {
+  if (releaseTypeHint === "ops" && target === "channel") {
+    return "ops_notice";
+  }
+
+  if (releaseTypeHint === "ux") {
+    return "ux_refresh";
+  }
+
+  if (releaseTypeHint === "mixed") {
+    return "mixed_release";
+  }
+
+  return "product_update";
 }
 
 function normalizeFeatureList(input: string[] | string) {

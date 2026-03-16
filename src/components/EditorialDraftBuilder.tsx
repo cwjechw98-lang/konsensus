@@ -34,6 +34,43 @@ function getStatusTone(status: EditorialDraftRecord["status"]) {
   }
 }
 
+function getWorkflowTone(workflowKind: EditorialDraftRecord["workflowKind"]) {
+  switch (workflowKind) {
+    case "ux_refresh":
+      return "border-amber-500/20 bg-amber-500/10 text-amber-100";
+    case "ops_notice":
+      return "border-slate-400/20 bg-slate-400/10 text-slate-100";
+    case "mixed_release":
+      return "border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-100";
+    default:
+      return "border-cyan-500/20 bg-cyan-500/10 text-cyan-100";
+  }
+}
+
+function getWorkflowLabel(workflowKind: EditorialDraftRecord["workflowKind"]) {
+  switch (workflowKind) {
+    case "ux_refresh":
+      return "UX refresh";
+    case "ops_notice":
+      return "Ops notice";
+    case "mixed_release":
+      return "Mixed release";
+    default:
+      return "Product update";
+  }
+}
+
+function getTargetLabel(target: ReleaseTarget) {
+  switch (target) {
+    case "bot":
+      return "bot only";
+    case "channel":
+      return "channel only";
+    default:
+      return "bot + channel";
+  }
+}
+
 function DraftEditorCard({
   draft,
 }: {
@@ -48,10 +85,11 @@ function DraftEditorCard({
   const [target, setTarget] = useState<ReleaseTarget>(draft.target);
   const [scheduleAt, setScheduleAt] = useState(toInputDateTime(draft.scheduleAt));
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedRebaseIndex, setSelectedRebaseIndex] = useState(0);
 
   const changedFiles = draft.generationContext.changedFiles;
   const featureSignals = draft.generationContext.featureSignals;
-  const latestRebase = draft.generationContext.rebaseHistory[0] ?? null;
+  const selectedRebase = draft.generationContext.rebaseHistory[selectedRebaseIndex] ?? null;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -66,11 +104,19 @@ function DraftEditorCard({
             >
               {draft.status === "draft" ? "ready" : draft.status}
             </span>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${getWorkflowTone(
+                draft.workflowKind
+              )}`}
+            >
+              {getWorkflowLabel(draft.workflowKind)}
+            </span>
           </div>
           <p className="mt-1 text-xs text-gray-500">
             {draft.commitCount} commit · {draft.fromCommit ? `${draft.fromCommit.slice(0, 7)}..` : ""}
             {draft.toCommit.slice(0, 7)}
           </p>
+          <p className="mt-1 text-xs text-gray-500">delivery: {getTargetLabel(draft.target)}</p>
         </div>
         <div className="text-right text-xs text-gray-500">
           <p suppressHydrationWarning>
@@ -171,29 +217,50 @@ function DraftEditorCard({
             </p>
           </div>
 
-          {latestRebase ? (
+          {selectedRebase ? (
             <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
               <p className="text-xs uppercase tracking-wide text-gray-500">Rebase diff</p>
               <p className="mt-2 text-xs text-gray-500" suppressHydrationWarning>
-                Последний rebase: {new Date(latestRebase.rebasedAt).toLocaleString("ru-RU")}
+                Выбранный rebase: {new Date(selectedRebase.rebasedAt).toLocaleString("ru-RU")}
               </p>
+              {draft.generationContext.rebaseHistory.length > 1 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {draft.generationContext.rebaseHistory.map((entry, index) => (
+                    <button
+                      key={`${entry.previousToCommit}-${entry.rebasedAt}`}
+                      type="button"
+                      onClick={() => setSelectedRebaseIndex(index)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        selectedRebaseIndex === index
+                          ? "border-cyan-500/25 bg-cyan-500/15 text-cyan-100"
+                          : "border-white/10 bg-white/[0.03] text-gray-400 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {index === 0 ? "Latest" : `Snapshot ${index + 1}`}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-[11px] uppercase tracking-wide text-gray-500">Before</p>
                   <p className="mt-2 text-sm font-medium text-white">
-                    {latestRebase.previousTitle || "Без заголовка"}
+                    {selectedRebase.previousTitle || "Без заголовка"}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {latestRebase.previousCommitCount} commit · {latestRebase.previousToCommit.slice(0, 7)}
+                    {selectedRebase.previousCommitCount} commit · {selectedRebase.previousToCommit.slice(0, 7)}
                   </p>
-                  <p className="mt-2 text-sm text-gray-300">{latestRebase.previousSummary}</p>
-                  {latestRebase.previousFeatures.length > 0 ? (
+                  <p className="mt-2 text-sm text-gray-300">{selectedRebase.previousSummary}</p>
+                  {selectedRebase.previousFeatures.length > 0 ? (
                     <ul className="mt-3 space-y-1 text-xs text-gray-400">
-                      {latestRebase.previousFeatures.slice(0, 3).map((feature) => (
+                      {selectedRebase.previousFeatures.slice(0, 3).map((feature) => (
                         <li key={feature}>• {feature}</li>
                       ))}
                     </ul>
                   ) : null}
+                  <p className="mt-3 text-xs text-gray-500">
+                    release_type: {selectedRebase.previousReleaseTypeHint}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-cyan-200">After</p>
@@ -214,6 +281,9 @@ function DraftEditorCard({
                         ))}
                     </ul>
                   ) : null}
+                  <p className="mt-3 text-xs text-gray-500">
+                    release_type: {draft.generationContext.releaseTypeHint}
+                  </p>
                 </div>
               </div>
             </div>
