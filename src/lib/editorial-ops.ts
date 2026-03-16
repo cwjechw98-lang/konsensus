@@ -38,6 +38,16 @@ export type EditorialDraftRecord = {
     featureSignals: string[];
     releaseTypeHint: "feature" | "ux" | "ops" | "mixed";
     userFacingScore: number;
+    rebaseHistory: Array<{
+      previousToCommit: string;
+      previousCommitCount: number;
+      previousTitle: string;
+      previousSummary: string;
+      previousFeatures: string[];
+      previousReleaseTypeHint: "feature" | "ux" | "ops" | "mixed";
+      previousFeatureSignals: string[];
+      rebasedAt: string;
+    }>;
   };
   publishedReleaseSlug: string | null;
   publishedAt: string | null;
@@ -62,6 +72,7 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
           featureSignals?: string[];
           releaseTypeHint?: EditorialDraftRecord["generationContext"]["releaseTypeHint"];
           userFacingScore?: number;
+          rebaseHistory?: EditorialDraftRecord["generationContext"]["rebaseHistory"];
         })
       : {};
 
@@ -86,6 +97,7 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
       featureSignals: generationContext.featureSignals ?? [],
       releaseTypeHint: generationContext.releaseTypeHint ?? "feature",
       userFacingScore: generationContext.userFacingScore ?? 0,
+      rebaseHistory: generationContext.rebaseHistory ?? [],
     },
     publishedReleaseSlug: row.published_release_slug,
     publishedAt: row.published_at,
@@ -247,6 +259,7 @@ export async function createEditorialDraft(input: {
         featureSignals: changes.featureSignals,
         releaseTypeHint: changes.releaseTypeHint,
         userFacingScore: changes.userFacingScore,
+        rebaseHistory: [],
       } satisfies Json,
       created_by: input.userId,
       updated_at: now,
@@ -478,6 +491,19 @@ export async function rebaseEditorialDraft(input: {
   }
 
   const now = new Date().toISOString();
+  const nextRebaseHistory = [
+    {
+      previousToCommit: draft.toCommit,
+      previousCommitCount: draft.commitCount,
+      previousTitle: draft.title,
+      previousSummary: draft.summary,
+      previousFeatures: draft.features,
+      previousReleaseTypeHint: draft.generationContext.releaseTypeHint,
+      previousFeatureSignals: draft.generationContext.featureSignals,
+      rebasedAt: now,
+    },
+    ...draft.generationContext.rebaseHistory,
+  ].slice(0, 3);
   const { data, error } = await admin
     .from("editorial_release_drafts")
     .update({
@@ -497,6 +523,7 @@ export async function rebaseEditorialDraft(input: {
         featureSignals: changes.featureSignals,
         releaseTypeHint: changes.releaseTypeHint,
         userFacingScore: changes.userFacingScore,
+        rebaseHistory: nextRebaseHistory,
       } satisfies Json,
       published_release_slug: null,
       published_at: null,

@@ -21,6 +21,19 @@ function toInputDateTime(value: string | null) {
   return local.toISOString().slice(0, 16);
 }
 
+function getStatusTone(status: EditorialDraftRecord["status"]) {
+  switch (status) {
+    case "scheduled":
+      return "border-cyan-500/20 bg-cyan-500/10 text-cyan-100";
+    case "published":
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-100";
+    case "cancelled":
+      return "border-red-500/20 bg-red-500/10 text-red-100";
+    default:
+      return "border-violet-500/20 bg-violet-500/10 text-violet-100";
+  }
+}
+
 function DraftEditorCard({
   draft,
 }: {
@@ -38,14 +51,22 @@ function DraftEditorCard({
 
   const changedFiles = draft.generationContext.changedFiles;
   const featureSignals = draft.generationContext.featureSignals;
+  const latestRebase = draft.generationContext.rebaseHistory[0] ?? null;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-white">
-            Draft · {draft.status === "scheduled" ? "scheduled" : "ready"}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-white">Draft workflow</p>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${getStatusTone(
+                draft.status
+              )}`}
+            >
+              {draft.status === "draft" ? "ready" : draft.status}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-gray-500">
             {draft.commitCount} commit · {draft.fromCommit ? `${draft.fromCommit.slice(0, 7)}..` : ""}
             {draft.toCommit.slice(0, 7)}
@@ -149,6 +170,54 @@ function DraftEditorCard({
               {draft.generationContext.userFacingScore}
             </p>
           </div>
+
+          {latestRebase ? (
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Rebase diff</p>
+              <p className="mt-2 text-xs text-gray-500" suppressHydrationWarning>
+                Последний rebase: {new Date(latestRebase.rebasedAt).toLocaleString("ru-RU")}
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-500">Before</p>
+                  <p className="mt-2 text-sm font-medium text-white">
+                    {latestRebase.previousTitle || "Без заголовка"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {latestRebase.previousCommitCount} commit · {latestRebase.previousToCommit.slice(0, 7)}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-300">{latestRebase.previousSummary}</p>
+                  {latestRebase.previousFeatures.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-xs text-gray-400">
+                      {latestRebase.previousFeatures.slice(0, 3).map((feature) => (
+                        <li key={feature}>• {feature}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-cyan-200">After</p>
+                  <p className="mt-2 text-sm font-medium text-white">{title || "Без заголовка"}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {draft.commitCount} commit · {draft.toCommit.slice(0, 7)}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-300">{summary}</p>
+                  {features.trim() ? (
+                    <ul className="mt-3 space-y-1 text-xs text-gray-400">
+                      {features
+                        .split(/\r?\n/)
+                        .map((feature) => feature.trim())
+                        .filter(Boolean)
+                        .slice(0, 3)
+                        .map((feature) => (
+                          <li key={feature}>• {feature}</li>
+                        ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -291,6 +360,9 @@ export default function EditorialDraftBuilder({
             <p className="text-sm text-gray-300">
               новых commit:{" "}
               <span className="font-medium text-cyan-200">{overview.pendingCommitCount}</span>
+            </p>
+            <p className="text-xs text-gray-500">
+              workflow: cursor → AI draft → review/edit → publish or schedule
             </p>
           </div>
           <button

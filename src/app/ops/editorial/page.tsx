@@ -29,6 +29,7 @@ export default async function OpsEditorialPage() {
 
   const activeDrafts = drafts.filter((draft) => draft.status === "draft" || draft.status === "scheduled");
   const historyDrafts = drafts.filter((draft) => draft.status === "published" || draft.status === "cancelled");
+  const scheduledCount = activeDrafts.filter((draft) => draft.status === "scheduled").length;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -48,7 +49,17 @@ export default async function OpsEditorialPage() {
 
       <div className="space-y-8">
         <section>
-          <h1 className="mb-4 text-2xl font-bold text-white">Editorial Ops</h1>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Editorial Ops</h1>
+              <p className="mt-1 text-sm text-gray-400">
+                Активные drafts, rebase workflow и ручная публикация по текущему commit range.
+              </p>
+            </div>
+            <div className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-100">
+              scheduled drafts: {scheduledCount}
+            </div>
+          </div>
           <EditorialDraftBuilder overview={overview} drafts={activeDrafts} />
         </section>
 

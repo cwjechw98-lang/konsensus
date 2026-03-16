@@ -239,6 +239,9 @@
 - [x] Editorial Ops v1.2
   Выполнено: draft generation стал богаче за счёт signal-based context, а активный editorial draft теперь умеет rebase на текущий `HEAD`
 
+- [x] Editorial Ops v1.3
+  Выполнено: active draft показывает compare до/после rebase, история draft-ов получила фильтры, а `/ops/editorial` яснее показывает workflow и scheduled state
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

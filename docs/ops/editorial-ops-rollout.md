@@ -11,8 +11,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_2`
-- Ближайший шаг: `v1.3 workflow polish`
+- Стадия: `implemented_v1_3`
+- Ближайший шаг: `v1.4 workflow depth`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -92,7 +92,13 @@
 
 - фильтры и быстрая навигация внутри `/ops/editorial`;
 - сравнение draft до/после rebase;
-- явное разделение scheduled/published history в UI.
+- явное разделение workflow-статусов в UI.
+
+### Выполнено в v1.3
+
+- в active draft добавлен `before/after` compare для последнего rebase;
+- history получила client-side фильтры `Все / Published / Cancelled`;
+- status-подача draft workflow стала более явной: badge-статусы и компактный workflow-hint на editorial dashboard.
 
 ### v2
 
@@ -102,4 +108,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Editorial Ops, следующий слой — polish вокруг workflow: сравнение rebased draft, фильтры истории и более точная маршрутизация AI-generation по типу релиза.
+- если возвращаться к Editorial Ops, следующий слой — углубление workflow: compare нескольких rebase-снимков, richer history tooling и более точная типизация release сценариев внутри `/ops`.
