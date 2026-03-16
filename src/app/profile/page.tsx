@@ -14,6 +14,7 @@ import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from
 import ProfileQuestPanel, { type ProfileQuestRunSummary } from "@/components/ProfileQuestPanel";
 import PublicReputationBadges from "@/components/PublicReputationBadges";
 import { fetchPublicReputationBadges } from "@/lib/reputation";
+import EducationRecommendationsPanel from "@/components/EducationRecommendationsPanel";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -575,6 +576,14 @@ export default async function ProfilePage({
 
           <div className="lg:col-span-2">
             <ProfileQuestPanel runs={profileQuestRuns} />
+          </div>
+
+          <div className="lg:col-span-2">
+            <EducationRecommendationsPanel
+              userId={user.id}
+              title="Что добрать по навыкам"
+              description="Материалы подбираются по AI-профилю, стилю споров и уже пройденным коротким квестам. Это не курс, а следующий точный шаг."
+            />
           </div>
 
           {/* How AI uses your profile */}

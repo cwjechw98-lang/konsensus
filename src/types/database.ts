@@ -659,6 +659,38 @@ export interface Database {
           updated_at?: string;
         };
       };
+      user_learning_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          material_slug: string;
+          started_at: string;
+          completed_at: string | null;
+          last_opened_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          material_slug: string;
+          started_at?: string;
+          completed_at?: string | null;
+          last_opened_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          material_slug?: string;
+          started_at?: string;
+          completed_at?: string | null;
+          last_opened_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       profile_quest_runs: {
         Row: {
           id: string;

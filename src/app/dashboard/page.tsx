@@ -5,6 +5,7 @@ import OnboardingGuide from "@/components/OnboardingGuide";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import DashboardDisputeCard from "@/components/DashboardDisputeCard";
 import PageContextCard from "@/components/PageContextCard";
+import EducationRecommendationsPanel from "@/components/EducationRecommendationsPanel";
 import type { Database, DisputeStatus } from "@/types/database";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -221,6 +222,15 @@ export default async function DashboardPage({
                 buttonLabel="Подсказки по экрану"
               />
             }
+          />
+        </div>
+
+        <div className="mb-5">
+          <EducationRecommendationsPanel
+            userId={user.id}
+            compact
+            title="Следующий полезный шаг"
+            description="Короткие материалы подбираются по вашему текущему AI-профилю, чтобы спор превращался не только в результат, но и в рост навыка."
           />
         </div>
 

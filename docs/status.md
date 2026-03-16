@@ -17,7 +17,8 @@
 5. Завершён `Landing v2 implementation`
 6. Завершён `Profile Quests v1`
 7. Завершён `Reputation v1`
-8. Следующий основной кодовый пакет: `Education Layer v1`
+8. Завершён `Education Layer v1`
+9. Следующий основной кодовый пакет: `Trust Tiers v1`
 
 Отдельно зафиксировано, что reminder flow для архивированных споров уже реализован, включая SQL `00019`, лимиты `3/час` и `15/сутки`, auto-unarchive и quiet mode после повторной архивации. Не реализован только отдельный reminder/bell для обычного неархивированного спора: это пока отдельная идея вне закрытого архивного reminder-пакета.
 
@@ -38,6 +39,8 @@
 Следующий стратегический блок тоже уже переведён в код: `Profile Quests v1`. Внутри вкладки `AI-профиль` появились короткие сценарии выбора, которые обновляют `user_ai_profiles` без длинной анкеты и без narrative engine. Это даёт первый управляемый сигнал о стиле пользователя и готовит почву для будущей персонализации AI orchestration и образовательного слоя.
 
 Теперь закрыт и `Reputation v1`: поверх приватного AI-профиля добавлен первый безопасный публичный слой. Вместо рейтингов силы и токсичных ярлыков пользователь получает ограниченный набор позитивных стилевых бейджей, которые уже видны и в профиле, и на публичной hover-карточке автора на арене.
+
+Теперь закрыт и `Education Layer v1`: добавлены короткие Markdown-материалы, rule-based рекомендации по текущему AI-профилю, отдельный экран чтения `/learn` и server-side отметка прохождения. Это делает AI-профиль practically useful: после спора у пользователя теперь есть не только анализ, но и следующий конкретный шаг.
 
 Следующий системный пакет тоже уже закреплён отдельным rollout-файлом: [docs/ops/perceived-performance-rollout.md](/C:/project21/konsensus/docs/ops/perceived-performance-rollout.md). На этом витке он уже внедрён: для основных экранов появились route-level `loading.tsx`, введён общий loading-shell, а ключевые server-action CTA получили мгновенный pending-state вместо визуально "мёртвого" ожидания ответа сервера.
 
@@ -126,6 +129,8 @@
 | 00017_dispute_ai_insights.sql | dispute_analysis, round_insights, waiting_insights, RLS и индексы для обычного AI-сопровождения спора |
 | 00018_dispute_user_state.sql | dispute_user_state (персональный архив споров), RLS и индексы для active/archive dashboard-фильтра и auto-unarchive |
 | 00019_dispute_reminders.sql | dispute_reminders + расширение dispute_user_state (лимиты reminders, pending count, mute после повторной архивации, архивный приоритет) |
+| 00020_profile_quest_runs.sql | profile_quest_runs (история коротких профилирующих квестов, шаги и итоговые deltas AI-профиля) |
+| 00021_user_learning_progress.sql | user_learning_progress (прохождение образовательных материалов, completion state и lightweight learning progress) |
 
 ## Ключевые компоненты
 
@@ -222,3 +227,4 @@
 | 2026-03-16 | Реализован `Landing v2`: главная страница пересобрана из длинного объяснительного лендинга в product-first вход с быстрым hero, живыми preview-блоками, короткой 3-шаговой схемой, proof-секциями, activity bridge и отдельным support bridge |
 | 2026-03-16 | Реализован `Profile Quests v1`: добавлены 3 коротких сценария выбора, lightweight-история прохождения `profile_quest_runs`, server actions для старта/шага/завершения и rule-based обновление `user_ai_profiles` с понятным итоговым summary для пользователя |
 | 2026-03-16 | Реализован `Reputation v1`: добавлен safe public layer без leaderboard и негативных ярлыков; rule-based бейджи стиля считаются из текущих dispute signals и показываются в профиле и на публичной arena hover-card |
+| 2026-03-16 | Реализован `Education Layer v1`: добавлены 6 коротких Markdown-материалов, rule-based рекомендации на dashboard/profile, страницы `/learn` и `/learn/[slug]`, а также SQL-таблица `user_learning_progress` для server-side отметки прохождения |
