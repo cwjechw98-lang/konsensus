@@ -31,8 +31,6 @@ import {
   sortBadgesWithAppeals,
 } from "@/lib/appeal-helpers";
 import { isKonsensusAdminEmail } from "@/lib/site-config";
-import { fetchEditorialDeliveryReports } from "@/lib/editorial-reporting";
-import EditorialDeliveryPanel from "@/components/EditorialDeliveryPanel";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -119,7 +117,6 @@ export default async function ProfilePage({
     trustTierState,
     appeals,
     moderationQueue,
-    editorialReports,
   ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
@@ -135,9 +132,6 @@ export default async function ProfilePage({
     fetchTrustTierState(user.id).catch(() => null),
     fetchUserAppeals(user.id).catch(() => []),
     isAdminUser ? fetchAppealModerationQueue().catch(() => []) : Promise.resolve([]),
-    isAdminUser
-      ? fetchEditorialDeliveryReports().catch(() => ({ queued: [], recent: [] }))
-      : Promise.resolve({ queued: [], recent: [] }),
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -725,22 +719,12 @@ export default async function ProfilePage({
                 или автоматическое скрытие вывода. Ручной override фиксируется поверх auto-review.
               </p>
               <AppealModerationQueue appeals={moderationQueue} />
-            </div>
-          ) : null}
-
-          {isAdminUser ? (
-            <div className="glass rounded-2xl p-6 lg:col-span-2">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                📣 Editorial delivery
-              </h2>
-              <p className="mb-4 text-sm leading-relaxed text-gray-400">
-                Последние релизы, их delivery-метрики по боту и каналу, а также очередь
-                запланированных публикаций. Это admin-only ops-срез без отдельной CMS.
-              </p>
-              <EditorialDeliveryPanel
-                queued={editorialReports.queued}
-                recent={editorialReports.recent}
-              />
+              <a
+                href="/ops/editorial"
+                className="mt-4 inline-flex rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
+              >
+                Открыть ops-панель релизов →
+              </a>
             </div>
           ) : null}
 

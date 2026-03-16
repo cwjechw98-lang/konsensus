@@ -49,6 +49,8 @@
   Базовый unit-test слой для server-side policy logic: Vitest, чистые reminder/trust-tier/appeals helpers и дальнейшее расширение покрытия без тяжёлого Next runtime harness.
 - [telegram-editorial-rollout.md](/C:/project21/konsensus/docs/ops/telegram-editorial-rollout.md)
   Редакционный Telegram-слой второго уровня: полный пост в канале/группе, короткий teaser в боте и suppress bot-уведомлений для подписанных участников.
+- [editorial-ops-rollout.md](/C:/project21/konsensus/docs/ops/editorial-ops-rollout.md)
+  Admin-only release-ops: cursor по диапазону изменений, AI-черновики, review и publish/schedule поверх текущего Telegram release flow.
 
 ## Смежные ops-документы
 

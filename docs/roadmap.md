@@ -230,6 +230,9 @@
 - [x] Синхронизация admin whitelist
   Выполнено: локально задан `KONSENSUS_ADMIN_EMAILS`, а формат env задокументирован в `.env.example`
 
+- [x] Editorial Ops v1
+  Выполнено: отдельный admin-only `/ops/editorial`, cursor/draft SQL-модель, AI-черновики по GitHub commit range, review/edit/publish/schedule и вынесенный editorial delivery layer
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

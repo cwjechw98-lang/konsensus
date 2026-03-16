@@ -8,7 +8,7 @@ import { BrowserNotificationPermission } from "@/components/BrowserNotifications
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SupportStrip } from "@/components/SupportStrip";
 import { createClient } from "@/lib/supabase/server";
-import { hasSupportLinks } from "@/lib/site-config";
+import { hasSupportLinks, isKonsensusAdminEmail } from "@/lib/site-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -44,6 +44,7 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
   const showMobileShell = Boolean(user);
   const showSupportStrip = showMobileShell && hasSupportLinks();
+  const isAdmin = isKonsensusAdminEmail(user?.email);
 
   return (
     <html lang="ru">
@@ -55,7 +56,7 @@ export default async function RootLayout({
         <RippleEffect />
         <AchievementToast />
         <BrowserNotificationPermission />
-        <Header isLoggedIn={Boolean(user)} />
+        <Header isLoggedIn={Boolean(user)} isAdmin={isAdmin} />
         <main className={`flex-1 pt-14 ${showSupportStrip ? "pb-32 md:pb-0" : showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
         {showSupportStrip && <SupportStrip mobileOnly />}
         {showMobileShell && <MobileBottomNav />}

@@ -24,6 +24,8 @@
 - `TELEGRAM_RELEASE_CHANNEL_ID`
 - `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL`
 - `KONSENSUS_ADMIN_EMAILS`
+- `KONSENSUS_GITHUB_REPO`
+- `GITHUB_TOKEN` (опционально, чтобы editorial ops не упирался в rate limit GitHub API)
 - `NEXT_PUBLIC_SUPPORT_BOOSTY_URL`
 - `NEXT_PUBLIC_SUPPORT_CRYPTO_URL`
 - `NEXT_PUBLIC_SUPPORT_ALT_URL`
@@ -49,6 +51,11 @@
 ### Appeals moderation
 - `KONSENSUS_ADMIN_EMAILS` — список email через запятую для доступа к ручной очереди апелляций
 - если env пустой, manual moderation queue не показывается
+
+### Editorial Ops
+- `KONSENSUS_GITHUB_REPO` должен указывать на репозиторий в формате `owner/name`
+- если репозиторий публичный, `GITHUB_TOKEN` можно не задавать
+- если нужен запас по rate limit или репозиторий станет приватным, `GITHUB_TOKEN` нужно добавить в окружение
 
 ### Supabase
 - миграции из `supabase/migrations/` применяются вручную через SQL Editor, если нет отдельного deploy-flow миграций

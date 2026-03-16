@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 
 interface MobileMenuProps {
   isLoggedIn: boolean;
+  isAdmin?: boolean;
   telegramLink?: string;
   logoHref?: string;
 }
 
-export function MobileMenu({ isLoggedIn, telegramLink = "", logoHref = "/" }: MobileMenuProps) {
+export function MobileMenu({ isLoggedIn, isAdmin = false, telegramLink = "", logoHref = "/" }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,6 +57,11 @@ export function MobileMenu({ isLoggedIn, telegramLink = "", logoHref = "/" }: Mo
           <Link href="/support" className={linkClass} onClick={() => setOpen(false)}>
             Поддержать проект
           </Link>
+          {isLoggedIn && isAdmin ? (
+            <Link href="/ops/editorial" className={linkClass} onClick={() => setOpen(false)}>
+              Ops
+            </Link>
+          ) : null}
 
           {isLoggedIn ? (
             <>

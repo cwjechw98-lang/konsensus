@@ -3,7 +3,7 @@ import { MobileMenu } from "./MobileMenu";
 import TelegramAuthButton from "./TelegramAuthButton";
 import { getTelegramBotLink } from "@/lib/site-config";
 
-export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function Header({ isLoggedIn, isAdmin }: { isLoggedIn: boolean; isAdmin?: boolean }) {
   const telegramLink = getTelegramBotLink();
   const logoHref = isLoggedIn ? "/?landing=1" : "/";
 
@@ -37,6 +37,11 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
               <Link href="/profile" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Профиль
               </Link>
+              {isAdmin ? (
+                <Link href="/ops/editorial" className="text-sm text-cyan-300 hover:text-cyan-100 nav-link transition-colors">
+                  Ops
+                </Link>
+              ) : null}
             </>
           ) : (
             <>
@@ -68,7 +73,7 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
 
         {/* Mobile overflow */}
-        <MobileMenu isLoggedIn={isLoggedIn} telegramLink={telegramLink} logoHref={logoHref} />
+        <MobileMenu isLoggedIn={isLoggedIn} isAdmin={Boolean(isAdmin)} telegramLink={telegramLink} logoHref={logoHref} />
       </div>
     </header>
   );

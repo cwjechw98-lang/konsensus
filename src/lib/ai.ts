@@ -34,6 +34,14 @@ type FinalMediationResult = {
   analysis: JsonRecord;
   solutions: string[];
 };
+type EditorialDraftResult = {
+  shouldPublish: boolean;
+  title: string;
+  summary: string;
+  features: string[];
+  notes?: string;
+  reasonIfSkipped?: string;
+};
 
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
@@ -1517,6 +1525,108 @@ ${params.appealText}
       decision: "hidden",
       confidence: 30,
       rationale: "Вывод скрыт, потому что автоматический пересмотр не дал достаточно надёжного результата.",
+    };
+  }
+}
+
+export async function generateEditorialReleaseDraft(input: {
+  scope: string;
+  changes: {
+    baseCommit: string | null;
+    headCommit: string;
+    commitCount: number;
+    commits: Array<{
+      sha: string;
+      shortSha: string;
+      message: string;
+      committedAt: string;
+      url: string;
+    }>;
+    changedFiles: string[];
+    statusLines: string[];
+  };
+}): Promise<EditorialDraftResult> {
+  try {
+    const result = await runJsonPrompt(
+      [
+        {
+          role: "system",
+          content:
+            "You prepare release-note drafts for Konsensus. Use only user-facing changes. Ignore internal refactors, migrations, and low-level technical work unless they change visible product behavior. Respond in Russian and strictly as JSON.",
+        },
+        {
+          role: "user",
+          content: `Нужно подготовить черновик релиз-поста для ${input.scope}.
+
+Диапазон изменений:
+- from_commit: ${input.changes.baseCommit ?? "initial editorial window"}
+- to_commit: ${input.changes.headCommit}
+- commit_count: ${input.changes.commitCount}
+
+Commit messages:
+${input.changes.commits.map((commit) => `- [${commit.shortSha}] ${commit.message}`).join("\n")}
+
+Changed files:
+${input.changes.changedFiles.length > 0 ? input.changes.changedFiles.map((file) => `- ${file}`).join("\n") : "- changed files unavailable in this compare window"}
+
+Последние строки changelog/status:
+${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) => `- ${line}`).join("\n") : "- status lines unavailable"}
+
+Верни JSON:
+{
+  "shouldPublish": true или false,
+  "reasonIfSkipped": "если false, коротко объясни почему",
+  "title": "короткий заголовок релиза",
+  "summary": "1-2 предложения, что изменилось для пользователя",
+  "features": ["3-5 коротких user-facing пунктов"],
+  "notes": "опционально: 1 короткая фраза"
+}
+
+Правила:
+- не придумывай того, чего нет в данных;
+- ориентируйся на user-facing UX;
+- если релизного материала мало или изменения в основном технические, ставь shouldPublish=false;
+- title и summary должны быть читаемыми и пригодными для Telegram release post;
+- features без технического жаргона.`,
+        },
+      ],
+      500
+    );
+
+    const features = Array.isArray(result.features)
+      ? result.features.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 5)
+      : [];
+    const shouldPublish = result.shouldPublish === true;
+    const title = String(result.title ?? "").trim();
+    const summary = String(result.summary ?? "").trim();
+    const notes = String(result.notes ?? "").trim();
+    const reasonIfSkipped = String(result.reasonIfSkipped ?? "").trim();
+
+    if (!shouldPublish || !title || !summary || features.length === 0) {
+      return {
+        shouldPublish: false,
+        title: "",
+        summary: "",
+        features: [],
+        reasonIfSkipped:
+          reasonIfSkipped || "Недостаточно явных пользовательских изменений для отдельного релиз-поста.",
+      };
+    }
+
+    return {
+      shouldPublish: true,
+      title,
+      summary,
+      features,
+      notes: notes || undefined,
+    };
+  } catch {
+    return {
+      shouldPublish: false,
+      title: "",
+      summary: "",
+      features: [],
+      reasonIfSkipped: "Не удалось собрать AI-черновик релиза.",
     };
   }
 }

@@ -6,6 +6,8 @@ const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "
 const TELEGRAM_RELEASE_CHANNEL_ID = process.env.TELEGRAM_RELEASE_CHANNEL_ID || "";
 const TELEGRAM_RELEASE_CHANNEL_URL = process.env.NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL || "";
 const CRON_SECRET = process.env.CRON_SECRET || "";
+const GITHUB_REPO = process.env.KONSENSUS_GITHUB_REPO || "cwjechw98-lang/konsensus";
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
 const ADMIN_EMAILS = new Set(
   (process.env.KONSENSUS_ADMIN_EMAILS || "")
     .split(",")
@@ -48,6 +50,14 @@ export function getTelegramReleaseChannelUrl() {
 
 export function getCronSecret() {
   return CRON_SECRET;
+}
+
+export function getGitHubRepo() {
+  return GITHUB_REPO;
+}
+
+export function getGitHubToken() {
+  return GITHUB_TOKEN;
 }
 
 export function hasSupportLinks() {
