@@ -9,8 +9,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_1`
-- Ближайший хвост: `v1.2 editorial reporting`
+- Стадия: `implemented_v1_2`
+- Ближайший хвост: `v1.3 editorial queue polish`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -75,8 +75,26 @@
 ### v1.2
 
 - richer teaser copy per release type;
-- явный delivery report: сколько ушло в бот, сколько подавлено по membership;
-- visibility scheduled queue в UI или ops-view.
+- visibility scheduled queue в более специализированном ops-view.
+
+## Что уже выполнено в v1.2
+
+- `release_announcements` расширен delivery-метриками:
+  - `bot_recipient_count`
+  - `bot_delivered_count`
+  - `bot_suppressed_count`
+  - `channel_message_id`
+  - `last_delivery_attempt_at`
+- publish-flow теперь сохраняет явный delivery report по каждому релизу;
+- в профиле для admin-пользователей добавлена editorial-панель:
+  - последние delivery reports;
+  - очередь будущих scheduled releases.
+
+### v1.3
+
+- richer teaser copy per release type;
+- более компактный ops-view вне профиля;
+- фильтры по delivered / suppressed / failed schedule.
 
 ### v2
 
@@ -86,4 +104,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Telegram editorial subsystem, следующий слой — delivery analytics/reporting и отдельная видимость очереди запланированных релизов.
+- если возвращаться к Telegram editorial subsystem, следующий слой — отдельный editorial ops-view вне профиля и более богатые teaser-шаблоны.

@@ -376,6 +376,11 @@ type ReleaseAnnouncementRow = {
   source_commits: string[] | null;
   sent_to_bot_at: string | null;
   sent_to_channel_at: string | null;
+  bot_recipient_count: number;
+  bot_delivered_count: number;
+  bot_suppressed_count: number;
+  channel_message_id: number | null;
+  last_delivery_attempt_at: string | null;
   scheduled_publish_at: string | null;
   scheduled_target: ReleaseTarget | null;
   scheduled_published_at: string | null;
@@ -464,6 +469,9 @@ export async function publishReleaseAnnouncement(
   skippedBot: boolean;
   skippedChannel: boolean;
   suppressedBotCount: number;
+  botRecipientCount: number;
+  botDeliveredCount: number;
+  channelMessageId: number | null;
 }> {
   const normalized = normalizeReleasePayload(payload);
   const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -479,6 +487,7 @@ export async function publishReleaseAnnouncement(
     hero_image_url: heroImageUrl,
     notes: normalized.notes ?? null,
     source_commits: normalized.source_commits ?? [],
+    last_delivery_attempt_at: now,
     updated_at: now,
   } as never, { onConflict: "slug" });
 
@@ -497,6 +506,9 @@ export async function publishReleaseAnnouncement(
   const skippedBot = Boolean(release.sent_to_bot_at);
   const skippedChannel = Boolean(release.sent_to_channel_at);
   let suppressedBotCount = 0;
+  let botRecipientCount = release.bot_recipient_count ?? 0;
+  let botDeliveredCount = release.bot_delivered_count ?? 0;
+  let channelMessageId = release.channel_message_id ?? null;
 
   if (target !== "channel" && !release.sent_to_bot_at) {
     const { data: users } = await admin
@@ -505,6 +517,7 @@ export async function publishReleaseAnnouncement(
       .not("telegram_chat_id", "is", null)
       .returns<{ id: string; telegram_chat_id: number }[]>();
 
+    botRecipientCount = (users ?? []).length;
     let delivered = 0;
     for (const user of users ?? []) {
       if (await shouldSuppressEditorialBotTeaser({
@@ -521,24 +534,38 @@ export async function publishReleaseAnnouncement(
 
     if (delivered > 0 || suppressedBotCount > 0 || (users ?? []).length === 0) {
       sentToBot = true;
+      botDeliveredCount = delivered;
       await admin
         .from("release_announcements")
-        .update({ sent_to_bot_at: now, updated_at: now } as never)
+        .update({
+          sent_to_bot_at: now,
+          bot_recipient_count: botRecipientCount,
+          bot_delivered_count: botDeliveredCount,
+          bot_suppressed_count: suppressedBotCount,
+          last_delivery_attempt_at: now,
+          updated_at: now,
+        } as never)
         .eq("slug", normalized.slug);
     }
   }
 
   if (target !== "bot" && TELEGRAM_RELEASE_CHANNEL_ID && !release.sent_to_channel_at) {
-    const channelMessageId = await sendReleaseCard(
+    const sentChannelMessageId = await sendReleaseCard(
       TELEGRAM_RELEASE_CHANNEL_ID,
       release,
       "full"
     );
-    if (channelMessageId) {
+    if (sentChannelMessageId) {
       sentToChannel = true;
+      channelMessageId = sentChannelMessageId;
       await admin
         .from("release_announcements")
-        .update({ sent_to_channel_at: now, updated_at: now } as never)
+        .update({
+          sent_to_channel_at: now,
+          channel_message_id: sentChannelMessageId,
+          last_delivery_attempt_at: now,
+          updated_at: now,
+        } as never)
         .eq("slug", normalized.slug);
     }
   }
@@ -550,6 +577,9 @@ export async function publishReleaseAnnouncement(
     skippedBot,
     skippedChannel,
     suppressedBotCount,
+    botRecipientCount,
+    botDeliveredCount,
+    channelMessageId,
   };
 }
 

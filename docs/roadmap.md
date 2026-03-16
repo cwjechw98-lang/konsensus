@@ -224,6 +224,9 @@
 - [x] Cleanup build-warning по editorial OG-route
   Выполнено: из `/api/releases/[slug]/image` убран принудительный `edge runtime`, после чего `next build` больше не показывает warning про отключение static generation
 
+- [x] Telegram editorial reporting v1.2
+  Выполнено: в `release_announcements` сохраняются delivery-метрики бота/канала, а admin-only панель в профиле показывает последние editorial reports и очередь запланированных релизов
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

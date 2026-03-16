@@ -632,6 +632,11 @@ export interface Database {
           source_commits: string[] | null;
           sent_to_bot_at: string | null;
           sent_to_channel_at: string | null;
+          bot_recipient_count: number;
+          bot_delivered_count: number;
+          bot_suppressed_count: number;
+          channel_message_id: number | null;
+          last_delivery_attempt_at: string | null;
           scheduled_publish_at: string | null;
           scheduled_target: "bot" | "channel" | "both" | null;
           scheduled_published_at: string | null;
@@ -651,6 +656,11 @@ export interface Database {
           source_commits?: string[] | null;
           sent_to_bot_at?: string | null;
           sent_to_channel_at?: string | null;
+          bot_recipient_count?: number;
+          bot_delivered_count?: number;
+          bot_suppressed_count?: number;
+          channel_message_id?: number | null;
+          last_delivery_attempt_at?: string | null;
           scheduled_publish_at?: string | null;
           scheduled_target?: "bot" | "channel" | "both" | null;
           scheduled_published_at?: string | null;
@@ -669,6 +679,11 @@ export interface Database {
           source_commits?: string[] | null;
           sent_to_bot_at?: string | null;
           sent_to_channel_at?: string | null;
+          bot_recipient_count?: number;
+          bot_delivered_count?: number;
+          bot_suppressed_count?: number;
+          channel_message_id?: number | null;
+          last_delivery_attempt_at?: string | null;
           scheduled_publish_at?: string | null;
           scheduled_target?: "bot" | "channel" | "both" | null;
           scheduled_published_at?: string | null;
