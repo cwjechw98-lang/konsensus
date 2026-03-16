@@ -227,6 +227,9 @@
 - [x] Telegram editorial reporting v1.2
   Выполнено: в `release_announcements` сохраняются delivery-метрики бота/канала, а admin-only панель в профиле показывает последние editorial reports и очередь запланированных релизов
 
+- [x] Синхронизация admin whitelist
+  Выполнено: локально задан `KONSENSUS_ADMIN_EMAILS`, а формат env задокументирован в `.env.example`
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 
