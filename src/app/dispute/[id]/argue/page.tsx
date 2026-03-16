@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ArgueFormClient from "@/components/ArgueFormClient";
 import WaitingAmbient from "@/components/WaitingAmbient";
+import PageContextCard from "@/components/PageContextCard";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import type { Database } from "@/types/database";
 import { getDisplayName } from "@/lib/display-name";
 
@@ -80,7 +82,49 @@ export default async function ArguePage({
       </Link>
 
       {/* Dispute context */}
-      <div className="glass rounded-xl p-4 mb-6">
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="argue-context"
+          eyebrow={isWaiting ? "Фаза ожидания" : "Текущий ход"}
+          title={
+            isWaiting
+              ? "Ваш ход уже отправлен, дальше система держит паузу до ответа оппонента"
+              : isFirstRound
+              ? "Первый ход задаёт рамку всего спора"
+              : "Перед ответом важно держать в фокусе тему и последний ход оппонента"
+          }
+          description={
+            isWaiting
+              ? "В этой фазе не нужно перечитывать инструкции: ниже идёт приватный waiting-layer, который помогает пережить паузу и не потерять контекст."
+              : "Этот экран должен помогать именно в моменте: сверху — суть спора, в следующих раундах — последний ответ второй стороны, ниже — ваш новый аргумент."
+          }
+          bullets={
+            isWaiting
+              ? [
+                  "Статус ожидания без пустоты",
+                  "Приватная подсказка от ИИ",
+                  "Дальше спор вернётся сам, когда появится новое действие",
+                ]
+              : [
+                  "Предмет спора остаётся на виду",
+                  "Последний ответ оппонента показывается отдельно",
+                  "Аргумент можно быстро проверить перед отправкой",
+                ]
+          }
+          tone={isWaiting ? "cyan" : "purple"}
+          actions={
+            !isWaiting ? (
+              <OnboardingTour
+                page="argue"
+                showReplayButton
+                buttonLabel="Подсказки по этому ходу"
+              />
+            ) : null
+          }
+        />
+      </div>
+
+      <div className="glass rounded-xl p-4 mb-6" data-tour="argue-context">
         <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Предмет спора</p>
         <p className="font-semibold text-white mb-1">{dispute.title}</p>
         <p className="text-sm text-gray-400 line-clamp-3">{dispute.description}</p>

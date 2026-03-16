@@ -149,6 +149,7 @@ export default function ArgueFormClient({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-300">Ваша позиция</span>
             <input
+              data-tour="position"
               ref={positionRef}
               name="position"
               type="text"
@@ -166,6 +167,7 @@ export default function ArgueFormClient({
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-300">Аргументы и обоснование</span>
             <textarea
+              data-tour="reasoning"
               ref={reasoningRef}
               name="reasoning"
               required
@@ -193,6 +195,7 @@ export default function ArgueFormClient({
             </button>
             <button
               type="button"
+              data-tour="evaluate"
               onClick={handleEvaluate}
               disabled={evaluating}
               className="glass border border-white/10 hover:border-purple-500/30 text-gray-400 hover:text-purple-300 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -255,6 +258,7 @@ export default function ArgueFormClient({
 
             <div className="bg-purple-600/15 border border-purple-500/20 rounded-2xl rounded-tr-sm px-4 py-3">
               <textarea
+                data-tour="reasoning"
                 ref={reasoningRef}
                 name="reasoning"
                 required
@@ -279,6 +283,7 @@ export default function ArgueFormClient({
             <div className="flex gap-2 justify-end items-center">
               <button
                 type="button"
+                data-tour="evaluate"
                 onClick={handleEvaluate}
                 disabled={evaluating}
                 className="text-xs text-gray-600 hover:text-purple-400 transition-colors disabled:opacity-50"

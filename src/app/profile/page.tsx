@@ -6,6 +6,8 @@ import { TelegramConnect } from "@/components/TelegramConnect";
 import { ACHIEVEMENTS, CATEGORY_LABELS, type AchievementCategory } from "@/lib/achievements";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import RPGProfileCard from "@/components/RPGProfileCard";
+import PageContextCard from "@/components/PageContextCard";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { fetchRPGStats } from "@/lib/rpg";
 import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
 
@@ -147,6 +149,28 @@ export default async function ProfilePage({
         </div>
       </div>
 
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="profile-intro"
+          eyebrow="Личный контур"
+          title="Профиль собирает ваш след в Konsensus, а не просто анкету"
+          description="Здесь сходятся прогресс, архив, достижения, ИИ-профиль и настройки связки с Telegram. Экран нужен, чтобы видеть свой путь, а не только редактировать имя."
+          bullets={[
+            "Обзор и быстрый срез прогресса",
+            "Достижения и уникальные сигналы от ИИ",
+            "AI-профиль, архив и настройки",
+          ]}
+          tone="amber"
+          actions={
+            <OnboardingTour
+              page="profile"
+              showReplayButton
+              buttonLabel="Подсказки по профилю"
+            />
+          }
+        />
+      </div>
+
       {errorMsg && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-4">{errorMsg}</div>
       )}
@@ -155,7 +179,7 @@ export default async function ProfilePage({
       )}
 
       {/* ─── Quick Stats Row ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-tour="profile-stats">
         <div className="glass rounded-xl p-4 text-center">
           <p className="text-2xl font-bold text-white">{disputeCount}</p>
           <p className="text-xs text-gray-500">Споров</p>
@@ -175,7 +199,7 @@ export default async function ProfilePage({
       </div>
 
       {/* ─── Tabs ─── */}
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1" data-tour="profile-tabs">
         {tabs.map((t) => (
           <a
             key={t.id}

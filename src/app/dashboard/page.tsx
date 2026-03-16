@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import OnboardingGuide from "@/components/OnboardingGuide";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import DashboardDisputeCard from "@/components/DashboardDisputeCard";
+import PageContextCard from "@/components/PageContextCard";
 import type { Database, DisputeStatus } from "@/types/database";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -199,6 +200,28 @@ export default async function DashboardPage({
               + Новый спор
             </Link>
           </div>
+        </div>
+
+        <div className="mb-5">
+          <PageContextCard
+            dataTour="dashboard-intro"
+            eyebrow="Рабочий экран"
+            title="Споры — точка, где вы управляете своим циклом диалога"
+            description="Здесь создаются новые споры, видны активные и архивные карточки, а также появляются сигналы, если архивированный спор снова пытаются вернуть в работу."
+            bullets={[
+              "Создать новый спор или войти по коду",
+              "Переключать активные и архивные",
+              "Отслеживать напоминания и возвращения",
+            ]}
+            tone="purple"
+            actions={
+              <OnboardingTour
+                page="dashboard"
+                showReplayButton
+                buttonLabel="Подсказки по экрану"
+              />
+            }
+          />
         </div>
 
         {errorMsg && (

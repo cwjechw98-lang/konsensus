@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { joinDisputeFromMatchmaking } from "@/lib/actions";
 import { acceptChallenge } from "@/lib/arena-actions";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import PageContextCard from "@/components/PageContextCard";
 
 const CATEGORY_INFO: Record<string, { label: string; icon: string }> = {
   politics: { label: "Политика", icon: "🏛" },
@@ -86,10 +88,27 @@ export default async function MatchmakingPage({
         ← Мои споры
       </Link>
 
-      <h1 className="text-2xl font-bold text-white mb-2">Открытые 🎯</h1>
-      <p className="text-sm text-gray-400 mb-6">
-        Открытые споры и вызовы, которые ждут второго участника. Выберите тему и вступайте.
-      </p>
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="open-intro"
+          eyebrow="Вход в существующий конфликт"
+          title="Открытые — место, где вы входите в уже созданные споры и вызовы"
+          description="Этот экран нужен не для наблюдения, а для присоединения. Здесь собраны карточки, которые ждут второго участника и готовы начаться сразу после вашего входа."
+          bullets={[
+            "Обычные споры и вызовы арены",
+            "Фильтрация по категориям",
+            "Быстрое вступление без лишних шагов",
+          ]}
+          tone="cyan"
+          actions={
+            <OnboardingTour
+              page="matchmaking"
+              showReplayButton
+              buttonLabel="Как пользоваться этим экраном"
+            />
+          }
+        />
+      </div>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-6">
@@ -98,7 +117,7 @@ export default async function MatchmakingPage({
       )}
 
       {/* Category filters */}
-      <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
+      <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1" data-tour="open-filters">
         <Link
           href="/matchmaking"
           className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
@@ -140,7 +159,7 @@ export default async function MatchmakingPage({
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" data-tour="open-list">
           {/* Open disputes */}
           {(disputes ?? []).map((d) => {
             const cat = CATEGORY_INFO[d.category ?? "other"];

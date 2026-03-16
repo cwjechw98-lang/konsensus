@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import PageContextCard from "@/components/PageContextCard";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
@@ -60,13 +62,29 @@ export default async function FeedPage({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">События</h1>
-        <p className="text-sm text-gray-500">
-          Публичные споры и заметная активность проекта. Сейчас здесь в первую очередь показываются открытые публичные диспуты.
-        </p>
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="events-intro"
+          eyebrow="Публичная витрина"
+          title="События — не рабочий список, а поток того, что происходит на платформе"
+          description="Сюда заходят наблюдать: смотреть публичные споры, замечать движение продукта и понимать, что происходит за пределами ваших личных диалогов."
+          bullets={[
+            "Публичные споры и открытые истории",
+            "Заметная активность проекта",
+            "Позже — релизы и события арены",
+          ]}
+          tone="emerald"
+          actions={
+            <OnboardingTour
+              page="feed"
+              showReplayButton
+              buttonLabel="Как читать этот экран"
+            />
+          }
+        />
       </div>
 
+      <div data-tour="events-stream">
       {!disputes || disputes.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <p className="text-4xl mb-4">⚖️</p>
@@ -138,6 +156,7 @@ export default async function FeedPage({
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

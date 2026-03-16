@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { createDispute } from "@/lib/actions";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import PageContextCard from "@/components/PageContextCard";
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 type Template = {
@@ -180,8 +182,27 @@ export default function NewDisputePage() {
         &larr; Мои споры
       </Link>
 
-      <h1 className="text-2xl font-bold text-white mb-1">Новый спор</h1>
-      <p className="text-sm text-gray-500 mb-8">Опишите суть — ИИ поможет найти решение</p>
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="new-dispute-intro"
+          eyebrow="Создание рамки"
+          title="Новый спор задаёт не только тему, но и структуру будущего диалога"
+          description="Коротко обозначьте тему, дайте контекст и задайте темп раундами. Чем яснее старт, тем сильнее потом работает весь dispute-flow и AI-медиация."
+          bullets={[
+            "Тема и контекст без лишней воды",
+            "Раунды как ритм диалога",
+            "Оппонент по email или по инвайту позже",
+          ]}
+          tone="purple"
+          actions={
+            <OnboardingTour
+              page="dispute_new"
+              showReplayButton
+              buttonLabel="Подсказки по форме"
+            />
+          }
+        />
+      </div>
 
       {/* ── Templates ── */}
       <div className="mb-6">
@@ -261,6 +282,7 @@ export default function NewDisputePage() {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-300">Название спора</span>
             <input
+              data-tour="title"
               name="title"
               type="text"
               required
@@ -275,6 +297,7 @@ export default function NewDisputePage() {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-300">Описание проблемы</span>
             <textarea
+              data-tour="description"
               name="description"
               required
               rows={5}
@@ -285,7 +308,7 @@ export default function NewDisputePage() {
             />
           </label>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5" data-tour="rounds">
             <span className="text-sm font-medium text-gray-300">Количество раундов</span>
             <RoundsSelector />
           </div>

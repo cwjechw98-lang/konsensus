@@ -16,14 +16,29 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
     { target: "[data-tour='disputes-list']", title: "Ваш рабочий список", description: "Здесь собраны ваши активные, архивные и ожидающие внимания споры.", position: "top" },
     { target: "[data-tour='filters']", title: "Фильтры и режимы", description: "Переключайтесь между активными и архивом, а также фильтруйте споры по статусу.", position: "bottom" },
   ],
+  feed: [
+    { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "События показывают жизнь проекта: публичные споры, заметную активность и со временем релизы и движения арены.", position: "bottom" },
+    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Здесь вы наблюдаете, а не вступаете автоматически. Это витрина происходящего, а не ваш рабочий список.", position: "top" },
+  ],
+  matchmaking: [
+    { target: "[data-tour='open-intro']", title: "Где вступать в спор", description: "Открытые — это вход в уже созданные споры и вызовы, которые ждут второго участника.", position: "bottom" },
+    { target: "[data-tour='open-filters']", title: "Фильтры по темам", description: "Сузьте поток до тех категорий, которые вам реально интересны.", position: "bottom" },
+    { target: "[data-tour='open-list']", title: "Карточки входа", description: "Каждая карточка сразу показывает формат: обычный спор или вызов арены, тему и кнопку входа.", position: "top" },
+  ],
+  profile: [
+    { target: "[data-tour='profile-intro']", title: "Зачем нужен профиль", description: "Профиль хранит ваш прогресс: XP, архив, ачивки, ИИ-профиль и настройки связки с Telegram.", position: "bottom" },
+    { target: "[data-tour='profile-tabs']", title: "Переключение режимов", description: "Не всё смешано на одной странице: обзор, достижения, ИИ-профиль и настройки разделены по вкладкам.", position: "bottom" },
+    { target: "[data-tour='profile-stats']", title: "Быстрый срез", description: "Сверху виден короткий summary по спорам, аргументам, консенсусу и ачивкам — без лишнего скролла.", position: "bottom" },
+  ],
   dispute_new: [
+    { target: "[data-tour='new-dispute-intro']", title: "Старт спора", description: "Здесь вы не просто создаёте чат, а задаёте рамку будущего структурированного диалога.", position: "bottom" },
     { target: "[data-tour='title']", title: "Тема спора", description: "Сформулируйте тему коротко и чётко. Например: «Удалёнка vs офис»", position: "bottom" },
-    { target: "[data-tour='description']", title: "Описание", description: "Опишите суть вашей позиции. Это поможет оппоненту понять контекст.", position: "bottom" },
-    { target: "[data-tour='rounds']", title: "Количество раундов", description: "Выберите сколько раундов аргументов. 3 — для быстрых споров, 5+ — для серьёзных тем.", position: "bottom" },
+    { target: "[data-tour='description']", title: "Описание", description: "Опишите контекст так, чтобы оппонент сразу понял суть разногласия.", position: "bottom" },
+    { target: "[data-tour='rounds']", title: "Количество раундов", description: "3 подходит для быстрого спора, 5+ — для тем, где важно пройти несколько итераций.", position: "bottom" },
   ],
   argue: [
-    { target: "[data-tour='position']", title: "Ваша позиция", description: "Кратко сформулируйте свою точку зрения одним предложением.", position: "bottom" },
-    { target: "[data-tour='reasoning']", title: "Обоснование", description: "Объясните, почему вы так думаете. Приведите аргументы и логику.", position: "bottom" },
+    { target: "[data-tour='argue-context']", title: "Контекст перед ходом", description: "Сверху всегда остаётся предмет спора, а в следующих раундах — и последний ответ оппонента.", position: "bottom" },
+    { target: "[data-tour='reasoning']", title: "Ваш аргумент", description: "Это главный момент экрана: изложите позицию или ответ так, чтобы он был понятен без догадок.", position: "bottom" },
     { target: "[data-tour='evaluate']", title: "Проверка ИИ", description: "Перед отправкой ИИ оценит силу вашего аргумента и даст советы.", position: "top" },
   ],
 };
@@ -31,7 +46,17 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
 const STORAGE_PREFIX = "konsensus_tour_";
 const WELCOME_STORAGE_KEY = "konsensus_shell_welcome_done";
 
-export function OnboardingTour({ page }: { page: string }) {
+export function OnboardingTour({
+  page,
+  showReplayButton = false,
+  buttonLabel = "Подсказки по экрану",
+  className = "",
+}: {
+  page: string;
+  showReplayButton?: boolean;
+  buttonLabel?: string;
+  className?: string;
+}) {
   const [step, setStep] = useState(-1);
   const [highlight, setHighlight] = useState<DOMRect | null>(null);
 
@@ -88,6 +113,10 @@ export function OnboardingTour({ page }: { page: string }) {
     localStorage.setItem(storageKey, "1");
   };
 
+  const replay = () => {
+    setStep(0);
+  };
+
   const next = () => {
     if (step >= steps.length - 1) {
       finish();
@@ -96,13 +125,24 @@ export function OnboardingTour({ page }: { page: string }) {
     }
   };
 
-  if (step < 0 || !steps[step]) return null;
+  const replayButton = showReplayButton ? (
+    <button
+      type="button"
+      onClick={replay}
+      className={`rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-gray-300 transition-colors hover:bg-white/[0.07] hover:text-white ${className}`}
+    >
+      {buttonLabel}
+    </button>
+  ) : null;
+
+  if (step < 0 || !steps[step]) return replayButton;
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
 
   return (
     <>
+      {replayButton}
       {/* Overlay */}
       <div className="fixed inset-0 z-[9998] pointer-events-none">
         {/* Dark backdrop with cutout */}
