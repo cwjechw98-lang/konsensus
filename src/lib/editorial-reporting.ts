@@ -6,6 +6,12 @@ export type EditorialReleaseReport =
 export async function fetchEditorialDeliveryReports(limit = 8): Promise<{
   queued: EditorialReleaseReport[];
   recent: EditorialReleaseReport[];
+  summary: {
+    queuedCount: number;
+    deliveredBotCount: number;
+    suppressedBotCount: number;
+    channelSentCount: number;
+  };
 }> {
   const { createAdminClient } = await import("@/lib/supabase/admin");
   const admin = createAdminClient();
@@ -32,5 +38,17 @@ export async function fetchEditorialDeliveryReports(limit = 8): Promise<{
   return {
     queued: queuedRes.data ?? [],
     recent: recentRes.data ?? [],
+    summary: {
+      queuedCount: (queuedRes.data ?? []).length,
+      deliveredBotCount: (recentRes.data ?? []).reduce(
+        (acc, item) => acc + (item.bot_delivered_count ?? 0),
+        0
+      ),
+      suppressedBotCount: (recentRes.data ?? []).reduce(
+        (acc, item) => acc + (item.bot_suppressed_count ?? 0),
+        0
+      ),
+      channelSentCount: (recentRes.data ?? []).filter((item) => item.sent_to_channel_at).length,
+    },
   };
 }

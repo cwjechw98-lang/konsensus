@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isKonsensusAdminEmail } from "@/lib/site-config";
 import {
+  bulkCancelEditorialDrafts,
   cancelEditorialDraft,
   createEditorialDraft,
+  duplicateEditorialDraft,
   publishEditorialDraft,
   rebaseEditorialDraft,
+  reopenEditorialDraft,
   scheduleEditorialDraft,
   updateEditorialDraft,
 } from "@/lib/editorial-ops";
@@ -59,7 +62,9 @@ export async function saveEditorialDraftAction(input: {
   features: string;
   notes?: string;
   target: ReleaseTarget;
+  workflowKind: "product_update" | "ux_refresh" | "ops_notice" | "mixed_release";
   scheduleAt?: string | null;
+  expectedUpdatedAt?: string | null;
 }) {
   const user = await requireAdminUser();
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
@@ -72,7 +77,9 @@ export async function saveEditorialDraftAction(input: {
     features: input.features,
     notes: input.notes,
     target: input.target,
+    workflowKind: input.workflowKind,
     scheduleAt: input.scheduleAt,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!result.ok) return result;
@@ -87,6 +94,8 @@ export async function publishEditorialDraftAction(input: {
   features: string;
   notes?: string;
   target: ReleaseTarget;
+  workflowKind: "product_update" | "ux_refresh" | "ops_notice" | "mixed_release";
+  expectedUpdatedAt?: string | null;
 }) {
   const user = await requireAdminUser();
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
@@ -99,7 +108,9 @@ export async function publishEditorialDraftAction(input: {
     features: input.features,
     notes: input.notes,
     target: input.target,
+    workflowKind: input.workflowKind,
     scheduleAt: null,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!saved.ok) return saved;
@@ -107,6 +118,7 @@ export async function publishEditorialDraftAction(input: {
   const result = await publishEditorialDraft({
     draftId: input.draftId,
     userId: user.id,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!result.ok) return result;
@@ -121,7 +133,9 @@ export async function scheduleEditorialDraftAction(input: {
   features: string;
   notes?: string;
   target: ReleaseTarget;
+  workflowKind: "product_update" | "ux_refresh" | "ops_notice" | "mixed_release";
   scheduleAt: string;
+  expectedUpdatedAt?: string | null;
 }) {
   const user = await requireAdminUser();
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
@@ -134,13 +148,16 @@ export async function scheduleEditorialDraftAction(input: {
     features: input.features,
     notes: input.notes,
     target: input.target,
+    workflowKind: input.workflowKind,
     scheduleAt: input.scheduleAt,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!saved.ok) return saved;
 
   const result = await scheduleEditorialDraft({
     draftId: input.draftId,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!result.ok) return result;
@@ -148,7 +165,10 @@ export async function scheduleEditorialDraftAction(input: {
   return { ok: true as const, slug: result.slug, scheduledAt: result.scheduledAt };
 }
 
-export async function cancelEditorialDraftAction(input: { draftId: string }) {
+export async function cancelEditorialDraftAction(input: {
+  draftId: string;
+  expectedUpdatedAt?: string | null;
+}) {
   const user = await requireAdminUser();
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
 
@@ -158,16 +178,57 @@ export async function cancelEditorialDraftAction(input: { draftId: string }) {
   return { ok: true as const };
 }
 
-export async function rebaseEditorialDraftAction(input: { draftId: string }) {
+export async function rebaseEditorialDraftAction(input: {
+  draftId: string;
+  expectedUpdatedAt?: string | null;
+}) {
   const user = await requireAdminUser();
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
 
   const result = await rebaseEditorialDraft({
     draftId: input.draftId,
     userId: user.id,
+    expectedUpdatedAt: input.expectedUpdatedAt,
   });
 
   if (!result.ok) return result;
   revalidateOpsPaths();
   return { ok: true as const };
+}
+
+export async function bulkCancelEditorialDraftsAction(input: { draftIds: string[] }) {
+  const user = await requireAdminUser();
+  if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
+
+  const result = await bulkCancelEditorialDrafts(input);
+  if (!result.ok) return result;
+  revalidateOpsPaths();
+  return result;
+}
+
+export async function duplicateEditorialDraftAction(input: { draftId: string }) {
+  const user = await requireAdminUser();
+  if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
+
+  const result = await duplicateEditorialDraft({
+    draftId: input.draftId,
+    userId: user.id,
+  });
+
+  if (!result.ok) return result;
+  revalidateOpsPaths();
+  return { ok: true as const, draftId: result.draft.id };
+}
+
+export async function reopenEditorialDraftAction(input: {
+  draftId: string;
+  expectedUpdatedAt?: string | null;
+}) {
+  const user = await requireAdminUser();
+  if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
+
+  const result = await reopenEditorialDraft(input);
+  if (!result.ok) return result;
+  revalidateOpsPaths();
+  return { ok: true as const, draftId: result.draft.id };
 }

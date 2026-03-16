@@ -38,6 +38,7 @@ export type EditorialDraftRecord = {
     featureSignals: string[];
     releaseTypeHint: "feature" | "ux" | "ops" | "mixed";
     userFacingScore: number;
+    manualWorkflowKind: null | "product_update" | "ux_refresh" | "ops_notice" | "mixed_release";
     rebaseHistory: Array<{
       previousToCommit: string;
       previousCommitCount: number;
@@ -73,6 +74,7 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
           featureSignals?: string[];
           releaseTypeHint?: EditorialDraftRecord["generationContext"]["releaseTypeHint"];
           userFacingScore?: number;
+          manualWorkflowKind?: EditorialDraftRecord["generationContext"]["manualWorkflowKind"];
           rebaseHistory?: EditorialDraftRecord["generationContext"]["rebaseHistory"];
         })
       : {};
@@ -98,6 +100,7 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
       featureSignals: generationContext.featureSignals ?? [],
       releaseTypeHint: generationContext.releaseTypeHint ?? "feature",
       userFacingScore: generationContext.userFacingScore ?? 0,
+      manualWorkflowKind: generationContext.manualWorkflowKind ?? null,
       rebaseHistory: generationContext.rebaseHistory ?? [],
     },
     publishedReleaseSlug: row.published_release_slug,
@@ -106,15 +109,21 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
     updatedAt: row.updated_at,
     workflowKind: deriveWorkflowKind(
       generationContext.releaseTypeHint ?? "feature",
-      (row.target ?? "both") as ReleaseTarget
+      (row.target ?? "both") as ReleaseTarget,
+      generationContext.manualWorkflowKind ?? null
     ),
   };
 }
 
 function deriveWorkflowKind(
   releaseTypeHint: EditorialDraftRecord["generationContext"]["releaseTypeHint"],
-  target: ReleaseTarget
+  target: ReleaseTarget,
+  manualWorkflowKind: EditorialDraftRecord["generationContext"]["manualWorkflowKind"]
 ): EditorialDraftRecord["workflowKind"] {
+  if (manualWorkflowKind) {
+    return manualWorkflowKind;
+  }
+
   if (releaseTypeHint === "ops" && target === "channel") {
     return "ops_notice";
   }
@@ -135,9 +144,40 @@ function normalizeFeatureList(input: string[] | string) {
   return values.map((item) => item.trim()).filter(Boolean).slice(0, 5);
 }
 
+function toGenerationContextObject(value: EditorialDraftRow["generation_context"]) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
 async function getAdmin() {
   const { createAdminClient } = await import("@/lib/supabase/admin");
   return createAdminClient();
+}
+
+async function getDraftRowById(draftId: string) {
+  const admin = await getAdmin();
+  const { data } = await admin
+    .from("editorial_release_drafts")
+    .select("*")
+    .eq("id", draftId)
+    .maybeSingle<EditorialDraftRow>();
+
+  return data ?? null;
+}
+
+function ensureFreshDraft(
+  draft: EditorialDraftRecord,
+  expectedUpdatedAt?: string | null
+) {
+  if (!expectedUpdatedAt) return { ok: true as const };
+
+  if (draft.updatedAt !== expectedUpdatedAt) {
+    return {
+      ok: false as const,
+      error: "Draft уже был изменён другим админом. Обновите страницу и проверьте текущую версию.",
+    };
+  }
+
+  return { ok: true as const };
 }
 
 async function getLatestTrackedDraft(scope = EDITORIAL_SCOPE) {
@@ -283,6 +323,7 @@ export async function createEditorialDraft(input: {
         featureSignals: changes.featureSignals,
         releaseTypeHint: changes.releaseTypeHint,
         userFacingScore: changes.userFacingScore,
+        manualWorkflowKind: null,
         rebaseHistory: [],
       } satisfies Json,
       created_by: input.userId,
@@ -310,9 +351,20 @@ export async function updateEditorialDraft(input: {
   features: string[] | string;
   notes?: string;
   target: ReleaseTarget;
+  workflowKind: EditorialDraftRecord["workflowKind"];
   scheduleAt?: string | null;
+  expectedUpdatedAt?: string | null;
 }) {
   const admin = await getAdmin();
+  const existingRow = await getDraftRowById(input.draftId);
+  if (!existingRow) {
+    return { ok: false as const, error: "Editorial draft не найден." };
+  }
+
+  const existingDraft = toDraftRecord(existingRow);
+  const freshness = ensureFreshDraft(existingDraft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
   const now = new Date().toISOString();
   const title = input.title.trim();
   const summary = input.summary.trim();
@@ -337,6 +389,10 @@ export async function updateEditorialDraft(input: {
       notes,
       target: input.target,
       schedule_at: scheduleAt,
+      generation_context: {
+        ...toGenerationContextObject(existingRow.generation_context),
+        manualWorkflowKind: input.workflowKind,
+      } satisfies Json,
       updated_at: now,
     } as never)
     .eq("id", input.draftId)
@@ -353,19 +409,19 @@ export async function updateEditorialDraft(input: {
 export async function publishEditorialDraft(input: {
   draftId: string;
   userId: string;
+  expectedUpdatedAt?: string | null;
 }) {
   const admin = await getAdmin();
-  const { data: draftRow } = await admin
-    .from("editorial_release_drafts")
-    .select("*")
-    .eq("id", input.draftId)
-    .maybeSingle<EditorialDraftRow>();
+  const draftRow = await getDraftRowById(input.draftId);
 
   if (!draftRow) {
     return { ok: false as const, error: "Editorial draft не найден." };
   }
 
   const draft = toDraftRecord(draftRow);
+  const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
   if (draft.status === "published") {
     return { ok: false as const, error: "Этот draft уже опубликован." };
   }
@@ -402,19 +458,19 @@ export async function publishEditorialDraft(input: {
 
 export async function scheduleEditorialDraft(input: {
   draftId: string;
+  expectedUpdatedAt?: string | null;
 }) {
   const admin = await getAdmin();
-  const { data: draftRow } = await admin
-    .from("editorial_release_drafts")
-    .select("*")
-    .eq("id", input.draftId)
-    .maybeSingle<EditorialDraftRow>();
+  const draftRow = await getDraftRowById(input.draftId);
 
   if (!draftRow) {
     return { ok: false as const, error: "Editorial draft не найден." };
   }
 
   const draft = toDraftRecord(draftRow);
+  const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
   if (!draft.scheduleAt) {
     return { ok: false as const, error: "Укажите дату и время для schedule." };
   }
@@ -446,8 +502,18 @@ export async function scheduleEditorialDraft(input: {
 
 export async function cancelEditorialDraft(input: {
   draftId: string;
+  expectedUpdatedAt?: string | null;
 }) {
   const admin = await getAdmin();
+  const draftRow = await getDraftRowById(input.draftId);
+  if (!draftRow) {
+    return { ok: false as const, error: "Editorial draft не найден." };
+  }
+
+  const draft = toDraftRecord(draftRow);
+  const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
   const now = new Date().toISOString();
   const { error } = await admin
     .from("editorial_release_drafts")
@@ -467,19 +533,19 @@ export async function cancelEditorialDraft(input: {
 export async function rebaseEditorialDraft(input: {
   draftId: string;
   userId: string;
+  expectedUpdatedAt?: string | null;
 }) {
   const admin = await getAdmin();
-  const { data: draftRow } = await admin
-    .from("editorial_release_drafts")
-    .select("*")
-    .eq("id", input.draftId)
-    .maybeSingle<EditorialDraftRow>();
+  const draftRow = await getDraftRowById(input.draftId);
 
   if (!draftRow) {
     return { ok: false as const, error: "Editorial draft не найден." };
   }
 
   const draft = toDraftRecord(draftRow);
+  const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
   if (draft.status === "published" || draft.status === "cancelled") {
     return { ok: false as const, error: "Этот draft нельзя rebase-ить в текущем статусе." };
   }
@@ -547,6 +613,7 @@ export async function rebaseEditorialDraft(input: {
         featureSignals: changes.featureSignals,
         releaseTypeHint: changes.releaseTypeHint,
         userFacingScore: changes.userFacingScore,
+        manualWorkflowKind: draft.generationContext.manualWorkflowKind,
         rebaseHistory: nextRebaseHistory,
       } satisfies Json,
       published_release_slug: null,
@@ -562,4 +629,114 @@ export async function rebaseEditorialDraft(input: {
   }
 
   return { ok: true as const, draft: toDraftRecord(data) };
+}
+
+export async function duplicateEditorialDraft(input: {
+  draftId: string;
+  userId: string;
+}) {
+  const admin = await getAdmin();
+  const draftRow = await getDraftRowById(input.draftId);
+
+  if (!draftRow) {
+    return { ok: false as const, error: "Editorial draft не найден." };
+  }
+
+  const draft = toDraftRecord(draftRow);
+  const now = new Date().toISOString();
+  const { data, error } = await admin
+    .from("editorial_release_drafts")
+    .insert({
+      scope: draft.scope,
+      from_commit: draft.fromCommit,
+      to_commit: draft.toCommit,
+      commit_count: draft.commitCount,
+      status: "draft",
+      title: draft.title,
+      summary: draft.summary,
+      features: draft.features,
+      notes: draft.notes || null,
+      target: draft.target,
+      schedule_at: null,
+      source_commits: draft.sourceCommits,
+      source_status_lines: draft.sourceStatusLines,
+      generation_context: {
+        ...toGenerationContextObject(draftRow.generation_context),
+        rebaseHistory: draft.generationContext.rebaseHistory,
+        manualWorkflowKind: draft.generationContext.manualWorkflowKind,
+      } satisfies Json,
+      created_by: input.userId,
+      updated_at: now,
+    } as never)
+    .select("*")
+    .single<EditorialDraftRow>();
+
+  if (error || !data) {
+    return { ok: false as const, error: error?.message ?? "Не удалось дублировать draft." };
+  }
+
+  return { ok: true as const, draft: toDraftRecord(data) };
+}
+
+export async function reopenEditorialDraft(input: {
+  draftId: string;
+  expectedUpdatedAt?: string | null;
+}) {
+  const admin = await getAdmin();
+  const draftRow = await getDraftRowById(input.draftId);
+
+  if (!draftRow) {
+    return { ok: false as const, error: "Editorial draft не найден." };
+  }
+
+  const draft = toDraftRecord(draftRow);
+  const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
+  if (!freshness.ok) return freshness;
+
+  if (draft.status !== "cancelled") {
+    return { ok: false as const, error: "Переоткрыть можно только cancelled draft." };
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await admin
+    .from("editorial_release_drafts")
+    .update({
+      status: "draft",
+      updated_at: now,
+    } as never)
+    .eq("id", input.draftId)
+    .select("*")
+    .maybeSingle<EditorialDraftRow>();
+
+  if (error || !data) {
+    return { ok: false as const, error: error?.message ?? "Не удалось переоткрыть draft." };
+  }
+
+  return { ok: true as const, draft: toDraftRecord(data) };
+}
+
+export async function bulkCancelEditorialDrafts(input: {
+  draftIds: string[];
+}) {
+  const admin = await getAdmin();
+  const draftIds = Array.from(new Set(input.draftIds)).filter(Boolean);
+  if (draftIds.length === 0) {
+    return { ok: false as const, error: "Нужен хотя бы один draft." };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("editorial_release_drafts")
+    .update({
+      status: "cancelled",
+      updated_at: now,
+    } as never)
+    .in("id", draftIds)
+    .in("status", ["draft", "scheduled"]);
+
+  if (error) {
+    return { ok: false as const, error: error.message };
+  }
+
+  return { ok: true as const, affectedCount: draftIds.length };
 }

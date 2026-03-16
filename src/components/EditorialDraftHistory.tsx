@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { EditorialDraftRecord } from "@/lib/editorial-ops";
+import {
+  duplicateEditorialDraftAction,
+  reopenEditorialDraftAction,
+} from "@/app/ops/actions";
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -35,8 +40,11 @@ export default function EditorialDraftHistory({
 }: {
   drafts: EditorialDraftRecord[];
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [filter, setFilter] = useState<HistoryFilter>("all");
   const [query, setQuery] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
 
   const filteredDrafts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -103,6 +111,12 @@ export default function EditorialDraftHistory({
         />
       </div>
 
+      {message ? (
+        <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-sm text-gray-300">
+          {message}
+        </div>
+      ) : null}
+
       {filteredDrafts.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-gray-400">
           Для выбранного фильтра пока нет записей.
@@ -135,6 +149,41 @@ export default function EditorialDraftHistory({
                 <div className="text-right text-xs text-gray-500">
                   <p suppressHydrationWarning>Создан: {formatDateTime(draft.createdAt)}</p>
                   <p suppressHydrationWarning>Опубликован: {formatDateTime(draft.publishedAt)}</p>
+                  <div className="mt-2 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const result = await duplicateEditorialDraftAction({ draftId: draft.id });
+                          setMessage(result.ok ? "Создан duplicate draft из истории." : result.error);
+                          if (result.ok) router.refresh();
+                        })
+                      }
+                      className="rounded-lg border border-white/10 bg-black/10 px-2.5 py-1 text-[11px] text-gray-200 transition-colors hover:bg-white/[0.06] disabled:opacity-60"
+                    >
+                      Duplicate
+                    </button>
+                    {draft.status === "cancelled" ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          startTransition(async () => {
+                            const result = await reopenEditorialDraftAction({
+                              draftId: draft.id,
+                              expectedUpdatedAt: draft.updatedAt,
+                            });
+                            setMessage(result.ok ? "Cancelled draft переоткрыт." : result.error);
+                            if (result.ok) router.refresh();
+                          })
+                        }
+                        className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 transition-colors hover:bg-amber-500/20 disabled:opacity-60"
+                      >
+                        Reopen
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
               {draft.summary ? (

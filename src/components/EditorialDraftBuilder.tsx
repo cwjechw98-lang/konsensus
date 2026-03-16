@@ -5,13 +5,23 @@ import { useRouter } from "next/navigation";
 import type { EditorialDraftRecord, EditorialOverview } from "@/lib/editorial-ops";
 import type { ReleaseTarget } from "@/lib/releases";
 import {
+  bulkCancelEditorialDraftsAction,
   cancelEditorialDraftAction,
+  duplicateEditorialDraftAction,
   generateEditorialDraftAction,
   publishEditorialDraftAction,
   rebaseEditorialDraftAction,
+  reopenEditorialDraftAction,
   saveEditorialDraftAction,
   scheduleEditorialDraftAction,
 } from "@/app/ops/actions";
+
+const WORKFLOW_KIND_OPTIONS = [
+  { value: "product_update", label: "Product update" },
+  { value: "ux_refresh", label: "UX refresh" },
+  { value: "ops_notice", label: "Ops notice" },
+  { value: "mixed_release", label: "Mixed release" },
+] as const;
 
 function toInputDateTime(value: string | null) {
   if (!value) return "";
@@ -83,6 +93,9 @@ function DraftEditorCard({
   const [features, setFeatures] = useState(draft.features.join("\n"));
   const [notes, setNotes] = useState(draft.notes);
   const [target, setTarget] = useState<ReleaseTarget>(draft.target);
+  const [workflowKind, setWorkflowKind] = useState<EditorialDraftRecord["workflowKind"]>(
+    draft.workflowKind
+  );
   const [scheduleAt, setScheduleAt] = useState(toInputDateTime(draft.scheduleAt));
   const [message, setMessage] = useState<string | null>(null);
   const [selectedRebaseIndex, setSelectedRebaseIndex] = useState(0);
@@ -106,22 +119,21 @@ function DraftEditorCard({
             </span>
             <span
               className={`rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide ${getWorkflowTone(
-                draft.workflowKind
+                workflowKind
               )}`}
             >
-              {getWorkflowLabel(draft.workflowKind)}
+              {getWorkflowLabel(workflowKind)}
             </span>
           </div>
           <p className="mt-1 text-xs text-gray-500">
             {draft.commitCount} commit · {draft.fromCommit ? `${draft.fromCommit.slice(0, 7)}..` : ""}
             {draft.toCommit.slice(0, 7)}
           </p>
-          <p className="mt-1 text-xs text-gray-500">delivery: {getTargetLabel(draft.target)}</p>
+          <p className="mt-1 text-xs text-gray-500">delivery: {getTargetLabel(target)}</p>
         </div>
         <div className="text-right text-xs text-gray-500">
-          <p suppressHydrationWarning>
-            Создан: {new Date(draft.createdAt).toLocaleString("ru-RU")}
-          </p>
+          <p suppressHydrationWarning>Создан: {new Date(draft.createdAt).toLocaleString("ru-RU")}</p>
+          <p suppressHydrationWarning>Обновлён: {new Date(draft.updatedAt).toLocaleString("ru-RU")}</p>
           {draft.publishedReleaseSlug ? (
             <p className="mt-1 text-cyan-200">release: {draft.publishedReleaseSlug}</p>
           ) : null}
@@ -175,6 +187,22 @@ function DraftEditorCard({
               </select>
             </label>
             <label className="mt-3 block text-xs text-gray-400">
+              Release workflow
+              <select
+                value={workflowKind}
+                onChange={(event) =>
+                  setWorkflowKind(event.target.value as EditorialDraftRecord["workflowKind"])
+                }
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus:border-purple-500/35 focus:outline-none"
+              >
+                {WORKFLOW_KIND_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="mt-3 block text-xs text-gray-400">
               Schedule
               <input
                 type="datetime-local"
@@ -195,9 +223,7 @@ function DraftEditorCard({
               ))}
             </div>
             {changedFiles.length > 0 ? (
-              <p className="mt-3 text-xs text-gray-500">
-                Файлов в диапазоне: {changedFiles.length}
-              </p>
+              <p className="mt-3 text-xs text-gray-500">Файлов в диапазоне: {changedFiles.length}</p>
             ) : null}
             {featureSignals.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -248,7 +274,8 @@ function DraftEditorCard({
                     {selectedRebase.previousTitle || "Без заголовка"}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {selectedRebase.previousCommitCount} commit · {selectedRebase.previousToCommit.slice(0, 7)}
+                    {selectedRebase.previousCommitCount} commit ·{" "}
+                    {selectedRebase.previousToCommit.slice(0, 7)}
                   </p>
                   <p className="mt-2 text-sm text-gray-300">{selectedRebase.previousSummary}</p>
                   {selectedRebase.previousFeatures.length > 0 ? (
@@ -310,7 +337,9 @@ function DraftEditorCard({
                 features,
                 notes,
                 target,
+                workflowKind,
                 scheduleAt,
+                expectedUpdatedAt: draft.updatedAt,
               });
               setMessage(result.ok ? "Черновик сохранён." : result.error);
               if (result.ok) router.refresh();
@@ -332,6 +361,8 @@ function DraftEditorCard({
                 features,
                 notes,
                 target,
+                workflowKind,
+                expectedUpdatedAt: draft.updatedAt,
               });
               setMessage(result.ok ? `Опубликовано: ${result.slug}` : result.error);
               if (result.ok) router.refresh();
@@ -353,7 +384,9 @@ function DraftEditorCard({
                 features,
                 notes,
                 target,
+                workflowKind,
                 scheduleAt,
+                expectedUpdatedAt: draft.updatedAt,
               });
               setMessage(
                 result.ok
@@ -372,7 +405,10 @@ function DraftEditorCard({
           disabled={isPending}
           onClick={() =>
             startTransition(async () => {
-              const result = await rebaseEditorialDraftAction({ draftId: draft.id });
+              const result = await rebaseEditorialDraftAction({
+                draftId: draft.id,
+                expectedUpdatedAt: draft.updatedAt,
+              });
               setMessage(result.ok ? "Draft rebased to current HEAD." : result.error);
               if (result.ok) router.refresh();
             })
@@ -386,7 +422,10 @@ function DraftEditorCard({
           disabled={isPending}
           onClick={() =>
             startTransition(async () => {
-              const result = await cancelEditorialDraftAction({ draftId: draft.id });
+              const result = await cancelEditorialDraftAction({
+                draftId: draft.id,
+                expectedUpdatedAt: draft.updatedAt,
+              });
               setMessage(result.ok ? "Draft отменён." : result.error);
               if (result.ok) router.refresh();
             })
@@ -395,6 +434,39 @@ function DraftEditorCard({
         >
           Отменить
         </button>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await duplicateEditorialDraftAction({ draftId: draft.id });
+              setMessage(result.ok ? "Создан duplicate draft." : result.error);
+              if (result.ok) router.refresh();
+            })
+          }
+          className="rounded-lg border border-white/10 bg-black/10 px-4 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-white/[0.06] disabled:opacity-60"
+        >
+          Дублировать
+        </button>
+        {draft.status === "cancelled" ? (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() =>
+              startTransition(async () => {
+                const result = await reopenEditorialDraftAction({
+                  draftId: draft.id,
+                  expectedUpdatedAt: draft.updatedAt,
+                });
+                setMessage(result.ok ? "Draft снова открыт." : result.error);
+                if (result.ok) router.refresh();
+              })
+            }
+            className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-100 transition-colors hover:bg-amber-500/20 disabled:opacity-60"
+          >
+            Переоткрыть
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -410,6 +482,15 @@ export default function EditorialDraftBuilder({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
+
+  function toggleDraftSelection(draftId: string) {
+    setSelectedDraftIds((current) =>
+      current.includes(draftId)
+        ? current.filter((id) => id !== draftId)
+        : [...current, draftId]
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -434,6 +515,7 @@ export default function EditorialDraftBuilder({
             <p className="text-xs text-gray-500">
               workflow: cursor → AI draft → review/edit → publish or schedule
             </p>
+            <p className="text-xs text-gray-500">conflict guard: write actions сверяют `updated_at`</p>
           </div>
           <button
             type="button"
@@ -474,8 +556,51 @@ export default function EditorialDraftBuilder({
 
       {drafts.length > 0 ? (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedDraftIds(
+                  selectedDraftIds.length === drafts.length ? [] : drafts.map((draft) => draft.id)
+                )
+              }
+              className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs font-medium text-gray-200 transition-colors hover:bg-white/[0.06]"
+            >
+              {selectedDraftIds.length === drafts.length ? "Снять всё" : "Выбрать всё"}
+            </button>
+            <button
+              type="button"
+              disabled={isPending || selectedDraftIds.length === 0}
+              onClick={() =>
+                startTransition(async () => {
+                  const result = await bulkCancelEditorialDraftsAction({ draftIds: selectedDraftIds });
+                  setMessage(result.ok ? `Отменено draft: ${result.affectedCount}` : result.error);
+                  if (result.ok) {
+                    setSelectedDraftIds([]);
+                    router.refresh();
+                  }
+                })
+              }
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-100 transition-colors hover:bg-red-500/20 disabled:opacity-60"
+            >
+              Отменить выбранные
+            </button>
+            <span className="text-xs text-gray-500">Выбрано: {selectedDraftIds.length}</span>
+          </div>
+
           {drafts.map((draft) => (
-            <DraftEditorCard key={draft.id} draft={draft} />
+            <div key={draft.id} className="space-y-2">
+              <label className="inline-flex items-center gap-2 text-xs text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={selectedDraftIds.includes(draft.id)}
+                  onChange={() => toggleDraftSelection(draft.id)}
+                  className="h-4 w-4 rounded border-white/20 bg-black/20 text-cyan-400 focus:ring-cyan-400"
+                />
+                Выбрать draft
+              </label>
+              <DraftEditorCard draft={draft} />
+            </div>
           ))}
         </div>
       ) : (

@@ -84,12 +84,38 @@ function DeliveryRow({
 export default function EditorialDeliveryPanel({
   queued,
   recent,
+  summary,
 }: {
   queued: EditorialReleaseReport[];
   recent: EditorialReleaseReport[];
+  summary: {
+    queuedCount: number;
+    deliveredBotCount: number;
+    suppressedBotCount: number;
+    channelSentCount: number;
+  };
 }) {
   return (
     <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Queued</p>
+          <p className="mt-2 text-2xl font-semibold text-white">{summary.queuedCount}</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Bot delivered</p>
+          <p className="mt-2 text-2xl font-semibold text-white">{summary.deliveredBotCount}</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Bot suppressed</p>
+          <p className="mt-2 text-2xl font-semibold text-white">{summary.suppressedBotCount}</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Channel sent</p>
+          <p className="mt-2 text-2xl font-semibold text-white">{summary.channelSentCount}</p>
+        </div>
+      </div>
+
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-white">Очередь scheduled releases</h3>

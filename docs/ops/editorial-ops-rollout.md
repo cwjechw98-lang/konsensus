@@ -11,8 +11,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_4`
-- Ближайший шаг: `v1.5 release workflow polish`
+- Стадия: `implemented_final_v1`
+- Ближайший шаг: `hold unless new ops need appears`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -113,6 +113,22 @@
 - history умеет фильтровать rebase-rich drafts и искать по title/slug/commit/features;
 - тип release-сценария вычисляется server-side и используется в UI как отдельный слой подачи.
 
+### Финализация v1
+
+- bulk actions для active drafts;
+- richer delivery analytics прямо в `/ops/editorial`;
+- ручная корректировка release workflow type;
+- timeline draft/scheduled/delivered;
+- conflict guards по `updated_at` для multi-admin сценариев.
+
+### Выполнено в финализации v1
+
+- active drafts получили bulk cancel;
+- write-операции (`save/publish/schedule/rebase/cancel/reopen`) теперь сверяют `updated_at` и режут stale-write при параллельной работе админов;
+- release type теперь можно вручную корректировать прямо в draft editor без новой SQL-колонки;
+- history получила быстрые actions `Duplicate` и `Reopen`;
+- `/ops/editorial` показывает отдельный workflow timeline и delivery summary cards.
+
 ### v2
 
 - unified ops console;
@@ -121,4 +137,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Editorial Ops, следующий слой — углубление release workflow: bulk actions для drafts, richer delivery analytics внутри `/ops` и более точная ручная корректировка generated release types.
+- блок `Editorial Ops` на текущем витке можно считать закрытым; возвращаться к нему только если появятся новые ops-поверхности или multi-channel delivery.

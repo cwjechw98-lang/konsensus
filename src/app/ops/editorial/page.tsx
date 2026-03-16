@@ -5,6 +5,7 @@ import PageContextCard from "@/components/PageContextCard";
 import EditorialDraftBuilder from "@/components/EditorialDraftBuilder";
 import EditorialDraftHistory from "@/components/EditorialDraftHistory";
 import EditorialDeliveryPanel from "@/components/EditorialDeliveryPanel";
+import EditorialOpsTimeline from "@/components/EditorialOpsTimeline";
 import {
   fetchEditorialDrafts,
   fetchEditorialOverview,
@@ -64,10 +65,16 @@ export default async function OpsEditorialPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-lg font-semibold text-white">Workflow timeline</h2>
+          <EditorialOpsTimeline drafts={drafts} releases={deliveryReports.recent} />
+        </section>
+
+        <section>
           <h2 className="mb-4 text-lg font-semibold text-white">Delivery reports</h2>
           <EditorialDeliveryPanel
             queued={deliveryReports.queued}
             recent={deliveryReports.recent}
+            summary={deliveryReports.summary}
           />
         </section>
 

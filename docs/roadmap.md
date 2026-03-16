@@ -245,6 +245,9 @@
 - [x] Editorial Ops v1.4
   Выполнено: release workflow получил явные типы сценариев, compare переключается между несколькими rebase snapshot'ами, а history поддерживает поиск и фильтр `With rebase`
 
+- [x] Editorial Ops finalization
+  Выполнено: bulk actions, delivery summary cards, workflow timeline, ручная корректировка release type и conflict guards для multi-admin сценариев
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 
