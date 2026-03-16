@@ -157,9 +157,10 @@
 - [x] Invite/direct challenge сообщения приведены к более полному контексту: тема, описание и понятный post-create сигнал при сбое email-канала
 - [x] Персональное состояние спора вынесено в отдельную SQL-модель `dispute_user_state` (`00018`) с RLS, чтобы dashboard и Telegram синхронно обрабатывали архив и auto-unarchive
 - [x] Добавлена SQL-модель `dispute_reminders` и расширено `dispute_user_state` (`00019`) для лимитов напоминаний, pending counters и mute после повторной архивации
-- [ ] Апелляционный слой для AI-выводов и репутации
+- [x] Апелляционный слой для AI-выводов и репутации
   Реализация разбита по этапам и зафиксирована в `docs/ops/appeals-rollout.md`
   [x] Первый шаг выполнен: апелляция на конкретный автоматический вывод (`AI summary` и `reputation badge`) с auto-review и скрытием спорного вывода при низкой уверенности
+  [x] Второй шаг выполнен: manual moderation queue и ручной override поверх auto-review внутри `AI-профиля`
 - [x] Типы аккаунтов и trust tiers для публичного слоя
   Реализация разбита по этапам и зафиксирована в `docs/ops/trust-tiers-rollout.md`
   [x] Первый шаг выполнен: `basic / linked / trusted`, rule-based evaluator и gating публичных write-операций без тяжёлой KYC-модели
@@ -203,6 +204,9 @@
 
 - [x] Appeals v1
   Выполнено: первый слой апелляций на автоматические выводы уже собран в `docs/ops/appeals-rollout.md`
+
+- [x] Appeals v1.1
+  Выполнено: admin-only очередь ручной модерации и manual override уже добавлены поверх auto-review
 
 - [x] Unit tests for server actions v1
   Зафиксирован в `docs/ops/server-actions-tests-rollout.md`

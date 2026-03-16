@@ -21,6 +21,8 @@
 - `TELEGRAM_WEBHOOK_SECRET`
 - `TELEGRAM_BOT_USERNAME`
 - `TELEGRAM_RELEASE_CHANNEL_ID`
+- `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL`
+- `KONSENSUS_ADMIN_EMAILS`
 - `NEXT_PUBLIC_SUPPORT_BOOSTY_URL`
 - `NEXT_PUBLIC_SUPPORT_CRYPTO_URL`
 - `NEXT_PUBLIC_SUPPORT_ALT_URL`
@@ -34,8 +36,13 @@
 
 ### Telegram-канал релизов
 - бот должен быть администратором канала
-- `TELEGRAM_RELEASE_CHANNEL_ID` можно хранить как `@channel_username` или numeric id
+- `TELEGRAM_RELEASE_CHANNEL_ID` для текущей membership/suppress логики должен быть numeric (`-100...`)
+- `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL` должен вести на публичную ссылку канала вида `https://t.me/<username>`
 - релиз-посты идут в канал отдельно от пользовательских bot-notifications
+
+### Appeals moderation
+- `KONSENSUS_ADMIN_EMAILS` — список email через запятую для доступа к ручной очереди апелляций
+- если env пустой, manual moderation queue не показывается
 
 ### Supabase
 - миграции из `supabase/migrations/` применяются вручную через SQL Editor, если нет отдельного deploy-flow миграций
@@ -50,5 +57,6 @@
 - Telegram bot webhook отвечает 200
 - `/tg` работает внутри Telegram и корректно показывает fallback вне Telegram
 - bot username и channel id заданы
+- public channel URL и admin emails заданы там, где нужны
 - support links заданы или намеренно оставлены пустыми
 - последняя миграция применена в Supabase

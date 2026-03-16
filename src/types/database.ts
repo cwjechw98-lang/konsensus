@@ -834,6 +834,10 @@ export interface Database {
           review_confidence: number | null;
           review_notes: string | null;
           reviewed_at: string | null;
+          manual_override_result: "kept" | "hidden" | null;
+          manual_override_notes: string | null;
+          manual_overridden_at: string | null;
+          manual_overridden_by: string | null;
           resolved_at: string | null;
           created_at: string;
           updated_at: string;
@@ -851,6 +855,10 @@ export interface Database {
           review_confidence?: number | null;
           review_notes?: string | null;
           reviewed_at?: string | null;
+          manual_override_result?: "kept" | "hidden" | null;
+          manual_override_notes?: string | null;
+          manual_overridden_at?: string | null;
+          manual_overridden_by?: string | null;
           resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -868,6 +876,10 @@ export interface Database {
           review_confidence?: number | null;
           review_notes?: string | null;
           reviewed_at?: string | null;
+          manual_override_result?: "kept" | "hidden" | null;
+          manual_override_notes?: string | null;
+          manual_overridden_at?: string | null;
+          manual_overridden_by?: string | null;
           resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;

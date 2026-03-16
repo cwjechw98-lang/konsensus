@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildLatestAppealMap,
+  getAppealEffectiveResult,
   getAppealStatusText,
   getLatestAppealForItem,
   isAppealHidden,
+  needsAppealManualReview,
   sortBadgesWithAppeals,
   type AppealSummary,
 } from "@/lib/appeal-helpers";
@@ -15,6 +17,8 @@ function createAppeal(
 ): AppealSummary {
   return {
     id: "appeal-1",
+    userId: "user-1",
+    userDisplayName: "Антон",
     itemType: "reputation_badge",
     itemKey: "diplomat",
     itemLabel: "Дипломат",
@@ -23,6 +27,10 @@ function createAppeal(
     reviewResult: "kept",
     reviewConfidence: 0.82,
     reviewNotes: "ok",
+    manualOverrideResult: null,
+    manualOverrideNotes: null,
+    manualOverriddenAt: null,
+    manualOverriddenBy: null,
     createdAt: "2026-03-16T10:00:00.000Z",
     resolvedAt: "2026-03-16T10:05:00.000Z",
     ...overrides,
@@ -81,6 +89,38 @@ describe("appeal helpers", () => {
         })
       )
     ).toBe("Апелляция на пересмотре");
+  });
+
+  it("prefers manual override result over auto review", () => {
+    expect(
+      getAppealEffectiveResult(
+        createAppeal({
+          reviewResult: "hidden",
+          manualOverrideResult: "kept",
+        })
+      )
+    ).toBe("kept");
+  });
+
+  it("flags low-confidence auto review for manual moderation", () => {
+    expect(
+      needsAppealManualReview(
+        createAppeal({
+          reviewConfidence: 61,
+        })
+      )
+    ).toBe(true);
+  });
+
+  it("returns manual status text after override", () => {
+    expect(
+      getAppealStatusText(
+        createAppeal({
+          reviewResult: "hidden",
+          manualOverrideResult: "kept",
+        })
+      )
+    ).toBe("Ручной разбор оставил вывод");
   });
 
   it("moves hidden badges behind visible ones", () => {

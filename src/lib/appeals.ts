@@ -3,7 +3,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAIProfile } from "@/lib/ai-profile";
 import { fetchPublicReputationBadges } from "@/lib/reputation";
-import type { AppealItemType, AppealSummary } from "@/lib/appeal-helpers";
+import {
+  needsAppealManualReview,
+  type AppealItemType,
+  type AppealSummary,
+} from "@/lib/appeal-helpers";
 import type { Database } from "@/types/database";
 
 export type AppealRow = Database["public"]["Tables"]["appeals"]["Row"];
@@ -18,6 +22,7 @@ export type AppealableItemSnapshot = {
 function toAppealSummary(row: AppealRow): AppealSummary {
   return {
     id: row.id,
+    userId: row.user_id,
     itemType: row.item_type,
     itemKey: row.item_key,
     itemLabel: row.item_label,
@@ -26,6 +31,10 @@ function toAppealSummary(row: AppealRow): AppealSummary {
     reviewResult: row.review_result,
     reviewConfidence: row.review_confidence,
     reviewNotes: row.review_notes,
+    manualOverrideResult: row.manual_override_result,
+    manualOverrideNotes: row.manual_override_notes,
+    manualOverriddenAt: row.manual_overridden_at,
+    manualOverriddenBy: row.manual_overridden_by,
     createdAt: row.created_at,
     resolvedAt: row.resolved_at,
   };
@@ -41,6 +50,33 @@ export async function fetchUserAppeals(userId: string): Promise<AppealSummary[]>
     .returns<AppealRow[]>();
 
   return (data ?? []).map(toAppealSummary);
+}
+
+export async function fetchAppealModerationQueue(): Promise<AppealSummary[]> {
+  const admin = createAdminClient();
+  const { data: appeals } = await admin
+    .from("appeals")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .returns<AppealRow[]>();
+
+  const userIds = Array.from(new Set((appeals ?? []).map((row) => row.user_id)));
+  const { data: profiles } = userIds.length
+    ? await admin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds)
+        .returns<Array<{ id: string; display_name: string | null }>>()
+    : { data: [] as Array<{ id: string; display_name: string | null }> };
+
+  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile.display_name]));
+
+  return (appeals ?? [])
+    .map((row) => ({
+      ...toAppealSummary(row),
+      userDisplayName: profileMap.get(row.user_id) ?? null,
+    }))
+    .filter((appeal) => needsAppealManualReview(appeal));
 }
 
 export async function buildAppealableItemSnapshot(

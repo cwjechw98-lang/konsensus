@@ -140,13 +140,14 @@ export async function fetchPublicReputationBadges(
 
   const { data: appeals } = await admin
     .from("appeals")
-    .select("item_key, review_result, status, created_at")
+    .select("item_key, review_result, manual_override_result, status, created_at")
     .eq("user_id", userId)
     .eq("item_type", "reputation_badge")
     .order("created_at", { ascending: false })
     .returns<Array<{
       item_key: string;
       review_result: "kept" | "hidden" | null;
+      manual_override_result: "kept" | "hidden" | null;
       status: "reviewing" | "resolved";
       created_at: string;
     }>>();
@@ -154,7 +155,8 @@ export async function fetchPublicReputationBadges(
   const hiddenBadgeKeys = new Set<string>();
   for (const appeal of appeals ?? []) {
     if (hiddenBadgeKeys.has(appeal.item_key)) continue;
-    if (appeal.status === "resolved" && appeal.review_result === "hidden") {
+    const effectiveResult = appeal.manual_override_result ?? appeal.review_result;
+    if (appeal.status === "resolved" && effectiveResult === "hidden") {
       hiddenBadgeKeys.add(appeal.item_key);
     }
   }

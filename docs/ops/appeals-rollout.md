@@ -9,8 +9,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1`
-- Ближайший релиз: `v1 appealable items`
+- Стадия: `implemented_v1_1`
+- Ближайший релиз: `v1.1 moderation queue + manual override`
 - Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
 
 ## Зачем это нужно
@@ -95,6 +95,18 @@
   - `AI summary` скрывается в профиле
   - `reputation badge` убирается из публичного слоя, но остаётся видимым в своём профиле со статусом апелляции
 - история апелляций сохраняется и показывается в профиле отдельным блоком
+- добавлен manual moderation layer (`00025`) поверх auto-review:
+  - `manual_override_result`
+  - `manual_override_notes`
+  - `manual_overridden_at`
+  - `manual_overridden_by`
+- в `AI-профиле` появилась admin-only очередь ручной модерации спорных апелляций
+- спорные кейсы в очередь попадают rule-based:
+  - auto-result = `hidden`
+  - низкая уверенность auto-review
+  - не было manual override
+- public reputation layer теперь учитывает manual override как effective result
+- auto-review завершение апелляции переведено на admin-path, чтобы не упираться в отсутствие RLS update-policy
 
 ## Что пока не делать
 
@@ -103,11 +115,6 @@
 - публичные споры вокруг самой апелляции
 
 ## Что нужно добить после v1
-
-### v1.1
-- добавить moderation queue для ручного разбора спорных кейсов
-- хранить результат апелляции и причину
-- добавить ручной override поверх авто-review вместо только автоматического пути
 
 ### v1.2
 - связать апелляции с reputation history
@@ -119,13 +126,14 @@
 - аналитика по ошибочным автоматическим выводам
 - feedback loop для дообучения правил и prompts
 
-## Что отложено после v1
+## Что отложено после v1.1
 
-- human moderation queue
 - связь с reputation timeline
 - аналитика качества AI-выводов
 - полноценный trust-and-appeals subsystem
+- отдельный moderation workspace вне профиля
+- granular admin roles вместо env-списка `KONSENSUS_ADMIN_EMAILS`
 
 ## Следующий практический шаг
 
-- вынести `appeals v1.1` в отдельный пакет: moderation queue + manual override + расширение на другие automated classifications
+- перейти к `appeals v1.2`: timeline пересмотров, новые automated classifications и отдельная видимость факта ручного пересмотра в reputation history

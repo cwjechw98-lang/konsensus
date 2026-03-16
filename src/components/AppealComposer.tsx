@@ -48,6 +48,8 @@ export default function AppealComposer({
     setError(null);
     setAppeal({
       id: result.appealId,
+      userId: "self",
+      userDisplayName: null,
       itemType: result.itemType,
       itemKey: result.itemKey,
       itemLabel: title,
@@ -56,6 +58,10 @@ export default function AppealComposer({
       reviewResult: result.reviewResult,
       reviewConfidence: result.reviewConfidence,
       reviewNotes: result.reviewNotes,
+      manualOverrideResult: null,
+      manualOverrideNotes: null,
+      manualOverriddenAt: null,
+      manualOverriddenBy: null,
       createdAt: new Date().toISOString(),
       resolvedAt: new Date().toISOString(),
     });
@@ -106,7 +112,7 @@ export default function AppealComposer({
           />
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-gray-500">
-              В v1 апелляция уходит в автоматический повторный пересмотр.
+              Автопересмотр запускается сразу. Спорные кейсы затем могут попасть в ручную очередь модерации.
             </p>
             <button
               type="button"

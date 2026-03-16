@@ -5,6 +5,12 @@ const APP_URL =
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "") || "";
 const TELEGRAM_RELEASE_CHANNEL_ID = process.env.TELEGRAM_RELEASE_CHANNEL_ID || "";
 const TELEGRAM_RELEASE_CHANNEL_URL = process.env.NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL || "";
+const ADMIN_EMAILS = new Set(
+  (process.env.KONSENSUS_ADMIN_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 export const SUPPORT_LINKS = {
   boosty: process.env.NEXT_PUBLIC_SUPPORT_BOOSTY_URL || "",
@@ -43,4 +49,9 @@ export function hasSupportLinks() {
   return Boolean(
     SUPPORT_LINKS.boosty || SUPPORT_LINKS.crypto || SUPPORT_LINKS.alternative
   );
+}
+
+export function isKonsensusAdminEmail(email?: string | null) {
+  if (!email) return false;
+  return ADMIN_EMAILS.has(email.trim().toLowerCase());
 }

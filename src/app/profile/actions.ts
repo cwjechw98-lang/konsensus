@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAIProfile } from "@/lib/ai-profile";
 import { reviewAutomaticAppeal } from "@/lib/ai";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isKonsensusAdminEmail } from "@/lib/site-config";
 import type { AppealItemType } from "@/lib/appeal-helpers";
 import {
   buildAppealableItemSnapshot,
@@ -50,6 +52,19 @@ export type SubmitAppealResult =
       reviewConfidence: number | null;
       itemType: AppealItemType;
       itemKey: string;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export type ManualAppealOverrideResult =
+  | {
+      ok: true;
+      appealId: string;
+      manualOverrideResult: "kept" | "hidden";
+      manualOverrideNotes: string | null;
+      manualOverriddenAt: string;
     }
   | {
       ok: false;
@@ -174,13 +189,25 @@ export async function resolveAppeal(
   }
 ): Promise<SubmitAppealResult> {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Нужно войти в аккаунт" };
 
+  const { data: existing } = await admin
+    .from("appeals")
+    .select("id")
+    .eq("id", appealId)
+    .eq("user_id", user.id)
+    .maybeSingle<{ id: string }>();
+
+  if (!existing) {
+    return { ok: false, error: "Апелляция не найдена" };
+  }
+
   const now = new Date().toISOString();
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await admin
     .from("appeals")
     .update({
       status: "resolved",
@@ -209,6 +236,59 @@ export async function resolveAppeal(
     reviewConfidence: updated.review_confidence,
     itemType: updated.item_type,
     itemKey: updated.item_key,
+  };
+}
+
+export async function applyManualAppealOverride(input: {
+  appealId: string;
+  reviewResult: "kept" | "hidden";
+  reviewNotes: string;
+}): Promise<ManualAppealOverrideResult> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isKonsensusAdminEmail(user.email)) {
+    return { ok: false, error: "Нужен доступ модератора" };
+  }
+
+  const reviewNotes = input.reviewNotes.trim();
+  if (reviewNotes.length < 8) {
+    return { ok: false, error: "Добавьте короткую причину ручного решения." };
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error } = await admin
+    .from("appeals")
+    .update({
+      status: "resolved",
+      manual_override_result: input.reviewResult,
+      manual_override_notes: reviewNotes,
+      manual_overridden_at: now,
+      manual_overridden_by: user.id,
+      updated_at: now,
+    } as never)
+    .eq("id", input.appealId)
+    .select("id, manual_override_result, manual_override_notes, manual_overridden_at")
+    .maybeSingle<{
+      id: string;
+      manual_override_result: "kept" | "hidden" | null;
+      manual_override_notes: string | null;
+      manual_overridden_at: string | null;
+    }>();
+
+  if (error || !updated?.manual_override_result || !updated.manual_overridden_at) {
+    return { ok: false, error: error?.message ?? "Не удалось применить ручной override" };
+  }
+
+  return {
+    ok: true,
+    appealId: updated.id,
+    manualOverrideResult: updated.manual_override_result,
+    manualOverrideNotes: updated.manual_override_notes,
+    manualOverriddenAt: updated.manual_overridden_at,
   };
 }
 
