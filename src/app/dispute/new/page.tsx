@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createDispute } from "@/lib/actions";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import PageContextCard from "@/components/PageContextCard";
@@ -150,6 +151,7 @@ function RoundsSelector() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function NewDisputePage() {
+  const searchParams = useSearchParams();
   const [showOpponentField, setShowOpponentField] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [title, setTitle] = useState("");
@@ -161,6 +163,7 @@ export default function NewDisputePage() {
   const filtered = activeCategory === "Все"
     ? TEMPLATES
     : TEMPLATES.filter((t) => t.category === activeCategory);
+  const error = searchParams.get("error");
 
   function applyTemplate(t: Template) {
     setTitle(t.title);
@@ -263,6 +266,12 @@ export default function NewDisputePage() {
 
       {/* ── Form ── */}
       <div ref={formRef} className="glass rounded-2xl p-6 sm:p-8">
+        {error && (
+          <div className="mb-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
+            {error}
+          </div>
+        )}
+
         {selectedTemplate && (
           <div className="flex items-center justify-between mb-4 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
             <p className="text-xs text-purple-400 flex items-center gap-1.5">
@@ -354,6 +363,9 @@ export default function NewDisputePage() {
             </button>
             <input type="hidden" name="is_public" value={isPublic ? "true" : "false"} />
           </div>
+          <p className="text-xs text-gray-600 -mt-2">
+            Публичное создание открывается с уровня Trusted. Прогресс по уровню доверия виден в профиле.
+          </p>
 
           <div className="flex gap-3 mt-2">
             <SubmitButton

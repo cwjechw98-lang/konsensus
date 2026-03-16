@@ -6,6 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateChallengeInsight, generateChallengeMediation, generateChallengeObserverHint, moderateChallengeOpinion } from "@/lib/ai";
 import { notifyBattleWatcherUpdate, notifyChallengeAccepted, notifyChallengeMessage, notifyNewChallenge } from "@/lib/telegram";
 import { categorizeTopicAI } from "@/lib/ai";
+import {
+  fetchTrustTierState,
+  getTrustTierGateMessage,
+  hasMinimumTrustTier,
+} from "@/lib/trust-tier";
 
 const MAX_OPINIONS_PER_CHALLENGE = 3;
 const OPINION_COOLDOWN_MS = 90_000;
@@ -16,6 +21,11 @@ export async function createChallenge(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const trust = await fetchTrustTierState(user.id);
+  if (!hasMinimumTrustTier(trust.tier, "trusted")) {
+    redirect("/arena?error=" + encodeURIComponent(getTrustTierGateMessage("trusted")));
+  }
 
   const topic = (formData.get("topic") as string).trim();
   const position_hint = (formData.get("position_hint") as string).trim();
@@ -62,6 +72,11 @@ export async function acceptChallenge(challengeId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const admin = createAdminClient();
+
+  const trust = await fetchTrustTierState(user.id);
+  if (!hasMinimumTrustTier(trust.tier, "linked")) {
+    redirect("/arena?error=" + encodeURIComponent(getTrustTierGateMessage("linked")));
+  }
 
   // Check challenge is open and not by this user
   const { data: challenge } = await admin
@@ -437,11 +452,16 @@ export async function toggleChallengeWatch(formData: FormData) {
 export async function addChallengeComment(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) return { error: getTrustTierGateMessage("linked") };
+
+  const trust = await fetchTrustTierState(user.id);
+  if (!hasMinimumTrustTier(trust.tier, "linked")) {
+    return { error: getTrustTierGateMessage("linked") };
+  }
 
   const challengeId = (formData.get("challenge_id") as string) ?? "";
   const content = ((formData.get("content") as string) ?? "").trim();
-  if (!content || content.length > MAX_COMMENT_LENGTH) return;
+  if (!content || content.length > MAX_COMMENT_LENGTH) return { error: "Комментарий слишком длинный или пустой." };
 
   const admin = createAdminClient();
   const { data: profile } = await admin
@@ -466,18 +486,25 @@ export async function addChallengeComment(formData: FormData) {
       created_at: string;
     }>();
 
-  return data ?? null;
+  return data ? { data } : { error: "Не удалось сохранить комментарий." };
 }
 
 export async function submitChallengeOpinion(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) return { error: getTrustTierGateMessage("linked") };
+
+  const trust = await fetchTrustTierState(user.id);
+  if (!hasMinimumTrustTier(trust.tier, "linked")) {
+    return { error: getTrustTierGateMessage("linked") };
+  }
 
   const challengeId = (formData.get("challenge_id") as string) ?? "";
   const round = Math.max(1, parseInt((formData.get("round") as string) ?? "1"));
   const content = ((formData.get("content") as string) ?? "").trim();
-  if (!content || content.length > MAX_OPINION_LENGTH) return;
+  if (!content || content.length > MAX_OPINION_LENGTH) {
+    return { error: "Мнение слишком длинное или пустое." };
+  }
 
   const admin = createAdminClient();
   const { count: totalOpinions } = await admin
@@ -486,7 +513,9 @@ export async function submitChallengeOpinion(formData: FormData) {
     .eq("challenge_id", challengeId)
     .eq("user_id", user.id);
 
-  if ((totalOpinions ?? 0) >= MAX_OPINIONS_PER_CHALLENGE) return;
+  if ((totalOpinions ?? 0) >= MAX_OPINIONS_PER_CHALLENGE) {
+    return { error: "Лимит мнений для этого battle уже исчерпан." };
+  }
 
   const cooldownFrom = new Date(Date.now() - OPINION_COOLDOWN_MS).toISOString();
   const { count: recent } = await admin
@@ -496,7 +525,9 @@ export async function submitChallengeOpinion(formData: FormData) {
     .eq("user_id", user.id)
     .gte("created_at", cooldownFrom);
 
-  if ((recent ?? 0) > 0) return;
+  if ((recent ?? 0) > 0) {
+    return { error: "Подождите немного перед следующим мнением." };
+  }
 
   const moderation = await moderateChallengeOpinion(content);
 
@@ -508,4 +539,6 @@ export async function submitChallengeOpinion(formData: FormData) {
     moderation_status: moderation.approved ? "approved" : "rejected",
     is_selected: false,
   } as never);
+
+  return { ok: true };
 }

@@ -6,8 +6,8 @@
 
 ## Статус блока
 
-- Стадия: `planned`
-- Ближайший релиз: `v1 basic / linked / trusted`
+- Стадия: `implemented_v1`
+- Ближайший хвост: `v1.1 recalculation + audit trail`
 - Возвращаться к блоку через этот файл и обновлять в нём выполненные шаги до синхронизации `status/roadmap`
 
 ## Зачем это нужно
@@ -85,6 +85,19 @@
 - tiers объяснимы и не завязаны на платную KYC-схему
 - пользователь видит свой текущий уровень и путь к следующему
 - это можно позже расширить до audit trail и appeals
+
+## Что уже выполнено
+
+- в `profiles` добавлен `trust_tier` с default `basic`;
+- реализован rule-based evaluator `src/lib/trust-tier.ts`;
+- tier синхронизируется server-side при чтении и проверке;
+- в профиле появился отдельный trust-tier блок с unlocks и шагом до следующего уровня;
+- публичные действия реально gated:
+  - создание публичного спора требует `Trusted`;
+  - создание arena-вызова требует `Trusted`;
+  - принятие arena-вызова требует `Linked`;
+  - observer comments / opinions в публичном слое требуют `Linked`;
+- UI даёт понятные gating messages в `profile`, `arena`, `challenge chat` и `new dispute`.
 
 ## Что пока не делать
 

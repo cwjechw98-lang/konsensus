@@ -10,6 +10,11 @@ import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 import { getDisplayName } from "@/lib/display-name";
 import { getAppUrl } from "@/lib/url";
+import {
+  fetchTrustTierState,
+  getTrustTierGateMessage,
+  hasMinimumTrustTier,
+} from "@/lib/trust-tier";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
@@ -153,6 +158,16 @@ export async function createDispute(formData: FormData) {
   const maxRounds = Math.min(20, Math.max(1, parseInt(formData.get("max_rounds") as string) || 3));
   const opponentEmail = ((formData.get("opponent_email") as string) ?? "").trim().toLowerCase();
   const isPublic = formData.get("is_public") === "true";
+
+  if (isPublic) {
+    const trust = await fetchTrustTierState(user.id);
+    if (!hasMinimumTrustTier(trust.tier, "trusted")) {
+      redirect(
+        "/dispute/new?error=" +
+          encodeURIComponent(getTrustTierGateMessage("trusted"))
+      );
+    }
+  }
 
   // Input validation
   if (!title || title.length < 3) {
@@ -1376,6 +1391,19 @@ export async function addComment(
 
   const admin = createAdminClient();
   const now = new Date();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: getTrustTierGateMessage("linked") };
+  }
+
+  const trust = await fetchTrustTierState(user.id);
+  if (!hasMinimumTrustTier(trust.tier, "linked")) {
+    return { error: getTrustTierGateMessage("linked") };
+  }
 
   // 1. DDoS check: total messages in last minute
   const ddosFrom = new Date(now.getTime() - DDOS_WINDOW_MS).toISOString();
@@ -1410,9 +1438,6 @@ export async function addComment(
   }
 
   // 3. Insert user comment
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
   await admin.from("dispute_comments").insert({
     dispute_id: disputeId,
     content: trimmed,

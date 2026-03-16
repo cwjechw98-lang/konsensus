@@ -40,6 +40,8 @@ interface ChallengeWithAuthor {
 interface ChallengeBoardProps {
   challenges: ChallengeWithAuthor[];
   currentUserId: string | null;
+  canCreatePublicChallenge: boolean;
+  canJoinPublicChallenge: boolean;
 }
 
 function CreateChallengeForm({ onClose }: { onClose: () => void }) {
@@ -118,15 +120,17 @@ function CreateChallengeForm({ onClose }: { onClose: () => void }) {
 function ChallengeCard({
   challenge,
   currentUserId,
+  canJoinPublicChallenge,
 }: {
   challenge: ChallengeWithAuthor;
   currentUserId: string | null;
+  canJoinPublicChallenge: boolean;
 }) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const isOwnChallenge = challenge.author.id === currentUserId;
-  const canAccept = !!currentUserId && !isOwnChallenge;
+  const canAccept = !!currentUserId && !isOwnChallenge && canJoinPublicChallenge;
 
   return (
     <div
@@ -195,6 +199,8 @@ function ChallengeCard({
           </form>
         ) : isOwnChallenge ? (
           <span className="text-xs text-gray-600 italic">Ваш вызов</span>
+        ) : currentUserId && !canJoinPublicChallenge ? (
+          <span className="text-xs text-yellow-200">Нужен Linked</span>
         ) : (
           <span className="text-xs text-gray-600">Войдите чтобы принять</span>
         )}
@@ -203,7 +209,12 @@ function ChallengeCard({
   );
 }
 
-export default function ChallengeBoard({ challenges, currentUserId }: ChallengeBoardProps) {
+export default function ChallengeBoard({
+  challenges,
+  currentUserId,
+  canCreatePublicChallenge,
+  canJoinPublicChallenge,
+}: ChallengeBoardProps) {
   const [showForm, setShowForm] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -244,12 +255,18 @@ export default function ChallengeBoard({ challenges, currentUserId }: ChallengeB
             : "Нет активных вызовов"}
         </p>
         {currentUserId && (
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            + Бросить вызов
-          </button>
+          canCreatePublicChallenge ? (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              + Бросить вызов
+            </button>
+          ) : (
+            <span className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
+              Для создания вызова нужен Trusted
+            </span>
+          )
         )}
       </div>
 
@@ -272,7 +289,12 @@ export default function ChallengeBoard({ challenges, currentUserId }: ChallengeB
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((c) => (
-            <ChallengeCard key={c.id} challenge={c} currentUserId={currentUserId} />
+            <ChallengeCard
+              key={c.id}
+              challenge={c}
+              currentUserId={currentUserId}
+              canJoinPublicChallenge={canJoinPublicChallenge}
+            />
           ))}
         </div>
       )}

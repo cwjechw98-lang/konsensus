@@ -26,6 +26,7 @@ export interface Database {
           display_name: string | null;
           bio: string | null;
           debate_stance: string | null;
+          trust_tier: "basic" | "linked" | "trusted";
           created_at: string;
           telegram_chat_id: number | null;
           telegram_link_token: string | null;
@@ -37,6 +38,7 @@ export interface Database {
           display_name?: string | null;
           bio?: string | null;
           debate_stance?: string | null;
+          trust_tier?: "basic" | "linked" | "trusted";
           created_at?: string;
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;
@@ -48,6 +50,7 @@ export interface Database {
           display_name?: string | null;
           bio?: string | null;
           debate_stance?: string | null;
+          trust_tier?: "basic" | "linked" | "trusted";
           created_at?: string;
           telegram_chat_id?: number | null;
           telegram_link_token?: string | null;

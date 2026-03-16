@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ChallengeChat from "@/components/ChallengeChat";
+import { fetchTrustTierState, hasMinimumTrustTier } from "@/lib/trust-tier";
 
 export const revalidate = 0;
 
@@ -122,6 +123,8 @@ export default async function ChallengePage({
       .single<{ telegram_chat_id: number | null }>()
     : { data: null };
 
+  const trustState = user ? await fetchTrustTierState(user.id).catch(() => null) : null;
+
   const authorName = challenge.author_profile?.display_name ?? "Участник 1";
   const acceptedName = challenge.accepted_profile?.display_name ?? "Участник 2";
   const opponentName = user?.id === challenge.author_id ? acceptedName : authorName;
@@ -164,6 +167,10 @@ export default async function ChallengePage({
         <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm p-4 rounded-xl mb-6">
           {error === "telegram_required"
             ? "Для подписки на бой нужен привязанный Telegram в профиле."
+            : error === "trust_tier_linked_required"
+              ? "Для участия в публичном слое арены нужен уровень Linked."
+              : error === "trust_tier_trusted_required"
+                ? "Для создания публичных arena-вызовов нужен уровень Trusted."
             : error}
         </div>
       )}
@@ -188,6 +195,7 @@ export default async function ChallengePage({
         isWatching={!!watch}
         canWatchWithTelegram={!!currentProfile?.telegram_chat_id}
         opinionCount={opinionCount ?? 0}
+        canUsePublicInteractions={trustState ? hasMinimumTrustTier(trustState.tier, "linked") : false}
       />
     </div>
   );

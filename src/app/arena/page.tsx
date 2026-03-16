@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchRPGStats } from "@/lib/rpg";
 import { fetchPublicReputationBadges } from "@/lib/reputation";
+import { fetchTrustTierState, hasMinimumTrustTier } from "@/lib/trust-tier";
 import ChallengeBoard from "@/components/ChallengeBoard";
 import ArenaLiveBoard from "@/components/ArenaLiveBoard";
 
@@ -14,6 +15,7 @@ export default async function ArenaPage({
   const { error } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const currentTrustState = user ? await fetchTrustTierState(user.id).catch(() => null) : null;
 
   // Load open challenges with author profiles
   const { data: challenges } = await supabase
@@ -121,13 +123,24 @@ export default async function ArenaPage({
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-6">
-          {error === "challenge_unavailable" ? "Вызов недоступен или уже принят" : error}
+          {error === "challenge_unavailable"
+            ? "Вызов недоступен или уже принят"
+            : error === "trust_tier_trusted_required"
+              ? "Для создания публичного arena-вызова нужен уровень Trusted."
+              : error === "trust_tier_linked_required"
+                ? "Для участия в публичном слое арены нужен уровень Linked."
+                : error}
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-8">
         <ArenaLiveBoard challenges={liveChallenges} />
-        <ChallengeBoard challenges={challengesWithStats} currentUserId={user?.id ?? null} />
+        <ChallengeBoard
+          challenges={challengesWithStats}
+          currentUserId={user?.id ?? null}
+          canCreatePublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "trusted") : false}
+          canJoinPublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "linked") : false}
+        />
       </div>
     </div>
   );

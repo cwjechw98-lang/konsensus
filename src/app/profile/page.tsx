@@ -15,6 +15,8 @@ import ProfileQuestPanel, { type ProfileQuestRunSummary } from "@/components/Pro
 import PublicReputationBadges from "@/components/PublicReputationBadges";
 import { fetchPublicReputationBadges } from "@/lib/reputation";
 import EducationRecommendationsPanel from "@/components/EducationRecommendationsPanel";
+import TrustTierCard from "@/components/TrustTierCard";
+import { fetchTrustTierState } from "@/lib/trust-tier";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -95,6 +97,7 @@ export default async function ProfilePage({
     counterparts,
     questRunsRes,
     reputationBadges,
+    trustTierState,
   ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
@@ -106,6 +109,7 @@ export default async function ProfilePage({
     fetchCounterparts(user.id).catch(() => []),
     questRunsPromise,
     fetchPublicReputationBadges(user.id).catch(() => []),
+    fetchTrustTierState(user.id).catch(() => null),
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -278,6 +282,8 @@ export default async function ProfilePage({
             bio={profile?.bio}
             reputationBadges={reputationBadges}
           />
+
+          {trustTierState ? <TrustTierCard state={trustTierState} /> : <div />}
 
           {/* Category Distribution */}
           <div className="glass rounded-2xl p-6">

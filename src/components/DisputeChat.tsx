@@ -144,6 +144,8 @@ export default function DisputeChat({ disputeId }: { disputeId: string }) {
       applyBlock(result.blockUntil ?? Date.now() + 30_000, 1);
     } else if (result.error === "spam" && result.blockUntil && result.level) {
       applyBlock(result.blockUntil, result.level);
+    } else if (result.error) {
+      setWarnMsg(result.error);
     } else if (!result.error) {
       setText("");
     }

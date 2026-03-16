@@ -57,6 +57,7 @@ interface ChallengeChatProps {
   isWatching: boolean;
   canWatchWithTelegram: boolean;
   opinionCount: number;
+  canUsePublicInteractions: boolean;
 }
 
 type TimelineItem = Message & {
@@ -98,6 +99,7 @@ export default function ChallengeChat({
   isWatching: initialWatching,
   canWatchWithTelegram,
   opinionCount: initialOpinionCount,
+  canUsePublicInteractions,
 }: ChallengeChatProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [observerComments, setObserverComments] = useState<ObserverComment[]>(initialComments);
@@ -113,6 +115,7 @@ export default function ChallengeChat({
   const [opinionCount, setOpinionCount] = useState(initialOpinionCount);
   const [typingName, setTypingName] = useState("");
   const [typingPulse, setTypingPulse] = useState(0);
+  const [observerError, setObserverError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const broadcastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -321,20 +324,23 @@ export default function ChallengeChat({
   async function handleCommentSend() {
     if (!currentUserId || !commentInput.trim() || commentSending) return;
     setCommentSending(true);
+    setObserverError("");
 
     try {
       const formData = new FormData();
       formData.set("challenge_id", challengeId);
       formData.set("content", commentInput.trim());
       const savedComment = await addChallengeComment(formData);
-      if (savedComment) {
+      if (savedComment?.error) {
+        setObserverError(savedComment.error);
+      } else if (savedComment?.data) {
         setObserverComments((prev) => (
-          prev.some((comment) => comment.id === savedComment.id)
+          prev.some((comment) => comment.id === savedComment.data.id)
             ? prev
-            : [...prev, savedComment]
+            : [...prev, savedComment.data]
         ));
+        setCommentInput("");
       }
-      setCommentInput("");
     } finally {
       setCommentSending(false);
     }
@@ -343,15 +349,20 @@ export default function ChallengeChat({
   async function handleOpinionSend() {
     if (!currentUserId || !opinionInput.trim() || opinionSending || opinionCount >= 3) return;
     setOpinionSending(true);
+    setObserverError("");
 
     try {
       const formData = new FormData();
       formData.set("challenge_id", challengeId);
       formData.set("round", String(currentOpinionRound));
       formData.set("content", opinionInput.trim());
-      await submitChallengeOpinion(formData);
-      setOpinionInput("");
-      setOpinionCount((value) => value + 1);
+      const result = await submitChallengeOpinion(formData);
+      if (result?.error) {
+        setObserverError(result.error);
+      } else {
+        setOpinionInput("");
+        setOpinionCount((value) => value + 1);
+      }
     } finally {
       setOpinionSending(false);
     }
@@ -621,7 +632,14 @@ export default function ChallengeChat({
                   )}
                 </div>
 
+                {observerError && (
+                  <div className="mb-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
+                    {observerError}
+                  </div>
+                )}
+
                 {currentUserId ? (
+                  canUsePublicInteractions ? (
                   <div className="flex gap-2">
                     <input
                       value={commentInput}
@@ -639,6 +657,11 @@ export default function ChallengeChat({
                       {commentSending ? "..." : "Отправить"}
                     </button>
                   </div>
+                  ) : (
+                    <p className="text-sm text-yellow-200">
+                      Для участия в публичном observer-layer нужен уровень Linked. Путь к нему показан в профиле.
+                    </p>
+                  )
                 ) : (
                   <Link href="/login" className="text-sm text-cyan-300 hover:text-cyan-200 transition-colors">
                     Войдите, чтобы писать в чат наблюдателей
@@ -658,6 +681,7 @@ export default function ChallengeChat({
                 </div>
 
                 {currentUserId ? (
+                  canUsePublicInteractions ? (
                   <div className="space-y-3">
                     <textarea
                       value={opinionInput}
@@ -681,6 +705,11 @@ export default function ChallengeChat({
                       </button>
                     </div>
                   </div>
+                  ) : (
+                    <p className="text-sm text-yellow-200">
+                      Мнение наблюдателя доступно с уровня Linked и выше.
+                    </p>
+                  )
                 ) : (
                   <Link href="/login" className="text-sm text-violet-300 hover:text-violet-200 transition-colors">
                     Войдите, чтобы оставить мнение
