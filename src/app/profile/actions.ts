@@ -3,6 +3,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAIProfile } from "@/lib/ai-profile";
+import { reviewAutomaticAppeal } from "@/lib/ai";
+import type { AppealItemType } from "@/lib/appeal-helpers";
+import {
+  buildAppealableItemSnapshot,
+} from "@/lib/appeals";
 import {
   calculateQuestOutcome,
   getProfileQuest,
@@ -11,6 +16,7 @@ import {
 import type { Database, Json } from "@/types/database";
 
 type ProfileQuestRunRow = Database["public"]["Tables"]["profile_quest_runs"]["Row"];
+type AppealRow = Database["public"]["Tables"]["appeals"]["Row"];
 
 function readResponses(value: Json): string[] {
   return Array.isArray(value)
@@ -32,6 +38,22 @@ export type ProfileQuestActionResult =
       ok: false;
       error: string;
       completedAt?: string | null;
+    };
+
+export type SubmitAppealResult =
+  | {
+      ok: true;
+      appealId: string;
+      status: AppealRow["status"];
+      reviewResult: AppealRow["review_result"];
+      reviewNotes: string | null;
+      reviewConfidence: number | null;
+      itemType: AppealItemType;
+      itemKey: string;
+    }
+  | {
+      ok: false;
+      error: string;
     };
 
 export async function updateProfile(formData: FormData) {
@@ -97,6 +119,168 @@ export async function disconnectTelegram(): Promise<void> {
     .eq("id", user.id);
 
   redirect("/profile");
+}
+
+export async function reviewAppeal(
+  appealId: string
+): Promise<{
+  ok: true;
+  reviewResult: "kept" | "hidden";
+  reviewConfidence: number;
+  reviewNotes: string;
+} | {
+  ok: false;
+  error: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Нужно войти в аккаунт" };
+
+  const { data: appeal } = await supabase
+    .from("appeals")
+    .select("*")
+    .eq("id", appealId)
+    .eq("user_id", user.id)
+    .maybeSingle<AppealRow>();
+
+  if (!appeal) return { ok: false, error: "Апелляция не найдена" };
+
+  const review = await reviewAutomaticAppeal({
+    itemType: appeal.item_type,
+    itemLabel: appeal.item_label,
+    sourceSnapshot:
+      appeal.source_snapshot && typeof appeal.source_snapshot === "object"
+        ? (appeal.source_snapshot as Record<string, unknown>)
+        : {},
+    appealText: appeal.appeal_text,
+  });
+
+  return {
+    ok: true,
+    reviewResult: review.decision,
+    reviewConfidence: review.confidence,
+    reviewNotes: review.rationale,
+  };
+}
+
+export async function resolveAppeal(
+  appealId: string,
+  resolution: {
+    reviewResult: "kept" | "hidden";
+    reviewConfidence: number;
+    reviewNotes: string;
+  }
+): Promise<SubmitAppealResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Нужно войти в аккаунт" };
+
+  const now = new Date().toISOString();
+  const { data: updated, error } = await supabase
+    .from("appeals")
+    .update({
+      status: "resolved",
+      review_result: resolution.reviewResult,
+      review_confidence: resolution.reviewConfidence,
+      review_notes: resolution.reviewNotes,
+      reviewed_at: now,
+      resolved_at: now,
+      updated_at: now,
+    } as never)
+    .eq("id", appealId)
+    .eq("user_id", user.id)
+    .select("*")
+    .single<AppealRow>();
+
+  if (error || !updated) {
+    return { ok: false, error: error?.message ?? "Не удалось завершить апелляцию" };
+  }
+
+  return {
+    ok: true,
+    appealId: updated.id,
+    status: updated.status,
+    reviewResult: updated.review_result,
+    reviewNotes: updated.review_notes,
+    reviewConfidence: updated.review_confidence,
+    itemType: updated.item_type,
+    itemKey: updated.item_key,
+  };
+}
+
+export async function submitAppeal(input: {
+  itemType: AppealItemType;
+  itemKey: string;
+  appealText: string;
+}): Promise<SubmitAppealResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Нужно войти в аккаунт" };
+
+  const appealText = input.appealText.trim();
+  if (appealText.length < 12) {
+    return { ok: false, error: "Опишите апелляцию чуть подробнее: минимум 12 символов." };
+  }
+  if (appealText.length > 600) {
+    return { ok: false, error: "Апелляция не должна превышать 600 символов." };
+  }
+
+  const snapshot = await buildAppealableItemSnapshot(user.id, input.itemType, input.itemKey);
+  if (!snapshot) {
+    return { ok: false, error: "Этот автоматический вывод сейчас недоступен для апелляции." };
+  }
+
+  const { data: existing } = await supabase
+    .from("appeals")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("item_type", snapshot.itemType)
+    .eq("item_key", snapshot.itemKey)
+    .eq("status", "reviewing")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (existing?.id) {
+    return { ok: false, error: "По этому выводу уже идёт пересмотр." };
+  }
+
+  const now = new Date().toISOString();
+  const { data: created, error } = await supabase
+    .from("appeals")
+    .insert({
+      user_id: user.id,
+      item_type: snapshot.itemType,
+      item_key: snapshot.itemKey,
+      item_label: snapshot.itemLabel,
+      source_snapshot: snapshot.sourceSnapshot,
+      appeal_text: appealText,
+      status: "reviewing",
+      updated_at: now,
+    } as never)
+    .select("*")
+    .single<AppealRow>();
+
+  if (error || !created) {
+    return { ok: false, error: error?.message ?? "Не удалось отправить апелляцию" };
+  }
+
+  const review = await reviewAppeal(created.id);
+  if (!review.ok) {
+    return { ok: false, error: review.error };
+  }
+
+  return resolveAppeal(created.id, {
+    reviewResult: review.reviewResult,
+    reviewConfidence: review.reviewConfidence,
+    reviewNotes: review.reviewNotes,
+  });
 }
 
 export async function startProfileQuest(

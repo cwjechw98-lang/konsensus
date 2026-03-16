@@ -19,7 +19,9 @@
 7. Завершён `Reputation v1`
 8. Завершён `Education Layer v1`
 9. Завершён `Trust Tiers v1`
-10. Следующий основной кодовый пакет: `Appeals v1`
+10. Завершён `Appeals v1`
+
+Стратегическая последовательность rollout-блоков первого слоя завершена. Следующий пакет теперь нужно выбирать отдельно из оставшегося backlog-а: `appeals v1.1`, `reminder/bell для обычного спора`, `Telegram editorial layer v2` или `unit/server-action tests`.
 
 Отдельно зафиксировано, что reminder flow для архивированных споров уже реализован, включая SQL `00019`, лимиты `3/час` и `15/сутки`, auto-unarchive и quiet mode после повторной архивации. Не реализован только отдельный reminder/bell для обычного неархивированного спора: это пока отдельная идея вне закрытого архивного reminder-пакета.
 
@@ -44,6 +46,8 @@
 Теперь закрыт и `Education Layer v1`: добавлены короткие Markdown-материалы, rule-based рекомендации по текущему AI-профилю, отдельный экран чтения `/learn` и server-side отметка прохождения. Это делает AI-профиль practically useful: после спора у пользователя теперь есть не только анализ, но и следующий конкретный шаг.
 
 Теперь закрыт и `Trust Tiers v1`: введены уровни `basic / linked / trusted`, rule-based evaluator и реальные проверки публичных write-операций. Публичный слой больше не считается одинаково открытым для всех: создание публичных сценариев, observer-комментарии и arena participation теперь идут через объяснимый trust-gating без тяжёлой KYC-модели.
+
+Теперь закрыт и `Appeals v1`: появился первый апелляционный слой для автоматических выводов. Пользователь может оспорить конкретный `AI summary` или `reputation badge`, система сохраняет историю обращения, запускает отдельный auto-review path и при недостаточной уверенности скрывает спорный вывод вместо того, чтобы оставлять его публично без пересмотра.
 
 Следующий системный пакет тоже уже закреплён отдельным rollout-файлом: [docs/ops/perceived-performance-rollout.md](/C:/project21/konsensus/docs/ops/perceived-performance-rollout.md). На этом витке он уже внедрён: для основных экранов появились route-level `loading.tsx`, введён общий loading-shell, а ключевые server-action CTA получили мгновенный pending-state вместо визуально "мёртвого" ожидания ответа сервера.
 
@@ -135,6 +139,7 @@
 | 00020_profile_quest_runs.sql | profile_quest_runs (история коротких профилирующих квестов, шаги и итоговые deltas AI-профиля) |
 | 00021_user_learning_progress.sql | user_learning_progress (прохождение образовательных материалов, completion state и lightweight learning progress) |
 | 00022_profile_trust_tier.sql | trust_tier в profiles (basic / linked / trusted как первый trust-layer публичного слоя) |
+| 00023_appeals.sql | appeals (апелляции на автоматические выводы профиля, auto-review, результат пересмотра и история) |
 
 ## Ключевые компоненты
 
@@ -233,3 +238,4 @@
 | 2026-03-16 | Реализован `Reputation v1`: добавлен safe public layer без leaderboard и негативных ярлыков; rule-based бейджи стиля считаются из текущих dispute signals и показываются в профиле и на публичной arena hover-card |
 | 2026-03-16 | Реализован `Education Layer v1`: добавлены 6 коротких Markdown-материалов, rule-based рекомендации на dashboard/profile, страницы `/learn` и `/learn/[slug]`, а также SQL-таблица `user_learning_progress` для server-side отметки прохождения |
 | 2026-03-16 | Реализован `Trust Tiers v1`: добавлен `trust_tier` в `profiles`, rule-based evaluator и реальные проверки публичных write-операций: public dispute / arena create требуют `Trusted`, а observer social layer и принятие arena-вызова требуют `Linked` |
+| 2026-03-16 | Реализован `Appeals v1`: добавлена SQL-модель `appeals` (`00023`), auto-review path для оспаривания `AI summary` и `reputation badges`, inline-апелляции внутри `AI-профиля`, история апелляций и скрытие спорных автоматических выводов при низкой уверенности |

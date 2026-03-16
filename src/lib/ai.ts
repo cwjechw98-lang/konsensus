@@ -1453,3 +1453,70 @@ Category:`,
     return "other";
   }
 }
+
+export async function reviewAutomaticAppeal(params: {
+  itemType: "ai_summary" | "reputation_badge";
+  itemLabel: string;
+  sourceSnapshot: JsonRecord;
+  appealText: string;
+}): Promise<{
+  decision: "kept" | "hidden";
+  confidence: number;
+  rationale: string;
+}> {
+  try {
+    const result = await runJsonPrompt(
+      [
+        {
+          role: "system",
+          content:
+            "You review appeals against automated profile outputs. Be conservative: if certainty is weak, prefer hiding the output instead of keeping it. Respond in Russian and strictly as JSON.",
+        },
+        {
+          role: "user",
+          content: `Пользователь оспаривает автоматический вывод профиля.
+
+Тип вывода: ${params.itemType}
+Название: ${params.itemLabel}
+Оригинальный снимок:
+${JSON.stringify(params.sourceSnapshot, null, 2)}
+
+Текст апелляции:
+${params.appealText}
+
+Верни JSON:
+{
+  "decision": "kept" или "hidden",
+  "confidence": число 0-100,
+  "rationale": "1-2 предложения по-русски: почему вывод оставлен или скрыт"
+}
+
+Правила:
+- если уверенность ниже 65, лучше выбрать hidden
+- не морализируй
+- не пиши про ручную модерацию
+- оцени только корректность и уместность автоматического вывода`,
+        },
+      ],
+      280
+    );
+
+    const confidence = clampInt(result.confidence, 0, 100, 50);
+    const decision = String(result.decision ?? "").trim() === "kept" && confidence >= 65
+      ? "kept"
+      : "hidden";
+    const rationale = String(result.rationale ?? "").trim();
+
+    return {
+      decision,
+      confidence,
+      rationale: rationale || "Вывод скрыт, потому что автоматическая уверенность оказалась недостаточно надёжной.",
+    };
+  } catch {
+    return {
+      decision: "hidden",
+      confidence: 30,
+      rationale: "Вывод скрыт, потому что автоматический пересмотр не дал достаточно надёжного результата.",
+    };
+  }
+}

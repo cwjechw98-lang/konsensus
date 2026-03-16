@@ -17,6 +17,16 @@ import { fetchPublicReputationBadges } from "@/lib/reputation";
 import EducationRecommendationsPanel from "@/components/EducationRecommendationsPanel";
 import TrustTierCard from "@/components/TrustTierCard";
 import { fetchTrustTierState } from "@/lib/trust-tier";
+import AppealComposer from "@/components/AppealComposer";
+import {
+  fetchUserAppeals,
+} from "@/lib/appeals";
+import {
+  buildLatestAppealMap,
+  getLatestAppealForItem,
+  isAppealHidden,
+  sortBadgesWithAppeals,
+} from "@/lib/appeal-helpers";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -97,7 +107,9 @@ export default async function ProfilePage({
     counterparts,
     questRunsRes,
     reputationBadges,
+    appealableBadges,
     trustTierState,
+    appeals,
   ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
@@ -109,7 +121,9 @@ export default async function ProfilePage({
     fetchCounterparts(user.id).catch(() => []),
     questRunsPromise,
     fetchPublicReputationBadges(user.id).catch(() => []),
+    fetchPublicReputationBadges(user.id, { includeHidden: true }).catch(() => []),
     fetchTrustTierState(user.id).catch(() => null),
+    fetchUserAppeals(user.id).catch(() => []),
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -179,6 +193,10 @@ export default async function ProfilePage({
 
   const styleInfo = aiProfile ? await getStyleInfo(aiProfile.argumentation_style) : null;
   const reactionInfo = aiProfile ? await getReactionInfo(aiProfile.ai_hint_reaction) : null;
+  const latestAppeals = buildLatestAppealMap(appeals);
+  const aiSummaryAppeal = getLatestAppealForItem(latestAppeals, "ai_summary", "current");
+  const isAiSummaryHidden = isAppealHidden(aiSummaryAppeal);
+  const profileBadgeCards = sortBadgesWithAppeals(appealableBadges, latestAppeals);
 
   const categoryEmoji: Record<string, string> = {
     politics: "🏛", technology: "💻", philosophy: "🧠", lifestyle: "🏠",
@@ -283,7 +301,7 @@ export default async function ProfilePage({
             reputationBadges={reputationBadges}
           />
 
-          {trustTierState ? <TrustTierCard state={trustTierState} /> : <div />}
+          {trustTierState ? <TrustTierCard state={trustTierState} /> : null}
 
           {/* Category Distribution */}
           <div className="glass rounded-2xl p-6">
@@ -532,8 +550,22 @@ export default async function ProfilePage({
               📋 Резюме от ИИ
             </h2>
             {aiProfile?.ai_summary ? (
-              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                {aiProfile.ai_summary}
+              <div className="space-y-4">
+                {isAiSummaryHidden ? (
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100">
+                    Этот AI-вывод скрыт после апелляции. История пересмотра сохранена ниже, а новый summary можно будет собрать на следующем витке развития блока.
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                    {aiProfile.ai_summary}
+                  </div>
+                )}
+                <AppealComposer
+                  itemType="ai_summary"
+                  itemKey="current"
+                  title="AI-резюме профиля"
+                  latestAppeal={aiSummaryAppeal}
+                />
               </div>
             ) : (
               <div className="text-center py-8">
@@ -563,14 +595,53 @@ export default async function ProfilePage({
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               🏷 Публичные бейджи
             </h2>
-            {reputationBadges.length > 0 ? (
+            {profileBadgeCards.length > 0 ? (
               <div className="space-y-4">
-                <PublicReputationBadges badges={reputationBadges} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {profileBadgeCards.map((badge) => {
+                    const badgeAppeal = getLatestAppealForItem(
+                      latestAppeals,
+                      "reputation_badge",
+                      badge.key
+                    );
+                    const hidden = isAppealHidden(badgeAppeal);
+
+                    return (
+                      <div
+                        key={badge.key}
+                        className={`rounded-2xl border p-4 ${
+                          hidden
+                            ? "border-cyan-500/20 bg-cyan-500/[0.06]"
+                            : "border-white/10 bg-white/[0.03]"
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <PublicReputationBadges badges={[badge]} title="Автовывод" />
+                          {hidden ? (
+                            <p className="text-sm text-cyan-100">
+                              Этот бейдж скрыт из публичного слоя после апелляции.
+                            </p>
+                          ) : null}
+                          <AppealComposer
+                            itemType="reputation_badge"
+                            itemKey={badge.key}
+                            title={badge.label}
+                            latestAppeal={badgeAppeal}
+                            compact
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <p className="text-xs leading-relaxed text-gray-500">
-                  Это безопасный публичный слой репутации. Он показывает, как вы
-                  обычно ведёте диалог, но не выставляет общий балл и не вешает
-                  негативные ярлыки.
+                  Это безопасный публичный слой репутации. Он показывает, как вы обычно ведёте диалог, но не выставляет общий балл и не вешает негативные ярлыки.
                 </p>
+                {reputationBadges.length === 0 ? (
+                  <p className="text-xs leading-relaxed text-cyan-200">
+                    Сейчас все публичные бейджи скрыты после апелляции. Внутри профиля история пересмотра остаётся видимой.
+                  </p>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-gray-500">
@@ -590,6 +661,44 @@ export default async function ProfilePage({
               title="Что добрать по навыкам"
               description="Материалы подбираются по AI-профилю, стилю споров и уже пройденным коротким квестам. Это не курс, а следующий точный шаг."
             />
+          </div>
+
+          <div className="glass rounded-2xl p-6 lg:col-span-2">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              🧾 История апелляций
+            </h2>
+            {appeals.length > 0 ? (
+              <div className="space-y-3">
+                {appeals.slice(0, 6).map((appeal) => (
+                  <div
+                    key={appeal.id}
+                    className="rounded-xl border border-white/10 bg-white/[0.03] p-4"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{appeal.itemLabel}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {appeal.itemType === "ai_summary" ? "AI-резюме" : "Публичный бейдж"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-gray-500" suppressHydrationWarning>
+                        {formatDate(appeal.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-gray-300">{appeal.appealText}</p>
+                    {appeal.reviewNotes ? (
+                      <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                        {appeal.reviewNotes}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Когда вы оспорите автоматический вывод, история апелляций появится здесь.
+              </p>
+            )}
           </div>
 
           {/* How AI uses your profile */}

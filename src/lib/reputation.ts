@@ -50,6 +50,7 @@ export async function fetchPublicReputationBadges(
   userId: string,
   options?: {
     rpgStats?: RPGStats;
+    includeHidden?: boolean;
   }
 ): Promise<PublicReputationBadge[]> {
   const admin = createAdminClient();
@@ -132,5 +133,31 @@ export async function fetchPublicReputationBadges(
     });
   }
 
-  return drafts.sort((left, right) => right.score - left.score).slice(0, 3);
+  const sorted = drafts.sort((left, right) => right.score - left.score).slice(0, 3);
+  if (options?.includeHidden) {
+    return sorted;
+  }
+
+  const { data: appeals } = await admin
+    .from("appeals")
+    .select("item_key, review_result, status, created_at")
+    .eq("user_id", userId)
+    .eq("item_type", "reputation_badge")
+    .order("created_at", { ascending: false })
+    .returns<Array<{
+      item_key: string;
+      review_result: "kept" | "hidden" | null;
+      status: "reviewing" | "resolved";
+      created_at: string;
+    }>>();
+
+  const hiddenBadgeKeys = new Set<string>();
+  for (const appeal of appeals ?? []) {
+    if (hiddenBadgeKeys.has(appeal.item_key)) continue;
+    if (appeal.status === "resolved" && appeal.review_result === "hidden") {
+      hiddenBadgeKeys.add(appeal.item_key);
+    }
+  }
+
+  return sorted.filter((badge) => !hiddenBadgeKeys.has(badge.key));
 }
