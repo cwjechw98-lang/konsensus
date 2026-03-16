@@ -92,13 +92,13 @@ export default async function MatchmakingPage({
       <div className="mb-6">
         <PageContextCard
           dataTour="open-intro"
-          eyebrow="Вход в существующий конфликт"
-          title="Открытые — место, где вы входите в уже созданные споры и вызовы"
-          description="Этот экран нужен не для наблюдения, а для присоединения. Здесь собраны карточки, которые ждут второго участника и готовы начаться сразу после вашего входа."
+          eyebrow="Готовые к старту"
+          title="Здесь ждут споры и вызовы, куда можно войти сразу"
+          description="Выберите тему, откройте карточку и подключитесь. После входа спор или вызов начнётся без лишних шагов."
           bullets={[
-            "Обычные споры и вызовы арены",
-            "Фильтрация по категориям",
-            "Быстрое вступление без лишних шагов",
+            "Обычные споры и арена",
+            "Фильтр по темам",
+            "Быстрый вход",
           ]}
           tone="cyan"
           actions={
@@ -149,7 +149,7 @@ export default async function MatchmakingPage({
       {totalItems === 0 ? (
         <div className="text-center py-16">
           <span className="text-4xl">🔍</span>
-          <p className="text-gray-400 text-sm mt-3">Пока нет открытых споров. Создайте свой!</p>
+          <p className="text-gray-300 text-[15px] mt-3">Сейчас нет открытых карточек. Можно создать свой спор или выйти в арену.</p>
           <div className="flex gap-3 justify-center mt-4">
             <Link href="/dispute/new" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">
               Создать спор

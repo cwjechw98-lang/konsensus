@@ -116,8 +116,8 @@ export default async function ArenaPage({
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">Арена вызовов ⚔️</h1>
-        <p className="text-sm text-gray-400">
-          Брось вызов — найди оппонента, обменяйтесь аргументами, получи медиацию ИИ
+        <p className="text-[15px] text-gray-300">
+          Здесь собираются открытые вызовы и активные бои, за которыми можно следить вживую.
         </p>
       </div>
 

@@ -375,7 +375,7 @@ export default function ChallengeChat({
       <div className="border-b border-white/8 px-5 py-4">
         <div className="flex items-center justify-between gap-3 mb-2">
           <h2 className="text-sm font-semibold text-white">
-            {isParticipant ? "Раундовая дискуссия" : "Live battle"}
+            {isParticipant ? "Раундовая дискуссия" : "Публичный бой"}
           </h2>
           <span className="text-xs text-gray-500">
             {completedRounds} / {maxRounds}
@@ -390,7 +390,7 @@ export default function ChallengeChat({
         <p className="text-xs text-gray-600 mt-2">
           {isParticipant
             ? `Арена идёт по раундам. После ${formatRoundLabel(maxRounds)} медиация запускается автоматически.`
-            : "Смотреть battle можно без входа. Observer chat и мнение доступны после авторизации."}
+            : "Смотреть бой можно без входа. Чат наблюдателей и мнение доступны после авторизации."}
         </p>
       </div>
 
@@ -567,7 +567,7 @@ export default function ChallengeChat({
                   <div>
                     <p className="text-sm font-semibold text-white">Наблюдать за боем</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Подписка в Telegram предупредит о завершении раунда и финале battle.
+                      Подписка в Telegram предупредит о завершении раунда и финале боя.
                     </p>
                   </div>
                   {currentUserId ? (
@@ -659,7 +659,7 @@ export default function ChallengeChat({
                   </div>
                   ) : (
                     <p className="text-sm text-yellow-200">
-                      Для участия в публичном observer-layer нужен уровень Linked. Путь к нему показан в профиле.
+                      Для участия в публичных взаимодействиях нужен уровень Linked. Путь к нему показан в профиле.
                     </p>
                   )
                 ) : (
@@ -674,7 +674,7 @@ export default function ChallengeChat({
                   <div>
                     <p className="text-sm font-semibold text-white">Оставить мнение</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      До 3 мнений на battle. Участники увидят только мягкую AI-агрегацию, а не сырые сообщения.
+                      До 3 мнений на бой. Участники увидят только мягкую AI-агрегацию, а не сырые сообщения.
                     </p>
                   </div>
                   <span className="text-xs text-violet-300">{opinionCount}/3</span>

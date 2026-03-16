@@ -64,15 +64,15 @@ export default function PageContextCard({
       data-tour={dataTour}
       className={`glass rounded-2xl border ${styles.border} ${styles.bg} p-5 sm:p-6`}
     >
-      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-2xl">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="max-w-xl">
           <p
             className={`mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] ${styles.eyebrow}`}
           >
             {eyebrow}
           </p>
           <h2 className="text-xl font-bold text-white sm:text-2xl">{title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-gray-300">{description}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-gray-300">{description}</p>
         </div>
 
         {actions ? <div className="shrink-0">{actions}</div> : null}
@@ -82,7 +82,7 @@ export default function PageContextCard({
         {bullets.map((bullet) => (
           <div
             key={bullet}
-            className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-xs text-gray-200"
+            className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-[13px] text-gray-200"
           >
             <span className={`h-1.5 w-1.5 rounded-full ${styles.bullet}`} />
             <span>{bullet}</span>

@@ -78,7 +78,7 @@ const PROOF_BLOCKS = [
     eyebrow: "Арена и наблюдение",
     title: "Открытые бои и spectator-режим делают продукт живым, а не стерильным",
     description:
-      "Есть live battle, чат наблюдателей, delayed hints и открытые вызовы, к которым можно присоединиться.",
+        "Есть открытые бои, чат наблюдателей, подсказки по ходу спора и вызовы, к которым можно присоединиться.",
     chips: ["Живые бои", "Режим наблюдателя", "Открытые вызовы"],
   },
   {
@@ -204,7 +204,7 @@ function HeroPreview({
           <p className="mt-3 text-sm font-medium text-white">
             {challenge
               ? `${challengeAuthor} vs ${challengeOpponent}`
-              : "Live battle и открытые вызовы"}
+              : "Открытые бои и вызовы"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-gray-300">
             {challenge
@@ -482,7 +482,7 @@ export default async function HomePage({
                       {challenges?.length ?? 0}
                     </p>
                     <p className="mt-1 text-sm text-gray-300">
-                      сигналов из live battle и открытых вызовов
+                      сигналов из открытых боёв и вызовов
                     </p>
                   </div>
                 </div>

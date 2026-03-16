@@ -25,7 +25,7 @@ export default function ArenaLiveBoard({
           <h2 className="text-lg font-semibold text-white">Идущие бои</h2>
         </div>
         <p className="text-sm text-gray-400">
-          Прямо сейчас активных battle нет. Как только кто-то примет вызов, он появится здесь для наблюдения.
+          Прямо сейчас активных боёв нет. Как только кто-то примет вызов, он появится здесь для наблюдения.
         </p>
       </div>
     );
@@ -40,7 +40,7 @@ export default function ArenaLiveBoard({
             <h2 className="text-lg font-semibold text-white">Идущие бои</h2>
           </div>
           <p className="text-sm text-gray-400">
-            Смотреть можно без входа. Писать в сам battle могут только участники.
+            Смотреть можно без входа. Писать в сам бой могут только участники.
           </p>
         </div>
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
@@ -59,7 +59,7 @@ export default function ArenaLiveBoard({
             >
               <div className="flex items-center justify-between gap-3 mb-3">
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-emerald-300">
-                  battle live
+                  бой идёт
                 </span>
                 <span className="text-xs text-gray-500">
                   {completedRounds}/{challenge.max_rounds} раундов
@@ -73,7 +73,7 @@ export default function ArenaLiveBoard({
                 {challenge.author_name} vs {challenge.opponent_name}
               </p>
               <p className="text-xs text-gray-600">
-                Открыть live battle →
+                Открыть бой →
               </p>
             </Link>
           );

@@ -131,7 +131,7 @@ function buildArenaLiveCards(
     return {
       id: `arena-live-${challenge.id}`,
       href: `/arena/${challenge.id}`,
-      badge: "live battle",
+      badge: "бой арены",
       title: challenge.topic,
       description: `${authorName} vs ${opponentName}`,
       meta: `${formatEventTime(latestMessage)} · ${completedRounds}/${challenge.max_rounds} раундов`,
@@ -354,13 +354,13 @@ export default async function FeedPage() {
       <div className="mb-6">
         <PageContextCard
           dataTour="events-intro"
-          eyebrow="Activity feed"
-          title="События показывают пульс проекта: релизы, арена и публичные разногласия"
-          description="Этот экран нужен не для вашей личной работы, а для наблюдения за тем, что живёт на платформе прямо сейчас. Здесь видно движение продукта, открытые вызовы и публичные споры."
+          eyebrow="Сейчас в Konsensus"
+          title="Здесь видно, что происходит на платформе прямо сейчас"
+          description="Откройте экран, чтобы быстро понять, где есть движение: свежие обновления, арена и публичные споры."
           bullets={[
-            "Новые релизы и заметные обновления",
-            "Live battle и открытые вызовы арены",
-            "Публичные споры, за которыми можно наблюдать",
+            "Свежие обновления",
+            "Бои и вызовы арены",
+            "Публичные споры для просмотра",
           ]}
           tone="emerald"
           actions={
@@ -378,8 +378,7 @@ export default async function FeedPage() {
           <p className="mb-4 text-4xl">✨</p>
           <p className="mb-2 font-medium text-white">События ещё не начали копиться</p>
           <p className="mb-6 text-sm text-gray-500">
-            Когда появятся релизы, активные бои арены и публичные споры, этот экран станет
-            живой витриной проекта.
+            Когда появятся обновления, бои арены и публичные споры, здесь соберётся общий поток платформы.
           </p>
           <Link
             href="/dispute/new"
@@ -395,7 +394,7 @@ export default async function FeedPage() {
               <div>
                 <h2 className="text-xl font-bold text-white">Пульс платформы</h2>
                 <p className="text-sm text-gray-400">
-                  Быстрый срез по тому, где именно сейчас есть движение.
+                  Короткий срез по тому, где сейчас есть движение.
                 </p>
               </div>
             </div>
@@ -407,14 +406,14 @@ export default async function FeedPage() {
                 description={
                   releases?.[0]
                     ? `Последний: ${releases[0].title}`
-                    : "Новые product-обновления появятся здесь"
+                    : "Новые обновления появятся здесь"
                 }
                 accent="text-cyan-300/80"
               />
               <FeedSummaryCard
                 value={String(liveChallenges?.length ?? 0)}
-                label="Live battle"
-                description="Идущие прямо сейчас бои, за которыми можно наблюдать."
+                label="Бои"
+                description="Аргументные бои, которые идут прямо сейчас."
                 accent="text-emerald-300/80"
               />
               <FeedSummaryCard
@@ -475,7 +474,7 @@ export default async function FeedPage() {
                     </div>
 
                     <p className="mt-5 text-sm text-white/80">
-                      Релиз уже ушёл в Telegram и стал частью живого потока проекта.
+                      Обновление уже доступно в приложении и Telegram.
                     </p>
                   </article>
                 ))}
@@ -487,14 +486,13 @@ export default async function FeedPage() {
             <div className="mb-4">
               <h2 className="text-xl font-bold text-white">Сейчас происходит</h2>
               <p className="text-sm text-gray-400">
-                Live battle, открытые вызовы и публичные споры, которые заметны прямо сейчас.
+                Бои арены, открытые вызовы и публичные споры, которые видны прямо сейчас.
               </p>
             </div>
 
             {activityCards.length === 0 ? (
-              <div className="glass rounded-2xl border border-white/8 p-8 text-sm text-gray-400">
-                Пока нет live battle, открытых вызовов или публичных споров. Как только движение
-                появится, основной поток заполнится автоматически.
+              <div className="glass rounded-2xl border border-white/8 p-8 text-[15px] text-gray-300">
+                Пока здесь тихо. Как только появятся новые бои, вызовы или публичные споры, поток заполнится автоматически.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

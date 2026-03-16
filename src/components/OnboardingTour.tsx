@@ -11,37 +11,37 @@ type TourStep = {
 
 const TOUR_STEPS: Record<string, TourStep[]> = {
   dashboard: [
-    { target: "[data-tour='create-dispute']", title: "Создать спор", description: "Создайте новый спор и пригласите человека в структурированный диалог.", position: "bottom" },
-    { target: "[data-tour='join-code']", title: "Войти по коду", description: "Если вас пригласили, введите инвайт-код и подключитесь к уже созданному спору.", position: "bottom" },
-    { target: "[data-tour='disputes-list']", title: "Ваш рабочий список", description: "Здесь собраны ваши активные, архивные и ожидающие внимания споры.", position: "top" },
-    { target: "[data-tour='filters']", title: "Фильтры и режимы", description: "Переключайтесь между активными и архивом, а также фильтруйте споры по статусу.", position: "bottom" },
+    { target: "[data-tour='create-dispute']", title: "Создать спор", description: "Запустите новый спор и сразу пригласите второго участника.", position: "bottom" },
+    { target: "[data-tour='join-code']", title: "Войти по коду", description: "Если вас уже пригласили, здесь можно быстро подключиться к спору.", position: "bottom" },
+    { target: "[data-tour='disputes-list']", title: "Ваш список", description: "Здесь лежат все ваши споры: активные, завершённые и архивные.", position: "top" },
+    { target: "[data-tour='filters']", title: "Фильтры", description: "Переключайте активные и архив, если хотите быстро сузить список.", position: "bottom" },
   ],
   feed: [
-    { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "События показывают жизнь проекта: публичные споры, заметную активность и со временем релизы и движения арены.", position: "bottom" },
-    { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху видно, где именно сейчас есть движение: релизы, live battle, открытые вызовы и публичные споры.", position: "bottom" },
-    { target: "[data-tour='events-releases']", title: "Что нового в продукте", description: "Релизные карточки показывают недавние обновления без необходимости уходить в отдельный changelog.", position: "top" },
-    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже собраны live battle, открытые вызовы и публичные споры. Это витрина происходящего, а не ваш рабочий список.", position: "top" },
+    { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "Здесь видно, что происходит на платформе: обновления, арена и публичные споры.", position: "bottom" },
+    { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху собраны ключевые цифры по релизам, боям, вызовам и публичным спорам.", position: "bottom" },
+    { target: "[data-tour='events-releases']", title: "Новые обновления", description: "Здесь появляются свежие пользовательские обновления продукта.", position: "top" },
+    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже идут бои арены, открытые вызовы и публичные споры, которые видны прямо сейчас.", position: "top" },
   ],
   matchmaking: [
-    { target: "[data-tour='open-intro']", title: "Где вступать в спор", description: "Открытые — это вход в уже созданные споры и вызовы, которые ждут второго участника.", position: "bottom" },
-    { target: "[data-tour='open-filters']", title: "Фильтры по темам", description: "Сузьте поток до тех категорий, которые вам реально интересны.", position: "bottom" },
-    { target: "[data-tour='open-list']", title: "Карточки входа", description: "Каждая карточка сразу показывает формат: обычный спор или вызов арены, тему и кнопку входа.", position: "top" },
+    { target: "[data-tour='open-intro']", title: "Где вступать", description: "Здесь ждут готовые споры и вызовы, куда можно войти сразу.", position: "bottom" },
+    { target: "[data-tour='open-filters']", title: "Темы", description: "Оставьте только те категории, которые вам интересны.", position: "bottom" },
+    { target: "[data-tour='open-list']", title: "Карточки входа", description: "На карточке сразу видно тему, формат и кнопку входа.", position: "top" },
   ],
   profile: [
-    { target: "[data-tour='profile-intro']", title: "Зачем нужен профиль", description: "Профиль хранит ваш прогресс: XP, архив, ачивки, ИИ-профиль и настройки связки с Telegram.", position: "bottom" },
-    { target: "[data-tour='profile-tabs']", title: "Переключение режимов", description: "Не всё смешано на одной странице: обзор, достижения, ИИ-профиль и настройки разделены по вкладкам.", position: "bottom" },
-    { target: "[data-tour='profile-stats']", title: "Быстрый срез", description: "Сверху виден короткий summary по спорам, аргументам, консенсусу и ачивкам — без лишнего скролла.", position: "bottom" },
+    { target: "[data-tour='profile-intro']", title: "Что хранит профиль", description: "Здесь собраны ваш прогресс, достижения, ИИ-профиль и настройки Telegram.", position: "bottom" },
+    { target: "[data-tour='profile-tabs']", title: "Вкладки", description: "Обзор, достижения, ИИ-профиль и настройки разделены, чтобы экран не превращался в длинную ленту.", position: "bottom" },
+    { target: "[data-tour='profile-stats']", title: "Быстрый срез", description: "Сверху сразу видно, сколько у вас споров, аргументов, консенсуса и ачивок.", position: "bottom" },
   ],
   dispute_new: [
-    { target: "[data-tour='new-dispute-intro']", title: "Старт спора", description: "Здесь вы не просто создаёте чат, а задаёте рамку будущего структурированного диалога.", position: "bottom" },
+    { target: "[data-tour='new-dispute-intro']", title: "Старт спора", description: "Сформулируйте тему, добавьте контекст и задайте число раундов.", position: "bottom" },
     { target: "[data-tour='title']", title: "Тема спора", description: "Сформулируйте тему коротко и чётко. Например: «Удалёнка vs офис»", position: "bottom" },
     { target: "[data-tour='description']", title: "Описание", description: "Опишите контекст так, чтобы оппонент сразу понял суть разногласия.", position: "bottom" },
     { target: "[data-tour='rounds']", title: "Количество раундов", description: "3 подходит для быстрого спора, 5+ — для тем, где важно пройти несколько итераций.", position: "bottom" },
   ],
   argue: [
-    { target: "[data-tour='argue-context']", title: "Контекст перед ходом", description: "Сверху всегда остаётся предмет спора, а в следующих раундах — и последний ответ оппонента.", position: "bottom" },
-    { target: "[data-tour='reasoning']", title: "Ваш аргумент", description: "Это главный момент экрана: изложите позицию или ответ так, чтобы он был понятен без догадок.", position: "bottom" },
-    { target: "[data-tour='evaluate']", title: "Проверка ИИ", description: "Перед отправкой ИИ оценит силу вашего аргумента и даст советы.", position: "top" },
+    { target: "[data-tour='argue-context']", title: "Контекст перед ходом", description: "Сверху остаётся тема спора, а дальше — ваш ответ или пауза ожидания.", position: "bottom" },
+    { target: "[data-tour='reasoning']", title: "Ваш аргумент", description: "Сформулируйте позицию коротко и понятно, без лишних обходов.", position: "bottom" },
+    { target: "[data-tour='evaluate']", title: "Проверка ИИ", description: "Перед отправкой можно быстро получить замечания и усилить аргумент.", position: "top" },
   ],
 };
 
@@ -185,7 +185,7 @@ export function OnboardingTour({
             </button>
           </div>
           <h3 className="text-sm font-bold text-white mb-1">{current.title}</h3>
-          <p className="text-xs text-gray-400 leading-relaxed">{current.description}</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{current.description}</p>
           <button
             onClick={next}
             className="mt-3 w-full bg-purple-600 hover:bg-purple-500 text-white text-sm py-2 rounded-lg font-semibold transition-colors"
