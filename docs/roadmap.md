@@ -169,6 +169,24 @@
   Env добавлены через Vercel dashboard, production redeploy выполнен
 - [ ] Редакционная Telegram-логика второго слоя: полный пост в канале/группе, короткий teaser в боте и suppress bot-уведомлений для пользователей, уже подписанных на целевой канал/группу
 
+## Текущий порядок выполнения
+
+- [x] AI orchestration v1
+- [x] Navigation + Onboarding v1.1
+- [ ] Perceived Performance v1
+  Первый следующий пакет: мгновенный `pending` на CTA, route-level loading/skeletons и приоритетная отрисовка основных блоков до вторичных догрузок
+- [ ] Activity Feed v1
+  После performance-пакета превратить `События` в реальный activity feed: release cards, arena activity, публичные dispute events
+- [ ] Landing v2 implementation
+  После feed-пакета пересобрать лендинг по `docs/ops/landing-v2-rollout.md`
+
+## Отдельно зафиксированные вещи
+
+- [x] Reminder flow для архивированных споров
+  Уже реализован: `00019`, anti-spam лимиты, pending reminders, mute после повторной архивации и auto-unarchive
+- [ ] Reminder / bell для обычного активного спора
+  Пока не входит в закрытый архивный reminder-пакет; если брать в работу, нужно оформить как отдельный пакет поверх текущего execution order
+
 ## Внутренние правила работы
 - [x] Уточнён git-workflow для агентов: staging только по согласованным файлам текущей итерации, без `git add -A`
 - [x] Зафиксировано правило последовательного git-потока: `git add` → дождаться результата → `git commit` → дождаться результата → `git push`
