@@ -15,6 +15,14 @@ import {
   getTrustTierGateMessage,
   hasMinimumTrustTier,
 } from "@/lib/trust-tier";
+import {
+  getMutedPendingReminderCount,
+  getReminderEligibilityError,
+  getReminderLimitError,
+  getReminderRedirectMessage,
+  type ReminderSuppressedReason,
+  withMessage,
+} from "@/lib/dispute-reminder";
 
 type DisputeInsert = Database["public"]["Tables"]["disputes"]["Insert"];
 type DisputeRow = Database["public"]["Tables"]["disputes"]["Row"];
@@ -22,9 +30,6 @@ type ArgumentRow = Database["public"]["Tables"]["arguments"]["Row"];
 type DisputeUserStateInsert = Database["public"]["Tables"]["dispute_user_state"]["Insert"];
 type DisputeUserStateRow = Database["public"]["Tables"]["dispute_user_state"]["Row"];
 type DisputeReminderInsert = Database["public"]["Tables"]["dispute_reminders"]["Insert"];
-
-const REMINDER_LIMIT_PER_HOUR = 3;
-const REMINDER_LIMIT_PER_DAY = 15;
 
 async function findExistingUserByEmail(
   admin: ReturnType<typeof createAdminClient>,
@@ -136,11 +141,6 @@ async function countReminderAttempts(
     hourCount: hourCount ?? 0,
     dayCount: dayCount ?? 0,
   };
-}
-
-function withMessage(path: string, message: string) {
-  const separator = path.includes("?") ? "&" : "?";
-  return `${path}${separator}message=${encodeURIComponent(message)}`;
 }
 
 export async function createDispute(formData: FormData) {
@@ -1029,16 +1029,11 @@ export async function sendDisputeReminder(formData: FormData) {
     redirect("/dashboard?error=" + encodeURIComponent("Спор не найден"));
   }
 
-  const isParticipant = dispute.creator_id === user.id || dispute.opponent_id === user.id;
-  if (!isParticipant) {
-    redirect("/dashboard?error=" + encodeURIComponent("Нет доступа к этому спору"));
-  }
-
-  if (dispute.status !== "in_progress" || !dispute.opponent_id) {
+  const opponentId = dispute.creator_id === user.id ? dispute.opponent_id : dispute.creator_id;
+  if (!opponentId) {
     redirect(withMessage(returnTo, "Напоминание доступно только для активного спора с оппонентом."));
   }
 
-  const opponentId = dispute.creator_id === user.id ? dispute.opponent_id : dispute.creator_id;
   const { data: args } = await supabase
     .from("arguments")
     .select("author_id, round")
@@ -1048,19 +1043,28 @@ export async function sendDisputeReminder(formData: FormData) {
   const myArgCount = (args ?? []).filter((arg) => arg.author_id === user.id).length;
   const opponentArgCount = (args ?? []).filter((arg) => arg.author_id === opponentId).length;
 
-  if (myArgCount <= opponentArgCount) {
-    redirect(withMessage(returnTo, "Напоминание можно отправить только когда сейчас ждут ответ оппонента."));
+  const eligibilityError = getReminderEligibilityError({
+    status: dispute.status,
+    hasOpponent: Boolean(dispute.opponent_id),
+    isParticipant: dispute.creator_id === user.id || dispute.opponent_id === user.id,
+    myArgCount,
+    opponentArgCount,
+  });
+
+  if (eligibilityError) {
+    if (eligibilityError === "Нет доступа к этому спору") {
+      redirect("/dashboard?error=" + encodeURIComponent(eligibilityError));
+    }
+
+    redirect(withMessage(returnTo, eligibilityError));
   }
 
   const admin = createAdminClient();
   const { hourCount, dayCount } = await countReminderAttempts(admin, disputeId, user.id);
 
-  if (hourCount >= REMINDER_LIMIT_PER_HOUR) {
-    redirect(withMessage(returnTo, "Лимит напоминаний исчерпан: не больше 3 напоминаний в час по одному спору."));
-  }
-
-  if (dayCount >= REMINDER_LIMIT_PER_DAY) {
-    redirect(withMessage(returnTo, "Лимит напоминаний исчерпан: не больше 15 напоминаний в сутки по одному спору."));
+  const reminderLimitError = getReminderLimitError(hourCount, dayCount);
+  if (reminderLimitError) {
+    redirect(withMessage(returnTo, reminderLimitError));
   }
 
   const [recipientState, senderProfile, recipientProfile] = await Promise.all([
@@ -1079,14 +1083,16 @@ export async function sendDisputeReminder(formData: FormData) {
 
   const senderName = getDisplayName(senderProfile.data?.display_name, user);
   let deliveredViaTelegram = false;
-  let suppressedReason: string | null = null;
+  let suppressedReason: ReminderSuppressedReason = null;
   let successMessage = "Напоминание отправлено. Спор снова отмечен как ожидающий ответа.";
 
   if (recipientState?.is_archived) {
     if (recipientState.reminder_notifications_muted) {
       suppressedReason = "muted_after_rearchive";
       await upsertDisputeArchiveState(admin, disputeId, opponentId, true, {
-        pending_reminder_count: Math.min((recipientState.pending_reminder_count ?? 0) + 1, REMINDER_LIMIT_PER_DAY),
+        pending_reminder_count: getMutedPendingReminderCount(
+          recipientState.pending_reminder_count
+        ),
         last_reminded_at: new Date().toISOString(),
         last_reminder_from_user_id: user.id,
         reminder_notifications_muted: true,
@@ -1146,23 +1152,23 @@ export async function sendDisputeReminder(formData: FormData) {
 
   await admin.from("dispute_reminders").insert(reminderPayload as never);
 
-  if (recipientState?.is_archived && recipientState.reminder_notifications_muted) {
-    redirect(withMessage(returnTo, "Напоминание зафиксировано в архиве. Telegram больше не беспокоит оппонента по этому спору."));
-  }
-
-  if (!deliveredViaTelegram && suppressedReason === "telegram_delivery_failed") {
-    redirect(withMessage(returnTo, "Не удалось отправить Telegram-напоминание. Попробуйте ещё раз позже."));
-  }
-
-  if (!deliveredViaTelegram && suppressedReason === "recipient_active_no_telegram") {
-    redirect(withMessage(returnTo, "У оппонента не подключён Telegram, поэтому bell-напоминание недоступно."));
-  }
-
-  if (!deliveredViaTelegram && suppressedReason === "no_telegram_chat") {
-    redirect(withMessage(returnTo, "У оппонента не подключён Telegram, поэтому спор только отмечен как ожидающий ответа."));
-  }
-
-  redirect(withMessage(returnTo, successMessage));
+  redirect(
+    withMessage(
+      returnTo,
+      getReminderRedirectMessage({
+        recipientState: recipientState
+          ? {
+              isArchived: recipientState.is_archived,
+              reminderNotificationsMuted: recipientState.reminder_notifications_muted,
+              pendingReminderCount: recipientState.pending_reminder_count,
+            }
+          : null,
+        deliveredViaTelegram,
+        suppressedReason,
+        successMessage,
+      })
+    )
+  );
 }
 
 export async function proposeEarlyEnd(formData: FormData) {

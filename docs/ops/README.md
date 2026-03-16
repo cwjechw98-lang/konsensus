@@ -45,6 +45,8 @@
   Новый narrative и product-first лендинг: быстрый hero, proof blocks, activity-presentation и более современный темп подачи.
 - [active-reminder-rollout.md](/C:/project21/konsensus/docs/ops/active-reminder-rollout.md)
   Обычный reminder/bell для активного waiting-state: мягкий Telegram-пинг без новой SQL-подсистемы.
+- [server-actions-tests-rollout.md](/C:/project21/konsensus/docs/ops/server-actions-tests-rollout.md)
+  Базовый unit-test слой для server-side policy logic: Vitest, чистые reminder/trust-tier/appeals helpers и дальнейшее расширение покрытия без тяжёлого Next runtime harness.
 
 ## Смежные ops-документы
 

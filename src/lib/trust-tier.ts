@@ -23,7 +23,7 @@ export type TrustTierState = {
   };
 };
 
-type AuthUserLike = {
+export type AuthUserLike = {
   email?: string | null;
   is_anonymous?: boolean | null;
   created_at?: string;
@@ -69,14 +69,14 @@ const TIER_META: Record<
   },
 };
 
-function getLinkedIdentity(authUser: AuthUserLike | null) {
+export function getLinkedIdentity(authUser: AuthUserLike | null) {
   if (!authUser || authUser.is_anonymous) return false;
   if (authUser.email) return true;
   const providers = (authUser.identities ?? []).map((item) => item.provider).filter(Boolean);
   return providers.length > 0 && !providers.every((provider) => provider === "anonymous");
 }
 
-function differenceInDays(iso: string | undefined, fallbackIso: string | undefined) {
+export function differenceInDays(iso: string | undefined, fallbackIso: string | undefined) {
   const source = iso ?? fallbackIso;
   if (!source) return 0;
   const value = new Date(source).getTime();
@@ -84,7 +84,7 @@ function differenceInDays(iso: string | undefined, fallbackIso: string | undefin
   return Math.max(0, Math.floor((Date.now() - value) / (24 * 60 * 60 * 1000)));
 }
 
-function decideTier(signals: TrustTierState["signals"]): TrustTier {
+export function calculateTrustTier(signals: TrustTierState["signals"]): TrustTier {
   const linked =
     signals.hasLinkedIdentity ||
     signals.hasTelegram ||
@@ -107,7 +107,10 @@ function decideTier(signals: TrustTierState["signals"]): TrustTier {
   return trusted ? "trusted" : "linked";
 }
 
-function getNextStep(tier: TrustTier, signals: TrustTierState["signals"]) {
+export function getTrustTierNextStep(
+  tier: TrustTier,
+  signals: TrustTierState["signals"]
+) {
   if (tier === "basic") {
     if (!signals.hasLinkedIdentity && !signals.hasTelegram) {
       return "Привяжите Telegram или используйте устойчивый способ входа, чтобы получить linked-сигнал.";
@@ -196,7 +199,7 @@ export async function fetchTrustTierState(userId: string): Promise<TrustTierStat
     empathyScore: aiProfile?.empathy_score ?? 0,
   };
 
-  const tier = decideTier(signals);
+  const tier = calculateTrustTier(signals);
   const nextTier = tier === "basic" ? "linked" : tier === "linked" ? "trusted" : null;
 
   if (profile?.trust_tier !== tier) {
@@ -213,7 +216,7 @@ export async function fetchTrustTierState(userId: string): Promise<TrustTierStat
     unlocks: TIER_META[tier].unlocks,
     nextTier,
     nextTierLabel: nextTier ? TIER_META[nextTier].label : null,
-    nextStep: getNextStep(tier, signals),
+    nextStep: getTrustTierNextStep(tier, signals),
     signals,
   };
 }

@@ -147,7 +147,9 @@
 ## Фаза 11: Инфраструктура (бэклог)
 - [ ] E2E тестирование основных сценариев (Playwright)
   Существенно продвинуто: стабилен Playwright-контур на `desktop` / `desktop-wide` / `mobile`, добавлены `public-smoke` и `arena-live` suites, текущий полный прогон проходит `33/33`
-- [ ] Unit-тесты для server actions
+- [x] Unit-тесты для server actions
+  Первый рабочий слой зафиксирован в `docs/ops/server-actions-tests-rollout.md`
+  Реализовано: `Vitest`, команда `npm run test:unit` и покрытие pure-policy веток для reminder-flow, trust-tier logic и appeals helpers
 - [ ] Error tracking (Sentry)
 - [ ] Supabase Metrics Dashboard (мониторинг)
 - [ ] Оптимизация запросов (N+1, индексы)
@@ -199,6 +201,10 @@
 
 - [x] Appeals v1
   Выполнено: первый слой апелляций на автоматические выводы уже собран в `docs/ops/appeals-rollout.md`
+
+- [x] Unit tests for server actions v1
+  Зафиксирован в `docs/ops/server-actions-tests-rollout.md`
+  Реализовано: минимальный `Vitest`-контур и unit-покрытие policy-логики для reminder, trust-tier и appeals
 
 ## Отдельно зафиксированные вещи
 
