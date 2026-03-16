@@ -107,6 +107,7 @@
   - не было manual override
 - public reputation layer теперь учитывает manual override как effective result
 - auto-review завершение апелляции переведено на admin-path, чтобы не упираться в отсутствие RLS update-policy
+- очередь ручной модерации вынесена из профиля в отдельный ops-маршрут `/ops/appeals`, чтобы личный кабинет снова остался чисто пользовательским
 
 ## Что пока не делать
 
@@ -131,7 +132,6 @@
 - связь с reputation timeline
 - аналитика качества AI-выводов
 - полноценный trust-and-appeals subsystem
-- отдельный moderation workspace вне профиля
 - granular admin roles вместо env-списка `KONSENSUS_ADMIN_EMAILS`
 
 ## Следующий практический шаг

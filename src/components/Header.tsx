@@ -38,7 +38,7 @@ export function Header({ isLoggedIn, isAdmin }: { isLoggedIn: boolean; isAdmin?:
                 Профиль
               </Link>
               {isAdmin ? (
-                <Link href="/ops/editorial" className="text-sm text-cyan-300 hover:text-cyan-100 nav-link transition-colors">
+                <Link href="/ops" className="text-sm text-cyan-300 hover:text-cyan-100 nav-link transition-colors">
                   Ops
                 </Link>
               ) : null}

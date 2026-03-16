@@ -233,6 +233,9 @@
 - [x] Editorial Ops v1
   Выполнено: отдельный admin-only `/ops/editorial`, cursor/draft SQL-модель, AI-черновики по GitHub commit range, review/edit/publish/schedule и вынесенный editorial delivery layer
 
+- [x] Editorial Ops v1.1
+  Выполнено: добавлен `/ops` landing, admin-only appeals moderation вынесен в `/ops/appeals`, а профиль очищен от remaining ops-блоков
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

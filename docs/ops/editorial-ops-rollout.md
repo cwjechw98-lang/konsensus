@@ -11,8 +11,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1`
-- Ближайший шаг: `v1.1 ops separation polish`
+- Стадия: `implemented_v1_1`
+- Ближайший шаг: `v1.2 editorial polish`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -74,11 +74,12 @@
 - добавлена защита от дублей по `to_commit`;
 - editorial delivery panel вынесена из профиля в ops-only экран;
 - в desktop/mobile admin navigation добавлен вход в `Ops`.
+- добавлен отдельный `/ops` landing с несколькими admin-поверхностями;
+- editorial ops и appeals moderation теперь разведены по отдельным ops-страницам.
 
 ### v1.1
 
 - richer release prompt routing по типу фич;
-- отдельный `/ops` landing с несколькими admin-панелями;
 - ручной rebase draft на новый commit range.
 
 ### v2

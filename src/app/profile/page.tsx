@@ -18,9 +18,7 @@ import EducationRecommendationsPanel from "@/components/EducationRecommendations
 import TrustTierCard from "@/components/TrustTierCard";
 import { fetchTrustTierState } from "@/lib/trust-tier";
 import AppealComposer from "@/components/AppealComposer";
-import AppealModerationQueue from "@/components/AppealModerationQueue";
 import {
-  fetchAppealModerationQueue,
   fetchUserAppeals,
 } from "@/lib/appeals";
 import {
@@ -30,7 +28,6 @@ import {
   isAppealHidden,
   sortBadgesWithAppeals,
 } from "@/lib/appeal-helpers";
-import { isKonsensusAdminEmail } from "@/lib/site-config";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -86,8 +83,6 @@ export default async function ProfilePage({
     ? new Date(profile.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
-  const isAdminUser = isKonsensusAdminEmail(user.email);
-
   const questRunsPromise = (async () => {
     const result = await supabase
       .from("profile_quest_runs")
@@ -116,7 +111,6 @@ export default async function ProfilePage({
     appealableBadges,
     trustTierState,
     appeals,
-    moderationQueue,
   ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
@@ -131,7 +125,6 @@ export default async function ProfilePage({
     fetchPublicReputationBadges(user.id, { includeHidden: true }).catch(() => []),
     fetchTrustTierState(user.id).catch(() => null),
     fetchUserAppeals(user.id).catch(() => []),
-    isAdminUser ? fetchAppealModerationQueue().catch(() => []) : Promise.resolve([]),
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -708,25 +701,6 @@ export default async function ProfilePage({
               </p>
             )}
           </div>
-
-          {isAdminUser ? (
-            <div className="glass rounded-2xl p-6 lg:col-span-2">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                🛡 Очередь ручной модерации апелляций
-              </h2>
-              <p className="mb-4 text-sm leading-relaxed text-gray-400">
-                Здесь собираются кейсы, где автопересмотр оказался спорным: низкая уверенность
-                или автоматическое скрытие вывода. Ручной override фиксируется поверх auto-review.
-              </p>
-              <AppealModerationQueue appeals={moderationQueue} />
-              <a
-                href="/ops/editorial"
-                className="mt-4 inline-flex rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
-              >
-                Открыть ops-панель релизов →
-              </a>
-            </div>
-          ) : null}
 
           {/* How AI uses your profile */}
           <div className="glass rounded-2xl p-6 lg:col-span-2">

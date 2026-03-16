@@ -58,7 +58,7 @@ export function MobileMenu({ isLoggedIn, isAdmin = false, telegramLink = "", log
             Поддержать проект
           </Link>
           {isLoggedIn && isAdmin ? (
-            <Link href="/ops/editorial" className={linkClass} onClick={() => setOpen(false)}>
+            <Link href="/ops" className={linkClass} onClick={() => setOpen(false)}>
               Ops
             </Link>
           ) : null}
