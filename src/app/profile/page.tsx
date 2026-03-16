@@ -12,6 +12,8 @@ import SubmitButton from "@/components/SubmitButton";
 import { fetchRPGStats } from "@/lib/rpg";
 import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
 import ProfileQuestPanel, { type ProfileQuestRunSummary } from "@/components/ProfileQuestPanel";
+import PublicReputationBadges from "@/components/PublicReputationBadges";
+import { fetchPublicReputationBadges } from "@/lib/reputation";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
@@ -91,6 +93,7 @@ export default async function ProfilePage({
     aiProfile,
     counterparts,
     questRunsRes,
+    reputationBadges,
   ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
@@ -101,6 +104,7 @@ export default async function ProfilePage({
     fetchAIProfile(user.id).catch(() => null),
     fetchCounterparts(user.id).catch(() => []),
     questRunsPromise,
+    fetchPublicReputationBadges(user.id).catch(() => []),
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -271,6 +275,7 @@ export default async function ProfilePage({
             stats={rpgStats}
             displayName={profile?.display_name ?? user.email ?? "Игрок"}
             bio={profile?.bio}
+            reputationBadges={reputationBadges}
           />
 
           {/* Category Distribution */}
@@ -544,6 +549,27 @@ export default async function ProfilePage({
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              🏷 Публичные бейджи
+            </h2>
+            {reputationBadges.length > 0 ? (
+              <div className="space-y-4">
+                <PublicReputationBadges badges={reputationBadges} />
+                <p className="text-xs leading-relaxed text-gray-500">
+                  Это безопасный публичный слой репутации. Он показывает, как вы
+                  обычно ведёте диалог, но не выставляет общий балл и не вешает
+                  негативные ярлыки.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Когда накопится больше спорных сигналов, здесь появятся первые
+                публичные стилевые бейджи.
+              </p>
             )}
           </div>
 

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { fetchRPGStats } from "@/lib/rpg";
+import { fetchPublicReputationBadges } from "@/lib/reputation";
 import ChallengeBoard from "@/components/ChallengeBoard";
 import ArenaLiveBoard from "@/components/ArenaLiveBoard";
 
@@ -38,10 +39,13 @@ export default async function ArenaPage({
   // Fetch RPG stats for each unique author
   const authorIds = [...new Set((challenges ?? []).map((c) => c.profiles?.id).filter(Boolean) as string[])];
   const statsMap: Record<string, Awaited<ReturnType<typeof fetchRPGStats>>> = {};
+  const badgesMap: Record<string, Awaited<ReturnType<typeof fetchPublicReputationBadges>>> = {};
 
   await Promise.all(
     authorIds.map(async (id) => {
-      statsMap[id] = await fetchRPGStats(id, supabase);
+      const stats = await fetchRPGStats(id, supabase);
+      statsMap[id] = stats;
+      badgesMap[id] = await fetchPublicReputationBadges(id, { rpgStats: stats });
     })
   );
 
@@ -62,6 +66,7 @@ export default async function ArenaPage({
       argumentation: 0, diplomacy: 0, activity: 0, persistence: 0,
       characterClass: "Новобранец 🌱", characterTitle: "Первые шаги в мире дискуссий", xp: 0,
     },
+    reputationBadges: badgesMap[c.profiles?.id ?? ""] ?? [],
   }));
 
   const { data: activeChallenges } = await supabase

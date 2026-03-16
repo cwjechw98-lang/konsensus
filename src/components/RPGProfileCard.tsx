@@ -1,12 +1,15 @@
 "use client";
 
 import type { RPGStats } from "@/lib/rpg";
+import type { PublicReputationBadge } from "@/lib/reputation";
+import PublicReputationBadges from "@/components/PublicReputationBadges";
 
 interface RPGProfileCardProps {
   stats: RPGStats;
   displayName: string;
   bio?: string | null;
   compact?: boolean;
+  reputationBadges?: PublicReputationBadge[];
 }
 
 function StatBar({ label, value }: { label: string; value: number }) {
@@ -29,7 +32,13 @@ function StatBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function RPGProfileCard({ stats, displayName, bio, compact }: RPGProfileCardProps) {
+export default function RPGProfileCard({
+  stats,
+  displayName,
+  bio,
+  compact,
+  reputationBadges = [],
+}: RPGProfileCardProps) {
   if (compact) {
     return (
       <div className="glass rounded-xl p-4 min-w-[260px] max-w-[300px] shadow-2xl border border-purple-500/20">
@@ -50,6 +59,11 @@ export default function RPGProfileCard({ stats, displayName, bio, compact }: RPG
           <p className="text-xs text-gray-400 italic leading-tight border-t border-white/8 pt-2">
             ❝ {bio.slice(0, 80)}{bio.length > 80 ? "…" : ""} ❞
           </p>
+        )}
+        {reputationBadges.length > 0 && (
+          <div className="mt-3 border-t border-white/8 pt-3">
+            <PublicReputationBadges badges={reputationBadges} compact title="Стиль" />
+          </div>
         )}
         <p className="text-xs text-gray-600 mt-2 text-center">{stats.characterTitle}</p>
       </div>
@@ -83,6 +97,12 @@ export default function RPGProfileCard({ stats, displayName, bio, compact }: RPG
           <p className="text-sm text-gray-300 italic leading-relaxed">
             ❝ {bio} ❞
           </p>
+        </div>
+      )}
+
+      {reputationBadges.length > 0 && (
+        <div className="mt-4 border-t border-white/8 pt-4">
+          <PublicReputationBadges badges={reputationBadges} />
         </div>
       )}
     </div>

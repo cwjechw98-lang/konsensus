@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import RPGProfileCard from "@/components/RPGProfileCard";
 import type { RPGStats } from "@/lib/rpg";
+import type { PublicReputationBadge } from "@/lib/reputation";
 import { acceptChallenge, createChallenge } from "@/lib/arena-actions";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -33,6 +34,7 @@ interface ChallengeWithAuthor {
     bio: string | null;
   };
   rpgStats: RPGStats;
+  reputationBadges: PublicReputationBadge[];
 }
 
 interface ChallengeBoardProps {
@@ -153,6 +155,7 @@ function ChallengeCard({
               displayName={challenge.author.display_name ?? "Аноним"}
               bio={challenge.author.bio}
               compact
+              reputationBadges={challenge.reputationBadges}
             />
           </div>
         )}
