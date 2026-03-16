@@ -23,6 +23,7 @@
 11. Завершён `Unit tests for server actions v1`
 12. Завершён `Telegram editorial layer v2`
 13. Завершён `Appeals v1.1`
+14. Завершён `Scheduled editorial posting`
 
 Стратегическая последовательность rollout-блоков первого слоя завершена. После неё отдельно добираются узкие продуктовые хвосты из backlog-а. Следующим пакетом после `Appeals v1` закрыт `active reminder / bell` для обычного waiting-state.
 
@@ -31,6 +32,8 @@
 После этого закрыт и `Telegram editorial layer v2`: release-flow больше не шлёт один и тот же полный пост в оба канала доставки. Канал получает полный release card, бот — только короткий teaser, а для подписанных участников bot-teaser подавляется через `getChatMember` и SQL-кэш membership-состояния.
 
 Следом закрыт и `Appeals v1.1`: на auto-review поверх уже существующей апелляции добавлен ручной moderation layer. Спорные кейсы теперь попадают в admin-only очередь внутри `AI-профиля`, а manual override может окончательно скрыть или оставить вывод с отдельной причиной.
+
+Следом закрыт и `Scheduled editorial posting`: release-flow теперь умеет не только публиковать сразу, но и планировать релиз на будущее через `scheduleAt`. Поверх `release_announcements` добавлены schedule-поля, cron-runner `/api/telegram/editorial/run` и daily Vercel Cron sweep для отложенных editorial-публикаций.
 
 Отдельно зафиксировано, что reminder flow для архивированных споров уже реализован, включая SQL `00019`, лимиты `3/час` и `15/сутки`, auto-unarchive и quiet mode после повторной архивации. Следом закрыт и отдельный `reminder / bell` для обычного неархивированного waiting-state: теперь он реально шлёт Telegram-пинг, а не только отображается кнопкой в UI.
 
@@ -110,6 +113,8 @@
   Full post теперь уходит в канал, бот отправляет teaser, suppress подписанных пользователей идёт через `getChatMember` и SQL-кэш `telegram_channel_memberships`
 - [x] Appeals v1.1
   Manual moderation queue и ручной override поверх auto-review уже внедрены в профильный AI-layer
+- [x] Scheduled editorial posting
+  Release subsystem теперь поддерживает schedule через `release_announcements`, cron-runner и daily editorial sweep на Vercel
 - [ ] Мониторинг запросов
 - [x] Release automation для Telegram (структурированный payload, bot + channel, branded release image, publish script)
 - [x] Ops-слой проекта (`local-only`, `release-flow`, `model-strategy`)
@@ -160,6 +165,7 @@
 | 00023_appeals.sql | appeals (апелляции на автоматические выводы профиля, auto-review, результат пересмотра и история) |
 | 00024_telegram_channel_memberships.sql | telegram_channel_memberships (кэш membership в editorial Telegram-канале/группе для suppress bot-teasers и webhook/API sync) |
 | 00025_appeal_manual_overrides.sql | manual override поля для appeals (ручной результат, причина, время и модератор) |
+| 00026_release_scheduling.sql | schedule-поля для release_announcements (scheduled publish time, target, cron attempts и ошибки) |
 
 ## Ключевые компоненты
 
@@ -264,3 +270,4 @@
 | 2026-03-16 | Реализован `Telegram editorial layer v2`: release-flow разделён на `channel full post / bot teaser`, suppress bot-teasers для подписанных пользователей идёт через `getChatMember`, а membership-state кэшируется в новой SQL-модели `telegram_channel_memberships` (`00024`) и обновляется через webhook/API sync |
 | 2026-03-16 | Реализован `Appeals v1.1`: добавлены поля manual override (`00025`), admin-only moderation queue внутри `AI-профиля`, ручной override поверх auto-review и применение effective result в profile/reputation слоях |
 | 2026-03-16 | Закрыт cleanup старых lint-warning: удалён неиспользуемый `code` prop из `GuestJoinButton`, а `TelegramConnect` очищен от неиспользуемого `useTransition` state |
+| 2026-03-16 | Реализован `Scheduled editorial posting`: `release_announcements` расширен schedule-полями (`00026`), `/api/telegram/broadcast` умеет schedule через `scheduleAt`, добавлен cron-runner `/api/telegram/editorial/run` и daily Vercel Cron в `vercel.json` |

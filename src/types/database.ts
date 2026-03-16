@@ -632,6 +632,11 @@ export interface Database {
           source_commits: string[] | null;
           sent_to_bot_at: string | null;
           sent_to_channel_at: string | null;
+          scheduled_publish_at: string | null;
+          scheduled_target: "bot" | "channel" | "both" | null;
+          scheduled_published_at: string | null;
+          last_schedule_attempt_at: string | null;
+          last_schedule_error: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -646,6 +651,11 @@ export interface Database {
           source_commits?: string[] | null;
           sent_to_bot_at?: string | null;
           sent_to_channel_at?: string | null;
+          scheduled_publish_at?: string | null;
+          scheduled_target?: "bot" | "channel" | "both" | null;
+          scheduled_published_at?: string | null;
+          last_schedule_attempt_at?: string | null;
+          last_schedule_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -659,6 +669,11 @@ export interface Database {
           source_commits?: string[] | null;
           sent_to_bot_at?: string | null;
           sent_to_channel_at?: string | null;
+          scheduled_publish_at?: string | null;
+          scheduled_target?: "bot" | "channel" | "both" | null;
+          scheduled_published_at?: string | null;
+          last_schedule_attempt_at?: string | null;
+          last_schedule_error?: string | null;
           updated_at?: string;
         };
       };

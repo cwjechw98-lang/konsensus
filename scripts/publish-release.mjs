@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 
 async function main() {
-  const [, , filePath, target = "both"] = process.argv;
+  const [, , filePath, target = "both", scheduleAt] = process.argv;
 
   if (!filePath) {
-    console.error("Usage: node scripts/publish-release.mjs <release.json> [bot|channel|both]");
+    console.error("Usage: node scripts/publish-release.mjs <release.json> [bot|channel|both] [scheduleAtISO]");
     process.exit(1);
   }
 
@@ -25,7 +25,11 @@ async function main() {
       "Content-Type": "application/json",
       "x-broadcast-secret": secret,
     },
-    body: JSON.stringify({ release, target }),
+    body: JSON.stringify({
+      release,
+      target,
+      ...(scheduleAt ? { scheduleAt } : {}),
+    }),
   });
 
   const json = await res.json();

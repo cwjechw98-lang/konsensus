@@ -5,6 +5,7 @@ const APP_URL =
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "") || "";
 const TELEGRAM_RELEASE_CHANNEL_ID = process.env.TELEGRAM_RELEASE_CHANNEL_ID || "";
 const TELEGRAM_RELEASE_CHANNEL_URL = process.env.NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL || "";
+const CRON_SECRET = process.env.CRON_SECRET || "";
 const ADMIN_EMAILS = new Set(
   (process.env.KONSENSUS_ADMIN_EMAILS || "")
     .split(",")
@@ -43,6 +44,10 @@ export function getTelegramReleaseChannelId() {
 
 export function getTelegramReleaseChannelUrl() {
   return TELEGRAM_RELEASE_CHANNEL_URL;
+}
+
+export function getCronSecret() {
+  return CRON_SECRET;
 }
 
 export function hasSupportLinks() {

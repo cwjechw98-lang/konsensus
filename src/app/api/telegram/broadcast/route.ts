@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { broadcastToAll, publishReleaseAnnouncement } from "@/lib/telegram";
-import type { ReleaseTarget } from "@/lib/releases";
+import { broadcastToAll, publishReleaseAnnouncement, scheduleReleaseAnnouncement } from "@/lib/telegram";
+import { normalizeScheduledPublishAt, type ReleaseTarget } from "@/lib/releases";
 
 /**
  * POST /api/telegram/broadcast
@@ -9,7 +9,7 @@ import type { ReleaseTarget } from "@/lib/releases";
  *
  * Body:
  *  - { message: string }
- *  - { release: { title, summary, features, slug?, notes?, source_commits? }, target?: "bot" | "channel" | "both" }
+ *  - { release: { title, summary, features, slug?, notes?, source_commits? }, target?: "bot" | "channel" | "both", scheduleAt?: ISOString }
  */
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-broadcast-secret");
@@ -21,6 +21,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     if (body?.release) {
+      if (body.scheduleAt) {
+        const result = await scheduleReleaseAnnouncement({
+          payload: body.release,
+          target: (body.target as ReleaseTarget | undefined) ?? "both",
+          scheduleAt: normalizeScheduledPublishAt(String(body.scheduleAt)),
+        });
+        return NextResponse.json({ ok: true, scheduled: result });
+      }
+
       const result = await publishReleaseAnnouncement(
         body.release,
         (body.target as ReleaseTarget | undefined) ?? "both"

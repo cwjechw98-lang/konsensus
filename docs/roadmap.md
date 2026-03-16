@@ -154,6 +154,8 @@
 - [ ] Supabase Metrics Dashboard (мониторинг)
 - [ ] Оптимизация запросов (N+1, индексы)
 - [x] Release automation для Telegram: структурированный release payload, картинка релиза, публикация в бот и канал, идемпотентность по slug
+- [x] Scheduled editorial posting для Telegram release-flow
+  Реализовано: `scheduleAt` в broadcast/script, cron-runner `/api/telegram/editorial/run` и daily Vercel Cron sweep поверх `release_announcements`
 - [x] Invite/direct challenge сообщения приведены к более полному контексту: тема, описание и понятный post-create сигнал при сбое email-канала
 - [x] Персональное состояние спора вынесено в отдельную SQL-модель `dispute_user_state` (`00018`) с RLS, чтобы dashboard и Telegram синхронно обрабатывали архив и auto-unarchive
 - [x] Добавлена SQL-модель `dispute_reminders` и расширено `dispute_user_state` (`00019`) для лимитов напоминаний, pending counters и mute после повторной архивации
@@ -215,6 +217,9 @@
 - [x] Telegram editorial layer v2
   Зафиксирован в `docs/ops/telegram-editorial-rollout.md`
   Реализовано: раздельная delivery-модель `channel full post / bot teaser`, suppress bot-тизеров для подписанных пользователей и membership-cache через SQL + webhook sync
+
+- [x] Scheduled editorial posting
+  Выполнено: release subsystem умеет отложенную публикацию через cron-runner и schedule fields в `release_announcements`
 
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений

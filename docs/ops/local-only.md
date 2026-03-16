@@ -19,6 +19,7 @@
 - `NEXT_PUBLIC_APP_URL`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_WEBHOOK_SECRET`
+- `CRON_SECRET`
 - `TELEGRAM_BOT_USERNAME`
 - `TELEGRAM_RELEASE_CHANNEL_ID`
 - `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL`
@@ -33,6 +34,11 @@
 - Menu Button должен открывать Mini App `/tg`
 - webhook должен быть направлен на `/api/telegram`
 - `TELEGRAM_BOT_USERNAME` в env должен совпадать с текущим username бота
+
+### Scheduled editorial flow
+- `CRON_SECRET` нужен для Vercel Cron и ручного вызова `/api/telegram/editorial/run`
+- в текущей конфигурации [vercel.json](/C:/project21/konsensus/vercel.json) cron запускается раз в день
+- на Hobby-плане Vercel cron ограничен одним daily вызовом; если нужен более частый editorial sweep, это уже следующий инфраструктурный шаг
 
 ### Telegram-канал релизов
 - бот должен быть администратором канала

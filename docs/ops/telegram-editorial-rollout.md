@@ -9,8 +9,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1`
-- Ближайший хвост: `v1.1 scheduled editorial flow`
+- Стадия: `implemented_v1_1`
+- Ближайший хвост: `v1.2 editorial reporting`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -57,6 +57,12 @@
 - для корректной работы пакета нужны:
   - `TELEGRAM_RELEASE_CHANNEL_ID`
   - `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL`
+- scheduled editorial posting теперь тоже внедрён:
+  - `release_announcements` расширен schedule-полями (`00026`)
+  - `/api/telegram/broadcast` умеет не только публиковать, но и планировать релизы через `scheduleAt`
+  - добавлен cron-runner `/api/telegram/editorial/run`
+  - [vercel.json](/C:/project21/konsensus/vercel.json) запускает daily editorial sweep
+  - ручной локальный script `npm run release:telegram -- <file> <target> <scheduleAtISO>` тоже умеет отложенную публикацию
 
 ## Что пока не делать
 
@@ -66,11 +72,11 @@
 
 ## Что нужно добить после v1
 
-### v1.1
+### v1.2
 
-- scheduled editorial posting;
 - richer teaser copy per release type;
-- явный delivery report: сколько ушло в бот, сколько подавлено по membership.
+- явный delivery report: сколько ушло в бот, сколько подавлено по membership;
+- visibility scheduled queue в UI или ops-view.
 
 ### v2
 
@@ -80,4 +86,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Telegram editorial subsystem, следующий слой — scheduled posting и более явный delivery analytics/reporting.
+- если возвращаться к Telegram editorial subsystem, следующий слой — delivery analytics/reporting и отдельная видимость очереди запланированных релизов.

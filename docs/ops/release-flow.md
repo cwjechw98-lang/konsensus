@@ -46,6 +46,16 @@ npm run release:telegram -- ./docs/ops/release.example.json both
 
 Вместо `both` можно передать `bot` или `channel`.
 
+Для отложенной публикации:
+
+```bash
+npm run release:telegram -- ./docs/ops/release.example.json both 2026-03-17T09:00:00Z
+```
+
+Третий аргумент:
+- `scheduleAtISO` — ISO-время будущей публикации в UTC
+- вместо немедленной отправки релиз будет сохранён в `release_announcements` и опубликован cron-раннером
+
 ### Через API
 
 `POST /api/telegram/broadcast`
@@ -66,12 +76,36 @@ Body:
 }
 ```
 
+Для отложенной публикации можно добавить:
+
+```json
+{
+  "target": "both",
+  "scheduleAt": "2026-03-17T09:00:00Z",
+  "release": {
+    "title": "Новый релиз",
+    "summary": "Короткое резюме релиза.",
+    "features": ["Фича 1", "Фича 2", "Фича 3"]
+  }
+}
+```
+
 ## Как теперь расходится доставка
 
 - `channel` получает полный release card;
 - `bot` получает короткий teaser;
 - если бот видит, что пользователь уже подписан на целевой канал/группу, bot-teaser подавляется;
 - для suppress-проверок нужен `TELEGRAM_RELEASE_CHANNEL_ID`, а для корректной CTA-ссылки в teaser нужен `NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL`.
+
+## Scheduled posting
+
+- планировщик использует ту же таблицу `release_announcements`;
+- cron endpoint: `GET /api/telegram/editorial/run`
+- защита:
+  - `Authorization: Bearer <CRON_SECRET>` для Vercel Cron
+  - либо `x-broadcast-secret: <TELEGRAM_WEBHOOK_SECRET>` для ручного вызова
+- в текущей конфигурации [vercel.json](/C:/project21/konsensus/vercel.json) editorial sweep идёт `1` раз в день;
+- если scheduled release уже был доставлен, повторный cron-run не должен дублировать публикацию.
 
 ## Как работает идемпотентность
 

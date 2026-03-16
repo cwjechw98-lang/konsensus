@@ -11,6 +11,20 @@ export type ReleasePayload = {
   source_commits?: string[];
 };
 
+export function normalizeScheduledPublishAt(input: string) {
+  const value = input.trim();
+  if (!value) {
+    throw new Error("Scheduled publish time is required");
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("Scheduled publish time must be a valid ISO date");
+  }
+
+  return parsed.toISOString();
+}
+
 export function slugifyRelease(input: string) {
   return input
     .toLowerCase()

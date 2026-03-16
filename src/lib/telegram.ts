@@ -1,6 +1,7 @@
 import type { Json } from "@/types/database";
 import { getAppBaseUrl, getTelegramReleaseChannelId, getTelegramReleaseChannelUrl } from "@/lib/site-config";
 import { formatReleaseCaption, formatReleaseTeaser, getReleaseImageUrl, normalizeReleasePayload, type ReleasePayload, type ReleaseTarget } from "@/lib/releases";
+import { isScheduledReleaseDue, isScheduledReleaseFulfilled } from "@/lib/telegram-schedule";
 import {
   isTelegramMembershipActive,
   normalizeTelegramMembershipStatus,
@@ -375,9 +376,52 @@ type ReleaseAnnouncementRow = {
   source_commits: string[] | null;
   sent_to_bot_at: string | null;
   sent_to_channel_at: string | null;
+  scheduled_publish_at: string | null;
+  scheduled_target: ReleaseTarget | null;
+  scheduled_published_at: string | null;
+  last_schedule_attempt_at: string | null;
+  last_schedule_error: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export async function scheduleReleaseAnnouncement(input: {
+  payload: ReleasePayload;
+  target: ReleaseTarget;
+  scheduleAt: string;
+}): Promise<{
+  slug: string;
+  scheduledAt: string;
+  target: ReleaseTarget;
+}> {
+  const normalized = normalizeReleasePayload(input.payload);
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const heroImageUrl = getReleaseImageUrl(normalized.slug);
+
+  await admin.from("release_announcements").upsert({
+    slug: normalized.slug,
+    title: normalized.title,
+    summary: normalized.summary,
+    features: normalized.features,
+    hero_image_url: heroImageUrl,
+    notes: normalized.notes ?? null,
+    source_commits: normalized.source_commits ?? [],
+    scheduled_publish_at: input.scheduleAt,
+    scheduled_target: input.target,
+    scheduled_published_at: null,
+    last_schedule_attempt_at: null,
+    last_schedule_error: null,
+    updated_at: now,
+  } as never, { onConflict: "slug" });
+
+  return {
+    slug: normalized.slug,
+    scheduledAt: input.scheduleAt,
+    target: input.target,
+  };
+}
 
 async function sendReleaseCard(
   chatId: number | string,
@@ -506,6 +550,119 @@ export async function publishReleaseAnnouncement(
     skippedBot,
     skippedChannel,
     suppressedBotCount,
+  };
+}
+
+export async function runScheduledReleaseAnnouncements(input?: {
+  now?: Date;
+  limit?: number;
+}): Promise<{
+  processed: number;
+  published: number;
+  failed: number;
+  items: Array<{
+    slug: string;
+    target: ReleaseTarget;
+    published: boolean;
+    error?: string;
+  }>;
+}> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const now = input?.now ?? new Date();
+  const nowIso = now.toISOString();
+  const limit = input?.limit ?? 20;
+
+  const { data: scheduled } = await admin
+    .from("release_announcements")
+    .select("*")
+    .not("scheduled_publish_at", "is", null)
+    .is("scheduled_published_at", null)
+    .order("scheduled_publish_at", { ascending: true })
+    .limit(limit)
+    .returns<ReleaseAnnouncementRow[]>();
+
+  const dueItems = (scheduled ?? []).filter((release) => isScheduledReleaseDue(release, now));
+  const items: Array<{
+    slug: string;
+    target: ReleaseTarget;
+    published: boolean;
+    error?: string;
+  }> = [];
+
+  let published = 0;
+  let failed = 0;
+
+  for (const release of dueItems) {
+    const target = release.scheduled_target ?? "both";
+
+    await admin
+      .from("release_announcements")
+      .update({
+        last_schedule_attempt_at: nowIso,
+        updated_at: nowIso,
+      } as never)
+      .eq("slug", release.slug);
+
+    try {
+      const result = await publishReleaseAnnouncement({
+        slug: release.slug,
+        title: release.title,
+        summary: release.summary,
+        features: release.features,
+        notes: release.notes ?? undefined,
+        source_commits: release.source_commits ?? undefined,
+      }, target);
+
+      const fulfilled = isScheduledReleaseFulfilled(target, result);
+
+      await admin
+        .from("release_announcements")
+        .update({
+          scheduled_published_at: fulfilled ? nowIso : null,
+          last_schedule_error: fulfilled ? null : "Scheduled publish did not complete all delivery paths",
+          updated_at: nowIso,
+        } as never)
+        .eq("slug", release.slug);
+
+      if (fulfilled) {
+        published += 1;
+      } else {
+        failed += 1;
+      }
+
+      items.push({
+        slug: release.slug,
+        target,
+        published: fulfilled,
+        error: fulfilled ? undefined : "Scheduled publish did not complete all delivery paths",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown scheduled publish error";
+      failed += 1;
+
+      await admin
+        .from("release_announcements")
+        .update({
+          last_schedule_error: message,
+          updated_at: nowIso,
+        } as never)
+        .eq("slug", release.slug);
+
+      items.push({
+        slug: release.slug,
+        target,
+        published: false,
+        error: message,
+      });
+    }
+  }
+
+  return {
+    processed: dueItems.length,
+    published,
+    failed,
+    items,
   };
 }
 
