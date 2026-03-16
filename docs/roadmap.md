@@ -118,7 +118,7 @@
   Что остаётся добить после v1: feature registry, `ai_agent_runs`, AI-profile-driven routing, затем real multi-model routing
 - [ ] Профилирование участников через текстовые квесты — v2.0
   Реализация разбита по этапам и зафиксирована в `docs/ops/profile-quests-rollout.md`
-  Первый шаг: 3 коротких текстовых сценария выбора без игрового движка, с обновлением `user_ai_profiles`
+  [x] Первый шаг выполнен: 3 коротких текстовых сценария выбора без игрового движка, с обновлением `user_ai_profiles`
 
 ## Фаза 10: Личный кабинет v2 + ИИ-профиль ✅
 - [x] Переработка профиля: 4 вкладки (Обзор, Достижения, ИИ-профиль, Настройки)
@@ -183,8 +183,12 @@
   Зафиксирован в `docs/ops/landing-v2-rollout.md`
   Реализовано: product-first hero, 3-step flow, proof blocks, activity bridge и support bridge вместо длинного scroll-essay
 
-- [ ] Profile Quests v1
-  Следующий основной пакет: вернуться к стратегическим rollout-блокам и начать `docs/ops/profile-quests-rollout.md`
+- [x] Profile Quests v1
+  Зафиксирован в `docs/ops/profile-quests-rollout.md`
+  Реализовано: 3 сценария, история прохождения, rule-based обновление `user_ai_profiles` и UI внутри вкладки `AI-профиль`
+
+- [ ] Reputation v1
+  Следующий основной пакет: вернуться к `docs/ops/reputation-rollout.md` и реализовать безопасные публичные бейджи стиля
 
 ## Отдельно зафиксированные вещи
 

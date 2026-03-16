@@ -659,6 +659,47 @@ export interface Database {
           updated_at?: string;
         };
       };
+      profile_quest_runs: {
+        Row: {
+          id: string;
+          user_id: string;
+          quest_key: string;
+          status: string;
+          current_step: number;
+          responses: Json;
+          result_delta: Json;
+          started_at: string;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          quest_key: string;
+          status?: string;
+          current_step?: number;
+          responses?: Json;
+          result_delta?: Json;
+          started_at?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          quest_key?: string;
+          status?: string;
+          current_step?: number;
+          responses?: Json;
+          result_delta?: Json;
+          started_at?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       ai_hint_logs: {
         Row: {
           id: string;

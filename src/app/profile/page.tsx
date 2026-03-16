@@ -11,9 +11,19 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import SubmitButton from "@/components/SubmitButton";
 import { fetchRPGStats } from "@/lib/rpg";
 import { fetchAIProfile, fetchCounterparts, getStyleInfo, getReactionInfo } from "@/lib/ai-profile";
+import ProfileQuestPanel, { type ProfileQuestRunSummary } from "@/components/ProfileQuestPanel";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UniqueAchievement = Database["public"]["Tables"]["user_unique_achievements"]["Row"];
+type ProfileQuestRunQueryRow = {
+  id: string;
+  quest_key: string;
+  status: string;
+  current_step: number;
+  responses: Database["public"]["Tables"]["profile_quest_runs"]["Row"]["responses"];
+  completed_at: string | null;
+  created_at: string;
+};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ru-RU", {
@@ -57,8 +67,31 @@ export default async function ProfilePage({
     ? new Date(profile.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
+  const questRunsPromise = (async () => {
+    const result = await supabase
+      .from("profile_quest_runs")
+      .select("id, quest_key, status, current_step, responses, completed_at, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .returns<ProfileQuestRunQueryRow[]>();
+
+    return result.error
+      ? { data: [] as ProfileQuestRunQueryRow[] }
+      : { data: result.data ?? [] };
+  })();
+
   // Parallel data fetch
-  const [pointsRes, achievementsRes, uniqueAchievementsRes, disputesRes, argsRes, rpgStats, aiProfile, counterparts] = await Promise.all([
+  const [
+    pointsRes,
+    achievementsRes,
+    uniqueAchievementsRes,
+    disputesRes,
+    argsRes,
+    rpgStats,
+    aiProfile,
+    counterparts,
+    questRunsRes,
+  ] = await Promise.all([
     supabase.from("user_points").select("total").eq("user_id", user.id).single<{ total: number }>(),
     supabase.from("user_achievements").select("achievement_id, earned_at").eq("user_id", user.id).returns<{ achievement_id: string; earned_at: string }[]>(),
     supabase.from("user_unique_achievements").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<UniqueAchievement[]>(),
@@ -67,6 +100,7 @@ export default async function ProfilePage({
     fetchRPGStats(user.id, supabase),
     fetchAIProfile(user.id).catch(() => null),
     fetchCounterparts(user.id).catch(() => []),
+    questRunsPromise,
   ]);
 
   const totalPoints = pointsRes.data?.total ?? 0;
@@ -78,6 +112,16 @@ export default async function ProfilePage({
 
   const resolvedCount = allDisputes.filter((d) => d.status === "resolved").length;
   const consensusRate = disputeCount > 0 ? Math.round((resolvedCount / disputeCount) * 100) : 0;
+  const profileQuestRuns: ProfileQuestRunSummary[] = (questRunsRes.data ?? []).map((run) => ({
+    id: run.id,
+    questKey: run.quest_key,
+    status: run.status,
+    currentStep: run.current_step,
+    responses: Array.isArray(run.responses)
+      ? run.responses.filter((item): item is string => typeof item === "string")
+      : [],
+    completedAt: run.completed_at,
+  }));
 
   // Category distribution
   const categoryMap: Record<string, number> = {};
@@ -501,6 +545,10 @@ export default async function ProfilePage({
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <ProfileQuestPanel runs={profileQuestRuns} />
           </div>
 
           {/* How AI uses your profile */}
