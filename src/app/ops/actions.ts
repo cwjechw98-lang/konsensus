@@ -7,6 +7,7 @@ import {
   cancelEditorialDraft,
   createEditorialDraft,
   publishEditorialDraft,
+  rebaseEditorialDraft,
   scheduleEditorialDraft,
   updateEditorialDraft,
 } from "@/lib/editorial-ops";
@@ -152,6 +153,20 @@ export async function cancelEditorialDraftAction(input: { draftId: string }) {
   if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
 
   const result = await cancelEditorialDraft(input);
+  if (!result.ok) return result;
+  revalidateOpsPaths();
+  return { ok: true as const };
+}
+
+export async function rebaseEditorialDraftAction(input: { draftId: string }) {
+  const user = await requireAdminUser();
+  if (!user) return { ok: false as const, error: "Нужен доступ администратора." };
+
+  const result = await rebaseEditorialDraft({
+    draftId: input.draftId,
+    userId: user.id,
+  });
+
   if (!result.ok) return result;
   revalidateOpsPaths();
   return { ok: true as const };

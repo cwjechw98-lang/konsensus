@@ -8,6 +8,7 @@ import {
   cancelEditorialDraftAction,
   generateEditorialDraftAction,
   publishEditorialDraftAction,
+  rebaseEditorialDraftAction,
   saveEditorialDraftAction,
   scheduleEditorialDraftAction,
 } from "@/app/ops/actions";
@@ -36,6 +37,7 @@ function DraftEditorCard({
   const [message, setMessage] = useState<string | null>(null);
 
   const changedFiles = draft.generationContext.changedFiles;
+  const featureSignals = draft.generationContext.featureSignals;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -130,6 +132,22 @@ function DraftEditorCard({
                 Файлов в диапазоне: {changedFiles.length}
               </p>
             ) : null}
+            {featureSignals.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {featureSignals.map((signal) => (
+                  <span
+                    key={signal}
+                    className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-100"
+                  >
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <p className="mt-3 text-xs text-gray-500">
+              release_type: {draft.generationContext.releaseTypeHint} · user_facing_score:{" "}
+              {draft.generationContext.userFacingScore}
+            </p>
           </div>
         </div>
       </div>
@@ -209,6 +227,20 @@ function DraftEditorCard({
           className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20 disabled:opacity-60"
         >
           Запланировать
+        </button>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await rebaseEditorialDraftAction({ draftId: draft.id });
+              setMessage(result.ok ? "Draft rebased to current HEAD." : result.error);
+              if (result.ok) router.refresh();
+            })
+          }
+          className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-sm font-medium text-violet-100 transition-colors hover:bg-violet-500/20 disabled:opacity-60"
+        >
+          Rebase to HEAD
         </button>
         <button
           type="button"

@@ -35,6 +35,9 @@ export type EditorialDraftRecord = {
   generationContext: {
     commits: Array<{ sha: string; shortSha: string; message: string; committedAt: string; url: string }>;
     changedFiles: string[];
+    featureSignals: string[];
+    releaseTypeHint: "feature" | "ux" | "ops" | "mixed";
+    userFacingScore: number;
   };
   publishedReleaseSlug: string | null;
   publishedAt: string | null;
@@ -56,6 +59,9 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
       ? (row.generation_context as {
           commits?: EditorialDraftRecord["generationContext"]["commits"];
           changedFiles?: string[];
+          featureSignals?: string[];
+          releaseTypeHint?: EditorialDraftRecord["generationContext"]["releaseTypeHint"];
+          userFacingScore?: number;
         })
       : {};
 
@@ -77,6 +83,9 @@ function toDraftRecord(row: EditorialDraftRow): EditorialDraftRecord {
     generationContext: {
       commits: generationContext.commits ?? [],
       changedFiles: generationContext.changedFiles ?? [],
+      featureSignals: generationContext.featureSignals ?? [],
+      releaseTypeHint: generationContext.releaseTypeHint ?? "feature",
+      userFacingScore: generationContext.userFacingScore ?? 0,
     },
     publishedReleaseSlug: row.published_release_slug,
     publishedAt: row.published_at,
@@ -235,6 +244,9 @@ export async function createEditorialDraft(input: {
       generation_context: {
         commits: changes.commits,
         changedFiles: changes.changedFiles,
+        featureSignals: changes.featureSignals,
+        releaseTypeHint: changes.releaseTypeHint,
+        userFacingScore: changes.userFacingScore,
       } satisfies Json,
       created_by: input.userId,
       updated_at: now,
@@ -413,4 +425,90 @@ export async function cancelEditorialDraft(input: {
   }
 
   return { ok: true as const };
+}
+
+export async function rebaseEditorialDraft(input: {
+  draftId: string;
+  userId: string;
+}) {
+  const admin = await getAdmin();
+  const { data: draftRow } = await admin
+    .from("editorial_release_drafts")
+    .select("*")
+    .eq("id", input.draftId)
+    .maybeSingle<EditorialDraftRow>();
+
+  if (!draftRow) {
+    return { ok: false as const, error: "Editorial draft не найден." };
+  }
+
+  const draft = toDraftRecord(draftRow);
+  if (draft.status === "published" || draft.status === "cancelled") {
+    return { ok: false as const, error: "Этот draft нельзя rebase-ить в текущем статусе." };
+  }
+
+  const headCommit = await fetchGitHubHeadCommit();
+  if (headCommit.sha === draft.toCommit) {
+    return { ok: false as const, error: "Новых commit для rebase сейчас нет." };
+  }
+
+  const existing = await findExistingDraftByHeadCommit(headCommit.sha, draft.scope);
+  if (existing && existing.id !== draft.id) {
+    return {
+      ok: false as const,
+      error: "Для текущего HEAD уже существует другой активный draft. Сначала завершите или отмените его.",
+    };
+  }
+
+  const changes = await collectEditorialChanges({
+    fromCommit: draft.fromCommit,
+    toCommit: headCommit.sha,
+  });
+
+  const aiDraft = await generateEditorialReleaseDraft({
+    changes,
+    scope: draft.scope,
+  });
+
+  if (!aiDraft.shouldPublish) {
+    return {
+      ok: false as const,
+      error: aiDraft.reasonIfSkipped || "ИИ не нашёл достаточного материала после rebase.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await admin
+    .from("editorial_release_drafts")
+    .update({
+      to_commit: changes.headCommit,
+      commit_count: changes.commitCount,
+      status: "draft",
+      title: aiDraft.title,
+      summary: aiDraft.summary,
+      features: aiDraft.features,
+      notes: aiDraft.notes ?? null,
+      schedule_at: null,
+      source_commits: changes.commits.map((commit) => commit.sha),
+      source_status_lines: changes.statusLines,
+      generation_context: {
+        commits: changes.commits,
+        changedFiles: changes.changedFiles,
+        featureSignals: changes.featureSignals,
+        releaseTypeHint: changes.releaseTypeHint,
+        userFacingScore: changes.userFacingScore,
+      } satisfies Json,
+      published_release_slug: null,
+      published_at: null,
+      updated_at: now,
+    } as never)
+    .eq("id", input.draftId)
+    .select("*")
+    .maybeSingle<EditorialDraftRow>();
+
+  if (error || !data) {
+    return { ok: false as const, error: error?.message ?? "Не удалось выполнить rebase draft." };
+  }
+
+  return { ok: true as const, draft: toDraftRecord(data) };
 }

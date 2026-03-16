@@ -236,6 +236,9 @@
 - [x] Editorial Ops v1.1
   Выполнено: добавлен `/ops` landing, admin-only appeals moderation вынесен в `/ops/appeals`, а профиль очищен от remaining ops-блоков
 
+- [x] Editorial Ops v1.2
+  Выполнено: draft generation стал богаче за счёт signal-based context, а активный editorial draft теперь умеет rebase на текущий `HEAD`
+
 - [x] Cleanup старых lint-warning
   Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
 

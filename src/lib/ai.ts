@@ -1544,6 +1544,9 @@ export async function generateEditorialReleaseDraft(input: {
     }>;
     changedFiles: string[];
     statusLines: string[];
+    featureSignals: string[];
+    releaseTypeHint: "feature" | "ux" | "ops" | "mixed";
+    userFacingScore: number;
   };
 }): Promise<EditorialDraftResult> {
   try {
@@ -1562,6 +1565,11 @@ export async function generateEditorialReleaseDraft(input: {
 - from_commit: ${input.changes.baseCommit ?? "initial editorial window"}
 - to_commit: ${input.changes.headCommit}
 - commit_count: ${input.changes.commitCount}
+- release_type_hint: ${input.changes.releaseTypeHint}
+- user_facing_score: ${input.changes.userFacingScore}
+
+Likely user-facing themes:
+${input.changes.featureSignals.length > 0 ? input.changes.featureSignals.map((item: string) => `- ${item}`).join("\n") : "- theme signals unavailable"}
 
 Commit messages:
 ${input.changes.commits.map((commit) => `- [${commit.shortSha}] ${commit.message}`).join("\n")}
@@ -1585,6 +1593,7 @@ ${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) =>
 Правила:
 - не придумывай того, чего нет в данных;
 - ориентируйся на user-facing UX;
+- используй release_type_hint и likely themes как подсказки для подачи, а не как жёсткую истину;
 - если релизного материала мало или изменения в основном технические, ставь shouldPublish=false;
 - title и summary должны быть читаемыми и пригодными для Telegram release post;
 - features без технического жаргона.`,

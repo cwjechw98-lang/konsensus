@@ -11,8 +11,8 @@
 
 ## Статус блока
 
-- Стадия: `implemented_v1_1`
-- Ближайший шаг: `v1.2 editorial polish`
+- Стадия: `implemented_v1_2`
+- Ближайший шаг: `v1.3 workflow polish`
 - Возвращаться к блоку через этот файл и синхронизировать `status/roadmap` после изменений
 
 ## Решение v1
@@ -76,11 +76,23 @@
 - в desktop/mobile admin navigation добавлен вход в `Ops`.
 - добавлен отдельный `/ops` landing с несколькими admin-поверхностями;
 - editorial ops и appeals moderation теперь разведены по отдельным ops-страницам.
+- source layer стал богаче:
+  - вычисляются `featureSignals`
+  - `releaseTypeHint`
+  - `userFacingScore`
+- AI draft generation теперь использует эти сигналы как дополнительный routing context;
+- active draft можно rebased-ить на текущий `HEAD`, чтобы заново собрать текст и диапазон без ручного пересоздания draft.
 
-### v1.1
+### v1.2
 
 - richer release prompt routing по типу фич;
 - ручной rebase draft на новый commit range.
+
+### v1.3
+
+- фильтры и быстрая навигация внутри `/ops/editorial`;
+- сравнение draft до/после rebase;
+- явное разделение scheduled/published history в UI.
 
 ### v2
 
@@ -90,4 +102,4 @@
 
 ## Следующий практический шаг
 
-- если возвращаться к Editorial Ops, следующий слой — расширять `/ops` до общего admin workspace и улучшать draft generation/rebase поверх уже существующего `v1`.
+- если возвращаться к Editorial Ops, следующий слой — polish вокруг workflow: сравнение rebased draft, фильтры истории и более точная маршрутизация AI-generation по типу релиза.
