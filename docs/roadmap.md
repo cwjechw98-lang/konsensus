@@ -216,6 +216,9 @@
   Зафиксирован в `docs/ops/telegram-editorial-rollout.md`
   Реализовано: раздельная delivery-модель `channel full post / bot teaser`, suppress bot-тизеров для подписанных пользователей и membership-cache через SQL + webhook sync
 
+- [x] Cleanup старых lint-warning
+  Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
+
 ## Отдельно зафиксированные вещи
 
 - [x] Reminder flow для архивированных споров

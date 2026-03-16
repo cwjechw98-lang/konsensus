@@ -160,7 +160,7 @@ export default async function JoinDisputePage({
                     <div className="flex-1 h-px bg-white/8" />
                   </div>
 
-                  <GuestJoinButton code={code!} />
+              <GuestJoinButton />
 
                   <p className="text-xs text-gray-600 text-center mt-1">
                     Гостевой режим — временная сессия. Создайте аккаунт позже, чтобы сохранить историю.

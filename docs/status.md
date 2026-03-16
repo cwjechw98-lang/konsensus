@@ -263,3 +263,4 @@
 | 2026-03-16 | Реализован `Unit tests for server actions v1`: добавлен `Vitest`, команда `npm run test:unit`, чистый helper для reminder-policy и первый слой unit-покрытия для reminder, trust-tier и appeals logic |
 | 2026-03-16 | Реализован `Telegram editorial layer v2`: release-flow разделён на `channel full post / bot teaser`, suppress bot-teasers для подписанных пользователей идёт через `getChatMember`, а membership-state кэшируется в новой SQL-модели `telegram_channel_memberships` (`00024`) и обновляется через webhook/API sync |
 | 2026-03-16 | Реализован `Appeals v1.1`: добавлены поля manual override (`00025`), admin-only moderation queue внутри `AI-профиля`, ручной override поверх auto-review и применение effective result в profile/reputation слоях |
+| 2026-03-16 | Закрыт cleanup старых lint-warning: удалён неиспользуемый `code` prop из `GuestJoinButton`, а `TelegramConnect` очищен от неиспользуемого `useTransition` state |

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 
 const DEFAULT_BOT = "KonsensusAppBot";
 
@@ -18,7 +18,6 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [disconnecting, startDisconnect] = useTransition();
 
   // Poll for connection after token is generated
   useEffect(() => {
@@ -73,10 +72,9 @@ export function TelegramConnect({ isConnected: initialConnected, botUsername, on
         <form action={onDisconnect}>
           <button
             type="submit"
-            disabled={disconnecting}
             className="text-xs text-gray-600 hover:text-red-400 transition-colors underline"
           >
-            {disconnecting ? "Отключение..." : "Отключить"}
+            Отключить
           </button>
         </form>
       </div>
