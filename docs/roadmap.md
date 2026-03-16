@@ -169,7 +169,9 @@
 - [x] Подготовлен редакционный пакет для Telegram: канальные посты, bot-тизер и structured release payloads в `docs/marketing/telegram/`
 - [x] Vercel production env для support/release visibility
   Env добавлены через Vercel dashboard, production redeploy выполнен
-- [ ] Редакционная Telegram-логика второго слоя: полный пост в канале/группе, короткий teaser в боте и suppress bot-уведомлений для пользователей, уже подписанных на целевой канал/группу
+- [x] Редакционная Telegram-логика второго слоя
+  Зафиксирована в `docs/ops/telegram-editorial-rollout.md`
+  Реализовано: полный post/card уходит в канал, бот отправляет только teaser, suppress для подписанных пользователей идёт через `getChatMember` и SQL-кэш `telegram_channel_memberships`
 
 ## Текущий порядок выполнения
 
@@ -205,6 +207,10 @@
 - [x] Unit tests for server actions v1
   Зафиксирован в `docs/ops/server-actions-tests-rollout.md`
   Реализовано: минимальный `Vitest`-контур и unit-покрытие policy-логики для reminder, trust-tier и appeals
+
+- [x] Telegram editorial layer v2
+  Зафиксирован в `docs/ops/telegram-editorial-rollout.md`
+  Реализовано: раздельная delivery-модель `channel full post / bot teaser`, suppress bot-тизеров для подписанных пользователей и membership-cache через SQL + webhook sync
 
 ## Отдельно зафиксированные вещи
 

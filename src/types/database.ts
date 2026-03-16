@@ -662,6 +662,65 @@ export interface Database {
           updated_at?: string;
         };
       };
+      telegram_channel_memberships: {
+        Row: {
+          id: string;
+          channel_id: string;
+          telegram_user_id: string;
+          profile_id: string | null;
+          membership_status:
+            | "creator"
+            | "administrator"
+            | "member"
+            | "restricted"
+            | "left"
+            | "kicked"
+            | "unknown";
+          is_member: boolean;
+          checked_via: "api" | "webhook";
+          last_checked_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel_id: string;
+          telegram_user_id: string;
+          profile_id?: string | null;
+          membership_status?:
+            | "creator"
+            | "administrator"
+            | "member"
+            | "restricted"
+            | "left"
+            | "kicked"
+            | "unknown";
+          is_member?: boolean;
+          checked_via?: "api" | "webhook";
+          last_checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          channel_id?: string;
+          telegram_user_id?: string;
+          profile_id?: string | null;
+          membership_status?:
+            | "creator"
+            | "administrator"
+            | "member"
+            | "restricted"
+            | "left"
+            | "kicked"
+            | "unknown";
+          is_member?: boolean;
+          checked_via?: "api" | "webhook";
+          last_checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       user_learning_progress: {
         Row: {
           id: string;

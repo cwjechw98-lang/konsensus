@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { deleteTelegramMessage, getRandomBotJoke } from "@/lib/telegram";
+import { deleteTelegramMessage, getRandomBotJoke, syncTelegramChannelMembershipFromWebhook } from "@/lib/telegram";
+import { getTelegramReleaseChannelId } from "@/lib/site-config";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://konsensus-six.vercel.app";
+const TELEGRAM_RELEASE_CHANNEL_ID = getTelegramReleaseChannelId();
 
 // Persistent bottom keyboard — shown to linked users
 const MAIN_KEYBOARD = {
@@ -171,6 +173,20 @@ export async function POST(req: NextRequest) {
     update = await req.json();
   } catch {
     return NextResponse.json({ ok: true });
+  }
+
+  const membershipUpdate = update.chat_member ?? update.my_chat_member;
+  if (TELEGRAM_RELEASE_CHANNEL_ID && membershipUpdate) {
+    const chatId = String(membershipUpdate.chat.id);
+    const telegramUserId = String(membershipUpdate.new_chat_member.user.id);
+
+    if (chatId === TELEGRAM_RELEASE_CHANNEL_ID) {
+      await syncTelegramChannelMembershipFromWebhook({
+        channelId: chatId,
+        telegramUserId,
+        membershipStatus: membershipUpdate.new_chat_member.status,
+      });
+    }
   }
 
   // ── Handle callback queries (inline button presses) ──────────────────────
@@ -482,9 +498,19 @@ export async function POST(req: NextRequest) {
 
 interface TelegramUpdate {
   message?: { message_id: number; text?: string; chat: { id: number } };
+  chat_member?: TelegramChatMemberUpdate;
+  my_chat_member?: TelegramChatMemberUpdate;
   callback_query?: {
     id: string;
     data?: string;
     message?: { chat: { id: number }; message_id: number };
+  };
+}
+
+interface TelegramChatMemberUpdate {
+  chat: { id: number };
+  new_chat_member: {
+    status?: string;
+    user: { id: number };
   };
 }

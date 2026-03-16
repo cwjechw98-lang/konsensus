@@ -68,6 +68,19 @@ export function formatReleaseCaption(release: ReleasePayload & { slug: string })
   ].join("\n");
 }
 
+export function formatReleaseTeaser(
+  release: ReleasePayload & { slug: string }
+) {
+  return [
+    "📢 <b>В канале Konsensus вышел новый пост</b>",
+    "",
+    `✨ <b>${release.title}</b>`,
+    release.summary,
+    "",
+    "В боте приходит только короткий анонс. Полный пост открыт в канале.",
+  ].join("\n");
+}
+
 export function getReleaseImageUrl(slug: string) {
   return `${getAppBaseUrl()}/api/releases/${slug}/image`;
 }

@@ -9,9 +9,11 @@
 
 ## Что есть сейчас
 
-Текущий release flow такого разделения не делает:
-- bot/channel release отправляется из одного structured payload;
-- suppress-логики по подписке пользователя на канал нет.
+Базовая модель второго слоя уже внедрена:
+- канал или группа получают полный structured release card;
+- бот получает только короткий teaser;
+- для bot-teaser есть suppress-логика по membership в целевом канале;
+- membership-check пишется в SQL-кэш `telegram_channel_memberships`.
 
 ## Что технически нужно для правильной реализации
 
@@ -37,9 +39,12 @@ Telegram Bot API даёт метод `getChatMember`, но в документа
 
 ### 4. Состояние и кэш
 
-Чтобы не бить `getChatMember` слишком часто, лучше ввести таблицу или кэш состояния подписки:
+Кэш уже вынесен в отдельную таблицу:
 - `telegram_channel_memberships`
-- или soft-cache в `profiles`
+
+Он обновляется:
+- при release-send через `getChatMember`;
+- через webhook по `chat_member` / `my_chat_member`, если бот получает такие апдейты.
 
 ## Почему не стоит смешивать это с текущим release-flow без доработки
 
@@ -50,13 +55,9 @@ Telegram Bot API даёт метод `getChatMember`, но в документа
 
 Редакционная модель `канал = полный пост`, `бот = тизер + suppression` — это отдельный продуктовый слой.
 
-## Вывод
+## Что ещё не закрыто
 
-Это реализуемо, но не готово сейчас.
-
-Если делать правильно, нужен отдельный пакет:
-- настройка канала/группы;
-- права бота;
-- `getChatMember`;
-- suppress-логика;
-- новая ветка bot teaser delivery.
+Этот пакет не решает:
+- штатное расписание публикаций;
+- delivery analytics/reporting;
+- richer editorial branching по типам постов.

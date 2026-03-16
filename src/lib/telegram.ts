@@ -1,11 +1,18 @@
 import type { Json } from "@/types/database";
-import { getAppBaseUrl, getTelegramReleaseChannelId } from "@/lib/site-config";
-import { formatReleaseCaption, getReleaseImageUrl, normalizeReleasePayload, type ReleasePayload, type ReleaseTarget } from "@/lib/releases";
+import { getAppBaseUrl, getTelegramReleaseChannelId, getTelegramReleaseChannelUrl } from "@/lib/site-config";
+import { formatReleaseCaption, formatReleaseTeaser, getReleaseImageUrl, normalizeReleasePayload, type ReleasePayload, type ReleaseTarget } from "@/lib/releases";
+import {
+  isTelegramMembershipActive,
+  normalizeTelegramMembershipStatus,
+  shouldSuppressBotReleaseTeaser,
+  type TelegramMembershipStatus,
+} from "@/lib/telegram-editorial";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = getAppBaseUrl();
 const MAX_MANAGED_MESSAGES = 5;
 const TELEGRAM_RELEASE_CHANNEL_ID = getTelegramReleaseChannelId();
+const TELEGRAM_RELEASE_CHANNEL_URL = getTelegramReleaseChannelUrl();
 
 type InlineKeyboardButton = { text: string; url: string };
 type InlineKeyboard = InlineKeyboardButton[][];
@@ -38,6 +45,97 @@ async function telegramApi<T>(method: string, body: Record<string, unknown>): Pr
   } catch {
     return null;
   }
+}
+
+async function getTelegramChatMember(
+  channelId: string,
+  telegramUserId: string
+): Promise<TelegramMembershipStatus> {
+  const data = await telegramApi<{
+    ok?: boolean;
+    result?: { status?: string };
+  }>("getChatMember", {
+    chat_id: channelId,
+    user_id: telegramUserId,
+  });
+
+  return normalizeTelegramMembershipStatus(data?.result?.status ?? null);
+}
+
+async function upsertTelegramChannelMembership(input: {
+  channelId: string;
+  telegramUserId: string;
+  profileId: string | null;
+  membershipStatus: TelegramMembershipStatus;
+  checkedVia: "api" | "webhook";
+}) {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+
+  await admin.from("telegram_channel_memberships").upsert({
+    channel_id: input.channelId,
+    telegram_user_id: input.telegramUserId,
+    profile_id: input.profileId,
+    membership_status: input.membershipStatus,
+    is_member: isTelegramMembershipActive(input.membershipStatus),
+    checked_via: input.checkedVia,
+    last_checked_at: now,
+    updated_at: now,
+  } as never, {
+    onConflict: "channel_id,telegram_user_id",
+  });
+}
+
+export async function syncTelegramChannelMembershipFromWebhook(input: {
+  channelId: string;
+  telegramUserId: string;
+  membershipStatus: string | null | undefined;
+}) {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const normalizedStatus = normalizeTelegramMembershipStatus(input.membershipStatus);
+
+  const telegramChatId = Number(input.telegramUserId);
+  const profileId = Number.isFinite(telegramChatId)
+    ? (
+        await admin
+          .from("profiles")
+          .select("id")
+          .eq("telegram_chat_id", telegramChatId)
+          .maybeSingle<{ id: string }>()
+      ).data?.id ?? null
+    : null;
+
+  await upsertTelegramChannelMembership({
+    channelId: input.channelId,
+    telegramUserId: input.telegramUserId,
+    profileId,
+    membershipStatus: normalizedStatus,
+    checkedVia: "webhook",
+  });
+}
+
+async function shouldSuppressEditorialBotTeaser(input: {
+  profileId: string;
+  telegramChatId: number;
+}) {
+  if (!TELEGRAM_RELEASE_CHANNEL_ID) return false;
+
+  const membershipStatus = await getTelegramChatMember(
+    TELEGRAM_RELEASE_CHANNEL_ID,
+    String(input.telegramChatId)
+  );
+
+  await upsertTelegramChannelMembership({
+    channelId: TELEGRAM_RELEASE_CHANNEL_ID,
+    telegramUserId: String(input.telegramChatId),
+    profileId: input.profileId,
+    membershipStatus,
+    checkedVia: "api",
+  });
+
+  return shouldSuppressBotReleaseTeaser(membershipStatus);
 }
 
 async function sendTelegramMessage(
@@ -283,17 +381,28 @@ type ReleaseAnnouncementRow = {
 
 async function sendReleaseCard(
   chatId: number | string,
-  release: ReleaseAnnouncementRow
+  release: ReleaseAnnouncementRow,
+  mode: "full" | "teaser"
 ): Promise<number | null> {
-  const imageUrl = release.hero_image_url || getReleaseImageUrl(release.slug);
-  const caption = formatReleaseCaption({
+  const normalizedRelease = {
     slug: release.slug,
     title: release.title,
     summary: release.summary,
     features: release.features,
     notes: release.notes ?? undefined,
     source_commits: release.source_commits ?? undefined,
-  });
+  };
+
+  if (mode === "teaser") {
+    return sendTelegramMessage(
+      chatId,
+      formatReleaseTeaser(normalizedRelease),
+      TELEGRAM_RELEASE_CHANNEL_URL || `${APP_URL}/feed`
+    );
+  }
+
+  const imageUrl = release.hero_image_url || getReleaseImageUrl(release.slug);
+  const caption = formatReleaseCaption(normalizedRelease);
 
   const photoMessageId = await sendTelegramPhoto(chatId, imageUrl, caption, `${APP_URL}/feed`);
   if (photoMessageId) return photoMessageId;
@@ -310,6 +419,7 @@ export async function publishReleaseAnnouncement(
   sentToChannel: boolean;
   skippedBot: boolean;
   skippedChannel: boolean;
+  suppressedBotCount: number;
 }> {
   const normalized = normalizeReleasePayload(payload);
   const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -342,21 +452,30 @@ export async function publishReleaseAnnouncement(
   let sentToChannel = false;
   const skippedBot = Boolean(release.sent_to_bot_at);
   const skippedChannel = Boolean(release.sent_to_channel_at);
+  let suppressedBotCount = 0;
 
   if (target !== "channel" && !release.sent_to_bot_at) {
     const { data: users } = await admin
       .from("profiles")
-      .select("telegram_chat_id")
+      .select("id, telegram_chat_id")
       .not("telegram_chat_id", "is", null)
-      .returns<{ telegram_chat_id: number }[]>();
+      .returns<{ id: string; telegram_chat_id: number }[]>();
 
     let delivered = 0;
     for (const user of users ?? []) {
-      const messageId = await sendReleaseCard(user.telegram_chat_id, release);
+      if (await shouldSuppressEditorialBotTeaser({
+        profileId: user.id,
+        telegramChatId: user.telegram_chat_id,
+      })) {
+        suppressedBotCount += 1;
+        continue;
+      }
+
+      const messageId = await sendReleaseCard(user.telegram_chat_id, release, "teaser");
       if (messageId) delivered++;
     }
 
-    if (delivered > 0 || (users ?? []).length === 0) {
+    if (delivered > 0 || suppressedBotCount > 0 || (users ?? []).length === 0) {
       sentToBot = true;
       await admin
         .from("release_announcements")
@@ -366,7 +485,11 @@ export async function publishReleaseAnnouncement(
   }
 
   if (target !== "bot" && TELEGRAM_RELEASE_CHANNEL_ID && !release.sent_to_channel_at) {
-    const channelMessageId = await sendReleaseCard(TELEGRAM_RELEASE_CHANNEL_ID, release);
+    const channelMessageId = await sendReleaseCard(
+      TELEGRAM_RELEASE_CHANNEL_ID,
+      release,
+      "full"
+    );
     if (channelMessageId) {
       sentToChannel = true;
       await admin
@@ -382,6 +505,7 @@ export async function publishReleaseAnnouncement(
     sentToChannel,
     skippedBot,
     skippedChannel,
+    suppressedBotCount,
   };
 }
 

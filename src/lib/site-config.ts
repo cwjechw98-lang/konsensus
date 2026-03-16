@@ -4,6 +4,7 @@ const APP_URL =
 
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "") || "";
 const TELEGRAM_RELEASE_CHANNEL_ID = process.env.TELEGRAM_RELEASE_CHANNEL_ID || "";
+const TELEGRAM_RELEASE_CHANNEL_URL = process.env.NEXT_PUBLIC_TELEGRAM_RELEASE_CHANNEL_URL || "";
 
 export const SUPPORT_LINKS = {
   boosty: process.env.NEXT_PUBLIC_SUPPORT_BOOSTY_URL || "",
@@ -32,6 +33,10 @@ export function getTelegramBotLink(startApp = "auth") {
 
 export function getTelegramReleaseChannelId() {
   return TELEGRAM_RELEASE_CHANNEL_ID;
+}
+
+export function getTelegramReleaseChannelUrl() {
+  return TELEGRAM_RELEASE_CHANNEL_URL;
 }
 
 export function hasSupportLinks() {

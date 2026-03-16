@@ -47,6 +47,8 @@
   Обычный reminder/bell для активного waiting-state: мягкий Telegram-пинг без новой SQL-подсистемы.
 - [server-actions-tests-rollout.md](/C:/project21/konsensus/docs/ops/server-actions-tests-rollout.md)
   Базовый unit-test слой для server-side policy logic: Vitest, чистые reminder/trust-tier/appeals helpers и дальнейшее расширение покрытия без тяжёлого Next runtime harness.
+- [telegram-editorial-rollout.md](/C:/project21/konsensus/docs/ops/telegram-editorial-rollout.md)
+  Редакционный Telegram-слой второго уровня: полный пост в канале/группе, короткий teaser в боте и suppress bot-уведомлений для подписанных участников.
 
 ## Смежные ops-документы
 
