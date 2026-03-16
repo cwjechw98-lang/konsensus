@@ -176,10 +176,11 @@
 - [x] Perceived Performance v1
   Зафиксирован в `docs/ops/perceived-performance-rollout.md`
   Реализовано: route-level `loading.tsx`, общий loading-shell и pending-state на ключевых server-action CTA
-- [ ] Activity Feed v1
-  Следующий основной пакет: превратить `События` в реальный activity feed — release cards, arena activity, публичные dispute events
+- [x] Activity Feed v1
+  Зафиксирован в `docs/ops/activity-feed-rollout.md`
+  Реализовано: `События` собраны из release cards, arena activity и публичных dispute events вместо простого списка публичных споров
 - [ ] Landing v2 implementation
-  После feed-пакета пересобрать лендинг по `docs/ops/landing-v2-rollout.md`
+  Следующий основной пакет: пересобрать лендинг по `docs/ops/landing-v2-rollout.md`
 
 ## Отдельно зафиксированные вещи
 

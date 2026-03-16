@@ -4,7 +4,7 @@ export default function FeedLoading() {
   return (
     <AppLoadingShell
       title="Собираем события"
-      description="Подтягиваем публичные споры и заметную активность платформы."
+      description="Подтягиваем релизы, активность арены и публичные споры."
       blocks={4}
     />
   );

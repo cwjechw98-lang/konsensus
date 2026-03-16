@@ -18,7 +18,9 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
   ],
   feed: [
     { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "События показывают жизнь проекта: публичные споры, заметную активность и со временем релизы и движения арены.", position: "bottom" },
-    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Здесь вы наблюдаете, а не вступаете автоматически. Это витрина происходящего, а не ваш рабочий список.", position: "top" },
+    { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху видно, где именно сейчас есть движение: релизы, live battle, открытые вызовы и публичные споры.", position: "bottom" },
+    { target: "[data-tour='events-releases']", title: "Что нового в продукте", description: "Релизные карточки показывают недавние обновления без необходимости уходить в отдельный changelog.", position: "top" },
+    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже собраны live battle, открытые вызовы и публичные споры. Это витрина происходящего, а не ваш рабочий список.", position: "top" },
   ],
   matchmaking: [
     { target: "[data-tour='open-intro']", title: "Где вступать в спор", description: "Открытые — это вход в уже созданные споры и вызовы, которые ждут второго участника.", position: "bottom" },

@@ -170,8 +170,7 @@ Mobile:
 ## Что нужно добить после v1
 
 ### v1.2
-- превратить `События` в полноценный activity feed
-- добавить release cards и arena activity cards
+- `События` вынесены в отдельный rollout [activity-feed-rollout.md](/C:/project21/konsensus/docs/ops/activity-feed-rollout.md) и реализованы как `Activity Feed v1`
 
 ### v1.3
 - учесть adaptive home по состоянию пользователя:
