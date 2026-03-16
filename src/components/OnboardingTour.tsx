@@ -11,9 +11,10 @@ type TourStep = {
 
 const TOUR_STEPS: Record<string, TourStep[]> = {
   dashboard: [
-    { target: "[data-tour='create-dispute']", title: "Создать спор", description: "Нажмите сюда, чтобы начать новый спор. Придумайте тему и пригласите оппонента.", position: "bottom" },
-    { target: "[data-tour='disputes-list']", title: "Ваши споры", description: "Здесь отображаются все ваши активные и завершённые споры.", position: "top" },
-    { target: "[data-tour='filters']", title: "Фильтры", description: "Фильтруйте споры по статусу: открытые, в процессе, на медиации.", position: "bottom" },
+    { target: "[data-tour='create-dispute']", title: "Создать спор", description: "Создайте новый спор и пригласите человека в структурированный диалог.", position: "bottom" },
+    { target: "[data-tour='join-code']", title: "Войти по коду", description: "Если вас пригласили, введите инвайт-код и подключитесь к уже созданному спору.", position: "bottom" },
+    { target: "[data-tour='disputes-list']", title: "Ваш рабочий список", description: "Здесь собраны ваши активные, архивные и ожидающие внимания споры.", position: "top" },
+    { target: "[data-tour='filters']", title: "Фильтры и режимы", description: "Переключайтесь между активными и архивом, а также фильтруйте споры по статусу.", position: "bottom" },
   ],
   dispute_new: [
     { target: "[data-tour='title']", title: "Тема спора", description: "Сформулируйте тему коротко и чётко. Например: «Удалёнка vs офис»", position: "bottom" },
@@ -28,6 +29,7 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
 };
 
 const STORAGE_PREFIX = "konsensus_tour_";
+const WELCOME_STORAGE_KEY = "konsensus_shell_welcome_done";
 
 export function OnboardingTour({ page }: { page: string }) {
   const [step, setStep] = useState(-1);
@@ -41,10 +43,23 @@ export function OnboardingTour({ page }: { page: string }) {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const done = localStorage.getItem(storageKey);
-    if (!done) {
-      // Delay to let page render
-      setTimeout(() => setStep(0), 800);
+    if (done) return;
+
+    const startTour = () => window.setTimeout(() => setStep(0), 500);
+    const welcomeDone = localStorage.getItem(WELCOME_STORAGE_KEY);
+
+    if (welcomeDone) {
+      startTour();
+      return;
     }
+
+    function handleWelcomeDone() {
+      startTour();
+    }
+
+    window.addEventListener("konsensus:welcome-onboarding-done", handleWelcomeDone);
+    return () =>
+      window.removeEventListener("konsensus:welcome-onboarding-done", handleWelcomeDone);
   }, [storageKey]);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks

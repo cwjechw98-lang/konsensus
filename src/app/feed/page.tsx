@@ -61,18 +61,18 @@ export default async function FeedPage({
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">Публичные споры</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">События</h1>
         <p className="text-sm text-gray-500">
-          Реальные разногласия — ИИ помогает найти решение
+          Публичные споры и заметная активность проекта. Сейчас здесь в первую очередь показываются открытые публичные диспуты.
         </p>
       </div>
 
       {!disputes || disputes.length === 0 ? (
         <div className="glass rounded-2xl p-16 text-center">
           <p className="text-4xl mb-4">⚖️</p>
-          <p className="text-white font-medium mb-2">Пока нет публичных споров</p>
+          <p className="text-white font-medium mb-2">Пока здесь пусто</p>
           <p className="text-sm text-gray-500 mb-6">
-            Создайте первый — он появится здесь
+            Когда появятся публичные споры и новые события проекта, они будут собираться здесь
           </p>
           <Link
             href="/dispute/new"

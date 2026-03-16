@@ -7,9 +7,10 @@ import { usePathname } from "next/navigation";
 interface MobileMenuProps {
   isLoggedIn: boolean;
   telegramLink?: string;
+  logoHref?: string;
 }
 
-export function MobileMenu({ isLoggedIn, telegramLink = "" }: MobileMenuProps) {
+export function MobileMenu({ isLoggedIn, telegramLink = "", logoHref = "/" }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -36,41 +37,28 @@ export function MobileMenu({ isLoggedIn, telegramLink = "" }: MobileMenuProps) {
 
   return (
     <div ref={menuRef} className="relative md:hidden">
-      {/* Hamburger button */}
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-lg hover:bg-white/8 transition-colors"
-        aria-label="Меню"
+        aria-label="Дополнительные действия"
+        aria-expanded={open}
       >
         <span className={`block w-5 h-0.5 bg-gray-300 transition-all duration-200 ${open ? "rotate-45 translate-y-2" : ""}`} />
         <span className={`block w-5 h-0.5 bg-gray-300 transition-all duration-200 ${open ? "opacity-0" : ""}`} />
         <span className={`block w-5 h-0.5 bg-gray-300 transition-all duration-200 ${open ? "-rotate-45 -translate-y-2" : ""}`} />
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-12 w-52 border border-white/10 rounded-2xl p-2 shadow-2xl shadow-black/60" style={{ background: "rgba(20, 16, 32, 0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
-          <Link href="/feed" className={linkClass} onClick={() => setOpen(false)}>
-            Лента
+          <Link href={logoHref} className={linkClass} onClick={() => setOpen(false)}>
+            О проекте
           </Link>
           <Link href="/support" className={linkClass} onClick={() => setOpen(false)}>
-            Поддержать
+            Поддержать проект
           </Link>
 
           {isLoggedIn ? (
             <>
-              <Link href="/dashboard" className={linkClass} onClick={() => setOpen(false)}>
-                Мои споры
-              </Link>
-              <Link href="/arena" className={linkClass} onClick={() => setOpen(false)}>
-                Арена ⚔️
-              </Link>
-              <Link href="/matchmaking" className={linkClass} onClick={() => setOpen(false)}>
-                Оппоненты 🎯
-              </Link>
-              <Link href="/profile" className={linkClass} onClick={() => setOpen(false)}>
-                Профиль
-              </Link>
               <div className="border-t border-white/8 mt-1 pt-1">
                 <form action="/auth/signout" method="post">
                   <button type="submit" className="w-full text-left px-4 py-3 text-sm text-gray-500 hover:text-gray-300 hover:bg-white/5 rounded-lg transition-colors">

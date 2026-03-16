@@ -86,9 +86,9 @@ export default async function MatchmakingPage({
         ← Мои споры
       </Link>
 
-      <h1 className="text-2xl font-bold text-white mb-2">Найти оппонента 🎯</h1>
+      <h1 className="text-2xl font-bold text-white mb-2">Открытые 🎯</h1>
       <p className="text-sm text-gray-400 mb-6">
-        Открытые споры и вызовы, которые ждут оппонента. Выберите интересную тему!
+        Открытые споры и вызовы, которые ждут второго участника. Выберите тему и вступайте.
       </p>
 
       {error && (

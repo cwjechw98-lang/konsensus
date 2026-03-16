@@ -186,6 +186,7 @@ export default async function DashboardPage({
           <div className="flex gap-2">
             <Link
               href="/dispute/join"
+              data-tour="join-code"
               className="glass px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white transition-colors"
             >
               Инвайт-код
@@ -272,7 +273,7 @@ export default async function DashboardPage({
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" data-tour="disputes-list">
               {paginatedDisputes.map((dispute) => {
                 const disputeState = stateByDisputeId.get(dispute.id);
                 const lastReminderFromUserId = disputeState?.last_reminder_from_user_id;

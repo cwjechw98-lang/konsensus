@@ -5,6 +5,10 @@ import CursorGlow from "@/components/CursorGlow";
 import RippleEffect from "@/components/RippleEffect";
 import AchievementToast from "@/components/AchievementToast";
 import { BrowserNotificationPermission } from "@/components/BrowserNotifications";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { SupportStrip } from "@/components/SupportStrip";
+import { createClient } from "@/lib/supabase/server";
+import { hasSupportLinks } from "@/lib/site-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,11 +33,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const showMobileShell = Boolean(user);
+  const showSupportStrip = showMobileShell && hasSupportLinks();
+
   return (
     <html lang="ru">
       <head>
@@ -44,8 +55,10 @@ export default function RootLayout({
         <RippleEffect />
         <AchievementToast />
         <BrowserNotificationPermission />
-        <Header />
-        <main className="flex-1 pt-14">{children}</main>
+        <Header isLoggedIn={Boolean(user)} />
+        <main className={`flex-1 pt-14 ${showSupportStrip ? "pb-32 md:pb-0" : showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
+        {showSupportStrip && <SupportStrip mobileOnly />}
+        {showMobileShell && <MobileBottomNav />}
         <Footer />
       </body>
     </html>

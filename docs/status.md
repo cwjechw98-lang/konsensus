@@ -7,13 +7,15 @@
 
 **Фаза 8–11 (Социальный слой + ИИ-углубление + профиль + release ops)** — расширена и закреплена QA-итерацией. Arena Live, spectator-layer, typing-индикаторы, Telegram surface/support/release-flow и обычный dispute-flow проверены Playwright-набором на desktop, wide и mobile.
 
-В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также последовательное внедрение стратегических rollout-блоков в код. Первым внедрён `AI orchestration v1`: waiting/private/public/final AI-пути теперь идут через role-based orchestration в `src/lib/ai.ts`, а дальнейший хвост развития отдельно зафиксирован в rollout-документации. Дополнительно утверждён следующий shell-пакет `Navigation + Onboarding v1`: auth-aware default route, пересборка top-level IA, постоянный support-layer и более сильный first-run onboarding.
+В работе: ручная проверка связки `архив ↔ reminders ↔ Telegram`, а также последовательное внедрение стратегических rollout-блоков в код. Первым внедрён `AI orchestration v1`: waiting/private/public/final AI-пути теперь идут через role-based orchestration в `src/lib/ai.ts`, а дальнейший хвост развития отдельно зафиксирован в rollout-документации. Следом реализован shell-пакет `Navigation + Onboarding v1`: auth-aware default route, пересборка top-level IA, постоянный support-layer и более сильный first-run onboarding.
 
 Для этих стратегических пластов теперь есть единая точка входа: [docs/ops/README.md](/C:/project21/konsensus/docs/ops/README.md). Через неё фиксируется правило: перед возвратом к блоку читать его rollout-файл и обновлять не только `status/roadmap`, но и сам staged-план.
 
 Все rollout-файлы теперь доведены до рабочего формата: в каждом зафиксированы `статус блока`, `пакет реализации v1`, конкретные точки в коде/UI и отдельный список того, что осознанно отложено после первого внедрения.
 
 Для product shell теперь тоже есть отдельный rollout-файл: [docs/ops/navigation-onboarding-rollout.md](/C:/project21/konsensus/docs/ops/navigation-onboarding-rollout.md). В нём зафиксированы утверждённые решения по default route, навигации, support-strip и двухслойному onboarding.
+
+Этот shell-пакет уже внедрён в код: `/` теперь ведёт залогиненного пользователя в `Споры`, мобильная навигация переведена на fixed bottom nav, support вынесен в отдельный persistent strip, а dashboard встречает first-run overview до page-level подсказок.
 
 Дополнительно собран отдельный support/marketing-пакет для Boosty: структура страницы, уровни поддержки, цели, блок `О проекте`, стартовые посты, витринный paid-post и промпты для визуалов. Внутри него отдельно зафиксировано, что Telegram release-posting в проекте уже реализован, а Boosty пока ведётся ручным workflow без API-автоматизации.
 
@@ -185,3 +187,4 @@
 | 2026-03-16 | Подготовлен отдельный редакционный пакет для Telegram в `docs/marketing/telegram/`: welcome-пост и последующие канальные тексты, bot-тизер, ready-to-send release payloads и описание целевой логики `канал = полный пост`, `бот = короткий анонс`. Отдельно зафиксировано текущее ограничение: Bot API-расписание и suppress-логика по подписке пользователя на канал/группу пока не внедрены |
 | 2026-03-16 | Реализован `AI orchestration v1`: в `src/lib/ai.ts` добавлены virtual subagents и routing rules по `plane/heat/evidence`, waiting/private/public AI-функции переведены на orchestration-first path с legacy fallback, а финальная mediation вынесена из `actions.ts` в единый AI-слой |
 | 2026-03-16 | Утверждён и зафиксирован следующий shell-пакет `Navigation + Onboarding v1`: `/` для залогиненного пользователя должен вести в рабочий экран, мобильная навигация будет пересобрана вокруг постоянного bottom-level входа, `Поддержать` / `Boosty` / `Crypto` остаются постоянно заметными, а first-run onboarding разделяется на welcome-layer и page-level подсказки |
+| 2026-03-16 | Реализован `Navigation + Onboarding v1`: `/` стал auth-aware, мобильная основная навигация вынесена в fixed bottom nav, support вынесен в отдельный persistent strip, top-level labels приведены к `События / Споры / Открытые / Арена / Профиль`, а first-run onboarding на dashboard разделён на welcome overview и page-level coach marks |

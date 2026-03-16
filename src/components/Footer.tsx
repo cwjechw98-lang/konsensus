@@ -18,10 +18,16 @@ export function Footer() {
 
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
           <Link href="/feed" className="hover:text-white transition-colors">
-            Лента
+            События
+          </Link>
+          <Link href="/dashboard" className="hover:text-white transition-colors">
+            Споры
           </Link>
           <Link href="/arena" className="hover:text-white transition-colors">
             Арена
+          </Link>
+          <Link href="/matchmaking" className="hover:text-white transition-colors">
+            Открытые
           </Link>
           <Link href="/support" className="hover:text-white transition-colors">
             Поддержать проект

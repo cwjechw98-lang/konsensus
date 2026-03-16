@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import ParticlesBackground from "@/components/ParticlesBackground";
 import TypedText from "@/components/TypedText";
 import AnimatedCounter from "@/components/AnimatedCounter";
@@ -95,7 +97,21 @@ const USECASES = [
 
 // ─── Страница ────────────────────────────────────────────────────────
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ landing?: string }>;
+}) {
+  const { landing } = await searchParams;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user && landing !== "1") {
+    redirect("/dashboard");
+  }
+
   const supportVisible = hasSupportLinks();
 
   return (
