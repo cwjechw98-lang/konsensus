@@ -21,9 +21,9 @@
 9. Завершён `Trust Tiers v1`
 10. Завершён `Appeals v1`
 
-Стратегическая последовательность rollout-блоков первого слоя завершена. Следующий пакет теперь нужно выбирать отдельно из оставшегося backlog-а: `appeals v1.1`, `reminder/bell для обычного спора`, `Telegram editorial layer v2` или `unit/server-action tests`.
+Стратегическая последовательность rollout-блоков первого слоя завершена. После неё отдельно добираются узкие продуктовые хвосты из backlog-а. Следующим пакетом после `Appeals v1` закрыт `active reminder / bell` для обычного waiting-state.
 
-Отдельно зафиксировано, что reminder flow для архивированных споров уже реализован, включая SQL `00019`, лимиты `3/час` и `15/сутки`, auto-unarchive и quiet mode после повторной архивации. Не реализован только отдельный reminder/bell для обычного неархивированного спора: это пока отдельная идея вне закрытого архивного reminder-пакета.
+Отдельно зафиксировано, что reminder flow для архивированных споров уже реализован, включая SQL `00019`, лимиты `3/час` и `15/сутки`, auto-unarchive и quiet mode после повторной архивации. Следом закрыт и отдельный `reminder / bell` для обычного неархивированного waiting-state: теперь он реально шлёт Telegram-пинг, а не только отображается кнопкой в UI.
 
 Для этих стратегических пластов теперь есть единая точка входа: [docs/ops/README.md](/C:/project21/konsensus/docs/ops/README.md). Через неё фиксируется правило: перед возвратом к блоку читать его rollout-файл и обновлять не только `status/roadmap`, но и сам staged-план.
 
@@ -239,3 +239,4 @@
 | 2026-03-16 | Реализован `Education Layer v1`: добавлены 6 коротких Markdown-материалов, rule-based рекомендации на dashboard/profile, страницы `/learn` и `/learn/[slug]`, а также SQL-таблица `user_learning_progress` для server-side отметки прохождения |
 | 2026-03-16 | Реализован `Trust Tiers v1`: добавлен `trust_tier` в `profiles`, rule-based evaluator и реальные проверки публичных write-операций: public dispute / arena create требуют `Trusted`, а observer social layer и принятие arena-вызова требуют `Linked` |
 | 2026-03-16 | Реализован `Appeals v1`: добавлена SQL-модель `appeals` (`00023`), auto-review path для оспаривания `AI summary` и `reputation badges`, inline-апелляции внутри `AI-профиля`, история апелляций и скрытие спорных автоматических выводов при низкой уверенности |
+| 2026-03-16 | Реализован `Active Reminder v1`: обычный waiting-state теперь шлёт реальный Telegram bell через существующий `sendDisputeReminder`, а кнопка в UI честно обозначена как `Напомнить в Telegram` |

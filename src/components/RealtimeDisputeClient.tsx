@@ -812,7 +812,7 @@ export default function RealtimeDisputeClient({
                   pendingText="Напоминаем..."
                   className="text-xs text-cyan-300 transition-colors hover:text-cyan-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Напомнить о споре
+                  Напомнить в Telegram
                 </SubmitButton>
               </form>
               {!earlyEndProposedBy && (
@@ -854,7 +854,7 @@ export default function RealtimeDisputeClient({
                   pendingText="Напоминаем..."
                   className="text-xs text-cyan-300 transition-colors hover:text-cyan-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Напомнить о споре
+                  Напомнить в Telegram
                 </SubmitButton>
               </form>
               {!earlyEndProposedBy && (

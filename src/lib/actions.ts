@@ -1080,6 +1080,7 @@ export async function sendDisputeReminder(formData: FormData) {
   const senderName = getDisplayName(senderProfile.data?.display_name, user);
   let deliveredViaTelegram = false;
   let suppressedReason: string | null = null;
+  let successMessage = "Напоминание отправлено. Спор снова отмечен как ожидающий ответа.";
 
   if (recipientState?.is_archived) {
     if (recipientState.reminder_notifications_muted) {
@@ -1116,7 +1117,23 @@ export async function sendDisputeReminder(formData: FormData) {
       }
     }
   } else {
-    suppressedReason = "recipient_active";
+    if (recipientProfile.data?.telegram_chat_id) {
+      const sentMessageId = await notifyDisputeReminder(
+        recipientProfile.data.telegram_chat_id,
+        senderName,
+        dispute.title,
+        disputeId
+      );
+      deliveredViaTelegram = Boolean(sentMessageId);
+      if (sentMessageId) {
+        suppressedReason = "recipient_active_notified";
+        successMessage = "Напоминание отправлено в Telegram. Спор уже активен у оппонента, но он получил отдельный пинг.";
+      } else {
+        suppressedReason = "telegram_delivery_failed";
+      }
+    } else {
+      suppressedReason = "recipient_active_no_telegram";
+    }
   }
 
   const reminderPayload: DisputeReminderInsert = {
@@ -1133,7 +1150,19 @@ export async function sendDisputeReminder(formData: FormData) {
     redirect(withMessage(returnTo, "Напоминание зафиксировано в архиве. Telegram больше не беспокоит оппонента по этому спору."));
   }
 
-  redirect(withMessage(returnTo, "Напоминание отправлено. Спор снова отмечен как ожидающий ответа."));
+  if (!deliveredViaTelegram && suppressedReason === "telegram_delivery_failed") {
+    redirect(withMessage(returnTo, "Не удалось отправить Telegram-напоминание. Попробуйте ещё раз позже."));
+  }
+
+  if (!deliveredViaTelegram && suppressedReason === "recipient_active_no_telegram") {
+    redirect(withMessage(returnTo, "У оппонента не подключён Telegram, поэтому bell-напоминание недоступно."));
+  }
+
+  if (!deliveredViaTelegram && suppressedReason === "no_telegram_chat") {
+    redirect(withMessage(returnTo, "У оппонента не подключён Telegram, поэтому спор только отмечен как ожидающий ответа."));
+  }
+
+  redirect(withMessage(returnTo, successMessage));
 }
 
 export async function proposeEarlyEnd(formData: FormData) {

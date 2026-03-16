@@ -43,6 +43,8 @@
   Превращение `Событий` в реальный activity feed: релизы, live-арена, открытые вызовы и публичные dispute-события.
 - [landing-v2-rollout.md](/C:/project21/konsensus/docs/ops/landing-v2-rollout.md)
   Новый narrative и product-first лендинг: быстрый hero, proof blocks, activity-presentation и более современный темп подачи.
+- [active-reminder-rollout.md](/C:/project21/konsensus/docs/ops/active-reminder-rollout.md)
+  Обычный reminder/bell для активного waiting-state: мягкий Telegram-пинг без новой SQL-подсистемы.
 
 ## Смежные ops-документы
 

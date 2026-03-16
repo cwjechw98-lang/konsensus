@@ -205,7 +205,8 @@
 - [x] Reminder flow для архивированных споров
   Уже реализован: `00019`, anti-spam лимиты, pending reminders, mute после повторной архивации и auto-unarchive
 - [ ] Reminder / bell для обычного активного спора
-  Пока не входит в закрытый архивный reminder-пакет; если брать в работу, нужно оформить как отдельный пакет поверх текущего execution order
+  Реализация теперь зафиксирована в `docs/ops/active-reminder-rollout.md`
+  [x] Первый шаг выполнен: waiting-state обычного активного спора шлёт реальный Telegram bell через текущий `sendDisputeReminder`
 
 ## Внутренние правила работы
 - [x] Уточнён git-workflow для агентов: staging только по согласованным файлам текущей итерации, без `git add -A`
