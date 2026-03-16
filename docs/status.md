@@ -17,6 +17,8 @@
 
 Этот shell-пакет уже внедрён в код: `/` теперь ведёт залогиненного пользователя в `Споры`, мобильная навигация переведена на fixed bottom nav, support вынесен в отдельный persistent strip, а dashboard встречает first-run overview до page-level подсказок.
 
+Для следующей витрины продукта теперь отдельно зафиксирован и `Landing v2` как возвращаемый rollout-блок: [docs/ops/landing-v2-rollout.md](/C:/project21/konsensus/docs/ops/landing-v2-rollout.md). В нём закреплено, что текущий лендинг нужно перестраивать не как "ещё более длинную страницу", а как product-first вход с более коротким hero, proof-blocks, activity-подачей и живыми preview реального интерфейса.
+
 Дополнительно собран отдельный support/marketing-пакет для Boosty: структура страницы, уровни поддержки, цели, блок `О проекте`, стартовые посты, витринный paid-post и промпты для визуалов. Внутри него отдельно зафиксировано, что Telegram release-posting в проекте уже реализован, а Boosty пока ведётся ручным workflow без API-автоматизации.
 
 Поверх этого подготовлен и отдельный редакционный пакет для Telegram: тексты канальных постов, bot-тизер, structured release payloads и отдельная схема желаемой доставки `канал = полный пост`, `бот = короткий анонс`. При этом в документе отдельно зафиксировано текущее ограничение: расписание публикаций и suppress-логика по подписке пользователя на канал/группу пока не реализованы в коде.
@@ -188,3 +190,4 @@
 | 2026-03-16 | Реализован `AI orchestration v1`: в `src/lib/ai.ts` добавлены virtual subagents и routing rules по `plane/heat/evidence`, waiting/private/public AI-функции переведены на orchestration-first path с legacy fallback, а финальная mediation вынесена из `actions.ts` в единый AI-слой |
 | 2026-03-16 | Утверждён и зафиксирован следующий shell-пакет `Navigation + Onboarding v1`: `/` для залогиненного пользователя должен вести в рабочий экран, мобильная навигация будет пересобрана вокруг постоянного bottom-level входа, `Поддержать` / `Boosty` / `Crypto` остаются постоянно заметными, а first-run onboarding разделяется на welcome-layer и page-level подсказки |
 | 2026-03-16 | Реализован `Navigation + Onboarding v1`: `/` стал auth-aware, мобильная основная навигация вынесена в fixed bottom nav, support вынесен в отдельный persistent strip, top-level labels приведены к `События / Споры / Открытые / Арена / Профиль`, а first-run onboarding на dashboard разделён на welcome overview и page-level coach marks |
+| 2026-03-16 | Зафиксирован новый стратегический блок `Landing v2`: для лендинга утверждён product-first narrative с быстрым hero, 3-шаговым входом, proof-blocks, activity-подачей и более современным темпом восприятия; блок оформлен отдельным rollout-файлом для последующей кодовой реализации |

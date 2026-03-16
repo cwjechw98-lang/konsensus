@@ -30,6 +30,8 @@
   Типы аккаунтов и trust tiers для публичного слоя без тяжёлой KYC-модели.
 - [navigation-onboarding-rollout.md](/C:/project21/konsensus/docs/ops/navigation-onboarding-rollout.md)
   Product shell, default route, заметный support-layer, mobile navigation и first-run onboarding.
+- [landing-v2-rollout.md](/C:/project21/konsensus/docs/ops/landing-v2-rollout.md)
+  Новый narrative и product-first лендинг: быстрый hero, proof blocks, activity-presentation и более современный темп подачи.
 
 ## Смежные ops-документы
 

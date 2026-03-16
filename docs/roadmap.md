@@ -75,6 +75,9 @@
 - [x] Navigation + Onboarding v1
   Утверждённый пакет зафиксирован в `docs/ops/navigation-onboarding-rollout.md`
   Реализовано: auth-aware redirect с `/`, top-level IA `Споры / Открытые / Арена / События / Профиль`, постоянный support-layer и двухслойный first-run onboarding
+- [ ] Landing v2
+  Реализация разбита по этапам и зафиксирована в `docs/ops/landing-v2-rollout.md`
+  Первый шаг: пересобрать лендинг как product-first вход с быстрым hero, 3-шаговым сценарием, proof-blocks и activity-подачей вместо длинного scroll-essay
 
 ## Фаза 8: Социальный слой ✅ (частично)
 - [x] Публичные споры (поле is_public, тумблер при создании)
