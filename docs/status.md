@@ -169,6 +169,6 @@
 **Post-deploy Telegram verify**
 
 Следующий шаг:
-- дождаться Vercel deploy с фиксом `BackButton` gating;
+- дождаться Vercel deploy с фиксом `BackButton` gating, shell-timeout hardening и route-based back semantics;
 - повторно проверить продовый `/tg` и shell-cookie сценарий;
 - затем пройти уже живой Telegram-контейнер на телефоне для финального container verification.

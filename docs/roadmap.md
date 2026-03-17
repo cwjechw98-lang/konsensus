@@ -137,5 +137,6 @@
 
 Результат шага:
 - прод повторно проверен после деплоя фикса `BackButton`;
-- shell-cookie сценарий не даёт Telegram SDK warning;
+- shell-cookie сценарий не даёт Telegram SDK warning и не срывается на агрессивном timeout;
+- deep-link экраны (`/arena/:id`, `/dispute/:id`, `/mediation`) возвращаются по предсказуемому shell-route;
 - после этого остаётся только финальная ручная проверка в реальном Telegram-контейнере.

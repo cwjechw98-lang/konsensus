@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const COOKIE_NAME = "konsensus_tg_shell";
-const RELOAD_GUARD = "konsensus_tg_shell_reload_guard";
-const TELEGRAM_INIT_TIMEOUT_MS = 1200;
+const TELEGRAM_INIT_TIMEOUT_MS = 5000;
+const TELEGRAM_SDK_SRC = "https://telegram.org/js/telegram-web-app.js";
 
 type TelegramWebApp = {
   initData?: string;
@@ -27,7 +27,6 @@ type TelegramWindow = Window & {
 
 function setShellFlag() {
   localStorage.setItem(COOKIE_NAME, "1");
-  sessionStorage.removeItem(RELOAD_GUARD);
   document.cookie = `${COOKIE_NAME}=1; path=/; max-age=2592000; samesite=lax`;
 }
 
@@ -52,12 +51,57 @@ function supportsBackButton(tg?: TelegramWebApp) {
   return Boolean(tg?.isVersionAtLeast?.("6.1"));
 }
 
+function ensureTelegramSdk() {
+  const selector =
+    'script[data-telegram-web-app-sdk="1"], script[src="https://telegram.org/js/telegram-web-app.js"]';
+  const existingScript = document.querySelector(selector);
+
+  if (existingScript) {
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = TELEGRAM_SDK_SRC;
+  script.dataset.telegramWebAppSdk = "1";
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
+function getTelegramBackTarget(pathname: string) {
+  if (/^\/arena\/[^/]+$/.test(pathname)) {
+    return "/arena";
+  }
+
+  if (/^\/dispute\/[^/]+(\/argue|\/mediation)?$/.test(pathname)) {
+    return "/dashboard";
+  }
+
+  if (/^\/learn\/[^/]+$/.test(pathname)) {
+    return "/learn";
+  }
+
+  if (pathname.startsWith("/ops/")) {
+    return "/ops";
+  }
+
+  return null;
+}
+
 export default function TelegramShellSync() {
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const hadShellFlagAtStart =
+      localStorage.getItem(COOKIE_NAME) === "1" ||
+      document.cookie.includes(`${COOKIE_NAME}=1`) ||
+      pathname === "/tg";
+
+    if (hadShellFlagAtStart) {
+      ensureTelegramSdk();
+    }
 
     let cancelled = false;
     let backHandler: (() => void) | null = null;
@@ -77,6 +121,12 @@ export default function TelegramShellSync() {
 
           if (isTopLevelShellPath(pathname)) {
             tg?.close?.();
+            return;
+          }
+
+          const backTarget = getTelegramBackTarget(pathname);
+          if (backTarget) {
+            router.push(backTarget);
             return;
           }
 
@@ -127,22 +177,12 @@ export default function TelegramShellSync() {
       }
 
       window.clearInterval(interval);
+      const stillHasTelegramInitData = Boolean(
+        (window as TelegramWindow).Telegram?.WebApp?.initData
+      );
 
-      const hadShellFlag =
-        localStorage.getItem(COOKIE_NAME) === "1" ||
-        document.cookie.includes(`${COOKIE_NAME}=1`);
-
-      clearShellFlag();
-
-      if (
-        hadShellFlag &&
-        pathname !== "/tg" &&
-        sessionStorage.getItem(RELOAD_GUARD) !== "1"
-      ) {
-        sessionStorage.setItem(RELOAD_GUARD, "1");
-        window.location.reload();
-      } else {
-        sessionStorage.removeItem(RELOAD_GUARD);
+      if (!stillHasTelegramInitData && pathname !== "/tg") {
+        clearShellFlag();
       }
     }, 150);
 
