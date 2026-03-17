@@ -9,36 +9,64 @@ type TelegramWebApp = {
   expand?: () => void;
 };
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: TelegramWebApp;
-    };
-  }
-}
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: TelegramWebApp;
+  };
+};
 
 // Dynamically load Telegram Web App SDK and return the WebApp object
 function loadTelegramSdk(): Promise<TelegramWebApp | null> {
   return new Promise((resolve) => {
-    // Already loaded?
-    const existing = window.Telegram?.WebApp;
+    let resolved = false;
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = (value: TelegramWebApp | null) => {
+      if (resolved) return;
+      resolved = true;
+      if (initTimer) clearTimeout(initTimer);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      resolve(value);
+    };
+
+    const existing = (window as TelegramWindow).Telegram?.WebApp;
     if (existing?.initData) {
-      resolve(existing);
+      finish(existing);
       return;
     }
 
-    // Inject script manually (in case layout defer hasn't fired yet)
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-web-app.js";
-    script.onload = () => {
-      // Give it a moment to initialize
-      setTimeout(() => resolve(window.Telegram?.WebApp ?? null), 200);
-    };
-    script.onerror = () => resolve(null);
-    document.head.appendChild(script);
+    const scriptSelector =
+      'script[data-telegram-web-app-sdk="1"], script[src="https://telegram.org/js/telegram-web-app.js"]';
+    let script = document.querySelector<HTMLScriptElement>(scriptSelector);
 
-    // Fallback timeout
-    setTimeout(() => resolve(window.Telegram?.WebApp ?? null), 5000);
+    const handleLoad = () => {
+      initTimer = setTimeout(
+        () => finish((window as TelegramWindow).Telegram?.WebApp ?? null),
+        250
+      );
+    };
+
+    const handleError = () => finish(null);
+
+    if (!script) {
+      script = document.createElement("script");
+      script.src = "https://telegram.org/js/telegram-web-app.js";
+      script.dataset.telegramWebAppSdk = "1";
+      script.addEventListener("load", handleLoad, { once: true });
+      script.addEventListener("error", handleError, { once: true });
+      document.head.appendChild(script);
+    } else if ((window as TelegramWindow).Telegram?.WebApp) {
+      handleLoad();
+    } else {
+      script.addEventListener("load", handleLoad, { once: true });
+      script.addEventListener("error", handleError, { once: true });
+    }
+
+    fallbackTimer = setTimeout(
+      () => finish((window as TelegramWindow).Telegram?.WebApp ?? null),
+      5000
+    );
   });
 }
 
@@ -97,6 +125,9 @@ export default function TelegramAppPage() {
           setErrorMsg("Не удалось создать сессию: " + verifyError.message);
           return;
         }
+
+        localStorage.setItem("konsensus_tg_shell", "1");
+        document.cookie = "konsensus_tg_shell=1; path=/; max-age=2592000; samesite=lax";
 
         // Success — redirect to dashboard
         window.location.href = "/dashboard";

@@ -143,12 +143,27 @@
    - на мобильном убрана зависимость длинных страниц от scroll-reveal;
    - footer перестал дублировать навигацию на узком экране;
    - auth-экраны получили более практичный мобильный ритм и корректное поведение полей.
+8. Завершён `Secondary mobile QA sweep`:
+   - `dashboard`, `profile` и `new dispute` ужаты по верхнему шуму на мобильном;
+   - фильтры и CTA приведены к более компактному мобильному ритму;
+   - page-level context не забирает первый экран.
+9. Завершён `Dashboard card cleanup`:
+   - у dispute-card появился один доминирующий следующий шаг;
+   - archived/reminder состояния собраны в более спокойную иерархию;
+   - образовательный блок на мобильном уходит ниже списка карточек.
+10. Завершён `Telegram Mini App sweep`:
+   - Telegram shell отделён от обычного web-shell;
+   - `Header`, `Footer`, scroll-progress и browser-notification слой не рендерятся внутри Mini App;
+   - Telegram SDK грузится только для shell-режима;
+   - back/close поведение синхронизировано на уровне shell;
+   - верхний и нижний safe-area учтены для Telegram-контейнера;
+   - липкий `konsensus_tg_shell` теперь сбрасывается вне контейнера.
 
 ## Следующий практический шаг
 
-**Telegram Mini App sweep**
+**Production Telegram smoke**
 
 Следующий шаг:
-- пройти Telegram Mini App внутри реального контейнера Telegram;
-- проверить header, safe-area и back-behaviour уже не в браузере, а в Telegram WebApp;
-- зафиксировать только контейнер-специфичные хвосты, если они реально есть.
+- проверить уже задеплоенный Mini App внутри реального Telegram WebApp;
+- пройти сценарии `/tg -> /dashboard -> nested page -> back/close`;
+- подтвердить safe-area и shell-поведение не по браузерной имитации, а в живом контейнере Telegram.

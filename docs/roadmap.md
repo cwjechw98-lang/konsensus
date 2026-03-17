@@ -100,9 +100,9 @@
 - [x] Добить оставшийся вертикальный шум в пользовательском слое, если он подтверждается реальными скринами
 
 ### Пакет 10. Telegram Mini App sweep
-- [ ] Пройти интерфейс внутри реального Telegram WebApp-контейнера
-- [ ] Проверить container-specific safe-area, back/close behaviour и header
-- [ ] Оставить только Telegram-специфичные доработки, если они реально подтверждаются
+- [x] Отделить Telegram Mini App shell от обычного web-shell
+- [x] Проверить и исправить container-specific safe-area, back/close behaviour и header
+- [x] Убрать липкий shell-state и оставить только Telegram-специфичные доработки
 
 ## Parked / internal backlog
 
@@ -128,14 +128,15 @@
 
 Следующий пакет по плану:
 
-**Telegram Mini App sweep**
+**Production Telegram smoke**
 
 Фокус:
 - [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
-- [C:\project21\konsensus\src\components\Header.tsx](/C:/project21/konsensus/src/components/Header.tsx)
-- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
+- [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
 - [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
+- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
 
 Результат шага:
-- интерфейс проверен внутри самого Telegram-контейнера;
-- если хвосты останутся, они будут уже именно Telegram-специфичными, а не общими mobile-предположениями.
+- задеплоенный Mini App проверен в живом Telegram-контейнере;
+- back/close и safe-area подтверждены уже не по браузерной имитации;
+- если хвосты останутся, это будут точечные production-specific правки, а не новый широкий mobile пакет.
