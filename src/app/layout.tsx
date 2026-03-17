@@ -3,19 +3,17 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import CursorGlow from "@/components/CursorGlow";
 import RippleEffect from "@/components/RippleEffect";
-import AchievementToast from "@/components/AchievementToast";
 import { BrowserNotificationPermission } from "@/components/BrowserNotifications";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { PageScrollProgress } from "@/components/PageScrollProgress";
-import { SupportStrip } from "@/components/SupportStrip";
 import { createClient } from "@/lib/supabase/server";
-import { hasSupportLinks, isKonsensusAdminEmail } from "@/lib/site-config";
+import { isKonsensusAdminEmail } from "@/lib/site-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Konsensus — Разрешение споров с ИИ-медиатором",
   description:
-    "Превращаем конфликты в конструктивный диалог. Структурированные раунды, нейтральный ИИ-медиатор, арена вызовов, RPG-профиль — бесплатно.",
+    "Превращаем конфликты в конструктивный диалог. Структурированные раунды, нейтральный ИИ-медиатор, полезное ожидание и открытые диспуты.",
   keywords: [
     "разрешение споров",
     "медиация",
@@ -23,12 +21,12 @@ export const metadata: Metadata = {
     "конфликт",
     "переговоры",
     "консенсус",
-    "арена дискуссий",
+    "структурированный спор",
   ],
   openGraph: {
     title: "Konsensus — Спор это не война. Это возможность.",
     description:
-      "Платформа для разрешения споров с ИИ-медиатором. Раундовая система, оценка аргументов, арена вызовов и RPG-прогресс.",
+      "Платформа для разрешения споров с ИИ-медиатором. Раундовая система, оценка аргументов, открытые диспуты и спокойная медиация.",
     type: "website",
     locale: "ru_RU",
   },
@@ -44,7 +42,6 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
   const showMobileShell = Boolean(user);
-  const showSupportStrip = showMobileShell && hasSupportLinks();
   const isAdmin = isKonsensusAdminEmail(user?.email);
 
   return (
@@ -55,12 +52,10 @@ export default async function RootLayout({
       <body className="antialiased min-h-screen flex flex-col">
         <CursorGlow />
         <RippleEffect />
-        <AchievementToast />
         <BrowserNotificationPermission />
         <Header isLoggedIn={Boolean(user)} isAdmin={isAdmin} />
         <PageScrollProgress />
-        <main className={`flex-1 pt-14 ${showSupportStrip ? "pb-32 md:pb-0" : showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
-        {showSupportStrip && <SupportStrip mobileOnly />}
+        <main className={`flex-1 pt-14 ${showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
         {showMobileShell && <MobileBottomNav />}
         <Footer />
       </body>

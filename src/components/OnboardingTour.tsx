@@ -17,10 +17,9 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
     { target: "[data-tour='filters']", title: "Фильтры", description: "Переключайте активные и архив, если хотите быстро сузить список.", position: "bottom" },
   ],
   feed: [
-    { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "Здесь видно, что происходит на платформе: обновления, арена и публичные споры.", position: "bottom" },
-    { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху собраны ключевые цифры по релизам, боям, вызовам и публичным спорам.", position: "bottom" },
-    { target: "[data-tour='events-releases']", title: "Новые обновления", description: "Здесь появляются свежие пользовательские обновления продукта.", position: "top" },
-    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже идут бои арены, открытые вызовы и публичные споры, которые видны прямо сейчас.", position: "top" },
+    { target: "[data-tour='events-intro']", title: "Смысл раздела", description: "Здесь видно, что происходит на платформе: открытые темы, публичные диспуты и заметные события.", position: "bottom" },
+    { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху собраны ключевые цифры по открытым диспутам, темам в ожидании второго участника и публичным спорам.", position: "bottom" },
+    { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже идут открытые диспуты, темы в ожидании второго участника и публичные споры, которые видны прямо сейчас.", position: "top" },
   ],
   matchmaking: [
     { target: "[data-tour='open-intro']", title: "Где вступать", description: "Здесь ждут готовые споры и вызовы, куда можно войти сразу.", position: "bottom" },
@@ -28,9 +27,9 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
     { target: "[data-tour='open-list']", title: "Карточки входа", description: "На карточке сразу видно тему, формат и кнопку входа.", position: "top" },
   ],
   profile: [
-    { target: "[data-tour='profile-intro']", title: "Что хранит профиль", description: "Здесь собраны ваш прогресс, достижения, ИИ-профиль и настройки Telegram.", position: "bottom" },
-    { target: "[data-tour='profile-tabs']", title: "Вкладки", description: "Обзор, достижения, ИИ-профиль и настройки разделены, чтобы экран не превращался в длинную ленту.", position: "bottom" },
-    { target: "[data-tour='profile-stats']", title: "Быстрый срез", description: "Сверху сразу видно, сколько у вас споров, аргументов, консенсуса и ачивок.", position: "bottom" },
+    { target: "[data-tour='profile-intro']", title: "Что хранит профиль", description: "Здесь собраны ваш AI-профиль, архив, сигналы качества диалога и настройки Telegram.", position: "bottom" },
+    { target: "[data-tour='profile-tabs']", title: "Вкладки", description: "Обзор, AI-профиль и настройки разделены, чтобы экран оставался спокойным и рабочим.", position: "bottom" },
+    { target: "[data-tour='profile-stats']", title: "Быстрый срез", description: "Сверху сразу видно, сколько у вас споров, аргументов и как часто вы доходите до согласия.", position: "bottom" },
   ],
   dispute_new: [
     { target: "[data-tour='new-dispute-intro']", title: "Старт спора", description: "Сформулируйте тему, добавьте контекст и задайте число раундов.", position: "bottom" },

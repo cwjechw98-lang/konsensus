@@ -22,10 +22,10 @@ export default function ArenaLiveBoard({
       <div className="glass rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">👁️</span>
-          <h2 className="text-lg font-semibold text-white">Идущие бои</h2>
+          <h2 className="text-lg font-semibold text-white">Идущие диспуты</h2>
         </div>
         <p className="text-sm text-gray-400">
-          Прямо сейчас активных боёв нет. Как только кто-то примет вызов, он появится здесь для наблюдения.
+          Прямо сейчас активных открытых диспутов нет. Как только к теме подключится второй участник, она появится здесь.
         </p>
       </div>
     );
@@ -37,10 +37,10 @@ export default function ArenaLiveBoard({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">👁️</span>
-            <h2 className="text-lg font-semibold text-white">Идущие бои</h2>
+            <h2 className="text-lg font-semibold text-white">Идущие диспуты</h2>
           </div>
           <p className="text-sm text-gray-400">
-            Смотреть можно без входа. Писать в сам бой могут только участники.
+            Смотреть можно без входа. Писать в сам диспут могут только участники.
           </p>
         </div>
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
@@ -59,7 +59,7 @@ export default function ArenaLiveBoard({
             >
               <div className="flex items-center justify-between gap-3 mb-3">
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-emerald-300">
-                  бой идёт
+                  идёт обсуждение
                 </span>
                 <span className="text-xs text-gray-500">
                   {completedRounds}/{challenge.max_rounds} раундов
@@ -70,10 +70,10 @@ export default function ArenaLiveBoard({
                 {challenge.topic}
               </h3>
               <p className="text-sm text-gray-400 mb-3">
-                {challenge.author_name} vs {challenge.opponent_name}
+                {challenge.author_name} и {challenge.opponent_name}
               </p>
               <p className="text-xs text-gray-600">
-                Открыть бой →
+                Открыть диспут →
               </p>
             </Link>
           );

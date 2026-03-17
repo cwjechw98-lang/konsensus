@@ -27,8 +27,8 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/arena",
-    label: "Арена",
-    icon: "⚔️",
+    label: "Диспуты",
+    icon: "💬",
     match: (pathname) => pathname.startsWith("/arena"),
   },
   {

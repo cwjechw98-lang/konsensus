@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { fetchRPGStats } from "@/lib/rpg";
 import { fetchPublicReputationBadges } from "@/lib/reputation";
 import { fetchTrustTierState, hasMinimumTrustTier } from "@/lib/trust-tier";
 import ChallengeBoard from "@/components/ChallengeBoard";
@@ -38,16 +37,12 @@ export default async function ArenaPage({
       profiles: { id: string; display_name: string | null; bio: string | null } | null;
     }[]>();
 
-  // Fetch RPG stats for each unique author
   const authorIds = [...new Set((challenges ?? []).map((c) => c.profiles?.id).filter(Boolean) as string[])];
-  const statsMap: Record<string, Awaited<ReturnType<typeof fetchRPGStats>>> = {};
   const badgesMap: Record<string, Awaited<ReturnType<typeof fetchPublicReputationBadges>>> = {};
 
   await Promise.all(
     authorIds.map(async (id) => {
-      const stats = await fetchRPGStats(id, supabase);
-      statsMap[id] = stats;
-      badgesMap[id] = await fetchPublicReputationBadges(id, { rpgStats: stats });
+      badgesMap[id] = await fetchPublicReputationBadges(id);
     })
   );
 
@@ -63,10 +58,6 @@ export default async function ArenaPage({
       id: c.profiles?.id ?? "",
       display_name: c.profiles?.display_name ?? null,
       bio: c.profiles?.bio ?? null,
-    },
-    rpgStats: statsMap[c.profiles?.id ?? ""] ?? {
-      argumentation: 0, diplomacy: 0, activity: 0, persistence: 0,
-      characterClass: "Новобранец 🌱", characterTitle: "Первые шаги в мире дискуссий", xp: 0,
     },
     reputationBadges: badgesMap[c.profiles?.id ?? ""] ?? [],
   }));
@@ -115,20 +106,20 @@ export default async function ArenaPage({
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Арена вызовов ⚔️</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">Открытые диспуты</h1>
         <p className="text-[15px] text-gray-300">
-          Здесь собираются открытые вызовы и активные бои, за которыми можно следить вживую.
+          Здесь собраны открытые темы и активные публичные диспуты, к которым можно присоединиться или наблюдать за ходом обсуждения.
         </p>
       </div>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg mb-6">
           {error === "challenge_unavailable"
-            ? "Вызов недоступен или уже принят"
+            ? "Тема недоступна или к ней уже подключился второй участник"
             : error === "trust_tier_trusted_required"
-              ? "Для создания публичного arena-вызова нужен уровень Trusted."
+              ? "Для открытия публичной темы нужен уровень Trusted."
               : error === "trust_tier_linked_required"
-                ? "Для участия в публичном слое арены нужен уровень Linked."
+                ? "Для участия в открытых диспутах нужен уровень Linked."
                 : error}
         </div>
       )}

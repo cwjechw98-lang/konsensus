@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getDisplayName } from "@/lib/display-name";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import PageContextCard from "@/components/PageContextCard";
@@ -9,8 +8,6 @@ import type { Database } from "@/types/database";
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type Challenge = Database["public"]["Tables"]["challenges"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type ReleaseAnnouncement =
-  Database["public"]["Tables"]["release_announcements"]["Row"];
 
 type PublicDisputeRow = Pick<
   Dispute,
@@ -102,7 +99,7 @@ function formatEventTime(value: string) {
   return EVENT_DATE_FORMATTER.format(new Date(value));
 }
 
-function buildArenaLiveCards(
+function buildLiveCards(
   challenges: ArenaChallengeRow[],
   messages: ChallengeMessageRow[]
 ): FeedCard[] {
@@ -131,19 +128,19 @@ function buildArenaLiveCards(
     return {
       id: `arena-live-${challenge.id}`,
       href: `/arena/${challenge.id}`,
-      badge: "бой арены",
+      badge: "открытый диспут",
       title: challenge.topic,
-      description: `${authorName} vs ${opponentName}`,
+      description: `${authorName} и ${opponentName}`,
       meta: `${formatEventTime(latestMessage)} · ${completedRounds}/${challenge.max_rounds} раундов`,
-      chips: ["Смотреть без входа", "Арена"],
+      chips: ["Наблюдение", "Открытый формат"],
       eventAt: latestMessage,
-      actionLabel: "Открыть бой →",
+      actionLabel: "Открыть диспут →",
       tone: "emerald",
     };
   });
 }
 
-function buildArenaOpenCards(challenges: ArenaChallengeRow[]): FeedCard[] {
+function buildOpenCards(challenges: ArenaChallengeRow[]): FeedCard[] {
   return challenges.map((challenge) => {
     const authorName = getDisplayName(
       challenge.author_profile?.display_name,
@@ -154,13 +151,13 @@ function buildArenaOpenCards(challenges: ArenaChallengeRow[]): FeedCard[] {
     return {
       id: `arena-open-${challenge.id}`,
       href: "/arena",
-      badge: "вызов",
+      badge: "ждёт участника",
       title: challenge.topic,
-      description: `${authorName} ищет оппонента на арене`,
+      description: `${authorName} ищет второго участника`,
       meta: `${formatEventTime(challenge.created_at)} · ${challenge.max_rounds} раундов`,
-      chips: [challenge.category ?? "Категория не указана", "Открытый вызов"],
+      chips: [challenge.category ?? "Категория не указана", "Открытая тема"],
       eventAt: challenge.created_at,
-      actionLabel: "Перейти в арену →",
+      actionLabel: "Перейти к теме →",
       tone: "amber",
     };
   });
@@ -253,78 +250,62 @@ function ActivityCard({ card }: { card: FeedCard }) {
 
 export default async function FeedPage() {
   const supabase = await createClient();
-  const admin = createAdminClient();
 
-  const [
-    { data: releases },
-    { data: disputes },
-    { data: liveChallenges },
-    { data: openChallenges },
-  ] = await Promise.all([
-    admin
-      .from("release_announcements")
-      .select("id, slug, title, summary, features, created_at")
-      .order("created_at", { ascending: false })
-      .limit(2)
-      .returns<
-        Pick<
-          ReleaseAnnouncement,
-          "id" | "slug" | "title" | "summary" | "features" | "created_at"
-        >[]
-      >(),
-    supabase
-      .from("disputes")
-      .select(`
-        id,
-        title,
-        description,
-        status,
-        max_rounds,
-        updated_at,
-        creator_id,
-        opponent_id,
-        creator_profile:profiles!disputes_creator_id_fkey(display_name)
-      `)
-      .eq("is_public", true)
-      .order("updated_at", { ascending: false })
-      .limit(8)
-      .returns<PublicDisputeRow[]>(),
-    supabase
-      .from("challenges")
-      .select(`
-        id,
-        topic,
-        status,
-        max_rounds,
-        created_at,
-        category,
-        accepted_by,
-        author_profile:profiles!challenges_author_id_fkey(display_name),
-        accepted_profile:profiles!challenges_accepted_by_fkey(display_name)
-      `)
-      .eq("status", "active")
-      .not("accepted_by", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .returns<ArenaChallengeRow[]>(),
-    supabase
-      .from("challenges")
-      .select(`
-        id,
-        topic,
-        status,
-        max_rounds,
-        created_at,
-        category,
-        accepted_by,
-        author_profile:profiles!challenges_author_id_fkey(display_name),
-        accepted_profile:profiles!challenges_accepted_by_fkey(display_name)
-      `)
-      .eq("status", "open")
-      .order("created_at", { ascending: false })
-      .limit(6)
-      .returns<ArenaChallengeRow[]>(),
-  ]);
+  const [{ data: disputes }, { data: liveChallenges }, { data: openChallenges }] =
+    await Promise.all([
+      supabase
+        .from("disputes")
+        .select(`
+          id,
+          title,
+          description,
+          status,
+          max_rounds,
+          updated_at,
+          creator_id,
+          opponent_id,
+          creator_profile:profiles!disputes_creator_id_fkey(display_name)
+        `)
+        .eq("is_public", true)
+        .order("updated_at", { ascending: false })
+        .limit(8)
+        .returns<PublicDisputeRow[]>(),
+      supabase
+        .from("challenges")
+        .select(`
+          id,
+          topic,
+          status,
+          max_rounds,
+          created_at,
+          category,
+          accepted_by,
+          author_profile:profiles!challenges_author_id_fkey(display_name),
+          accepted_profile:profiles!challenges_accepted_by_fkey(display_name)
+        `)
+        .eq("status", "active")
+        .not("accepted_by", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(6)
+        .returns<ArenaChallengeRow[]>(),
+      supabase
+        .from("challenges")
+        .select(`
+          id,
+          topic,
+          status,
+          max_rounds,
+          created_at,
+          category,
+          accepted_by,
+          author_profile:profiles!challenges_author_id_fkey(display_name),
+          accepted_profile:profiles!challenges_accepted_by_fkey(display_name)
+        `)
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(6)
+        .returns<ArenaChallengeRow[]>(),
+    ]);
 
   const liveChallengeIds = (liveChallenges ?? []).map((challenge) => challenge.id);
   const { data: liveMessages } = liveChallengeIds.length
@@ -336,15 +317,14 @@ export default async function FeedPage() {
     : { data: [] as ChallengeMessageRow[] };
 
   const activityCards = [
-    ...buildArenaLiveCards(liveChallenges ?? [], liveMessages ?? []),
-    ...buildArenaOpenCards(openChallenges ?? []),
+    ...buildLiveCards(liveChallenges ?? [], liveMessages ?? []),
+    ...buildOpenCards(openChallenges ?? []),
     ...buildPublicDisputeCards(disputes ?? []),
   ]
     .sort((left, right) => Date.parse(right.eventAt) - Date.parse(left.eventAt))
     .slice(0, 12);
 
   const hasContent =
-    (releases?.length ?? 0) > 0 ||
     (disputes?.length ?? 0) > 0 ||
     (liveChallenges?.length ?? 0) > 0 ||
     (openChallenges?.length ?? 0) > 0;
@@ -355,11 +335,11 @@ export default async function FeedPage() {
         <PageContextCard
           dataTour="events-intro"
           eyebrow="Сейчас в Konsensus"
-          title="Здесь видно, что происходит на платформе прямо сейчас"
-          description="Откройте экран, чтобы быстро понять, где есть движение: свежие обновления, арена и публичные споры."
+          title="Здесь видно, где сейчас идут открытые обсуждения"
+          description="Откройте экран, чтобы быстро понять, где есть движение: активные публичные диспуты, темы в ожидании второго участника и публичные споры."
           bullets={[
-            "Свежие обновления",
-            "Бои и вызовы арены",
+            "Активные открытые диспуты",
+            "Темы в ожидании участника",
             "Публичные споры для просмотра",
           ]}
           tone="emerald"
@@ -378,7 +358,7 @@ export default async function FeedPage() {
           <p className="mb-4 text-4xl">✨</p>
           <p className="mb-2 font-medium text-white">События ещё не начали копиться</p>
           <p className="mb-6 text-sm text-gray-500">
-            Когда появятся обновления, бои арены и публичные споры, здесь соберётся общий поток платформы.
+            Когда появятся открытые диспуты и публичные споры, здесь соберётся общий поток платформы.
           </p>
           <Link
             href="/dispute/new"
@@ -394,32 +374,22 @@ export default async function FeedPage() {
               <div>
                 <h2 className="text-xl font-bold text-white">Пульс платформы</h2>
                 <p className="text-sm text-gray-400">
-                  Короткий срез по тому, где сейчас есть движение.
+                  Короткий срез по тому, где сейчас идёт диалог.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <FeedSummaryCard
-                value={String(releases?.length ?? 0)}
-                label="Релизы"
-                description={
-                  releases?.[0]
-                    ? `Последний: ${releases[0].title}`
-                    : "Новые обновления появятся здесь"
-                }
-                accent="text-cyan-300/80"
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FeedSummaryCard
                 value={String(liveChallenges?.length ?? 0)}
-                label="Бои"
-                description="Аргументные бои, которые идут прямо сейчас."
+                label="Диспуты"
+                description="Открытые обсуждения, которые идут прямо сейчас."
                 accent="text-emerald-300/80"
               />
               <FeedSummaryCard
                 value={String(openChallenges?.length ?? 0)}
-                label="Открытые вызовы"
-                description="Темы на арене, которые пока ждут второго участника."
+                label="Ожидают участника"
+                description="Темы, которые пока ждут второго участника."
                 accent="text-amber-300/80"
               />
               <FeedSummaryCard
@@ -431,68 +401,17 @@ export default async function FeedPage() {
             </div>
           </section>
 
-          {(releases?.length ?? 0) > 0 && (
-            <section data-tour="events-releases">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-white">Что нового в продукте</h2>
-                <p className="text-sm text-gray-400">
-                  Недавние обновления, которые уже дошли до пользователей.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {releases?.map((release) => (
-                  <article
-                    key={release.id}
-                    className="glass rounded-2xl border border-cyan-500/15 p-5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-cyan-300">
-                        релиз
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatEventTime(release.created_at)}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-4 text-lg font-semibold text-white">
-                      {release.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-300">
-                      {release.summary}
-                    </p>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {release.features.slice(0, 4).map((feature) => (
-                        <span
-                          key={`${release.id}-${feature}`}
-                          className="rounded-full border border-cyan-500/15 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-200"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-
-                    <p className="mt-5 text-sm text-white/80">
-                      Обновление уже доступно в приложении и Telegram.
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-
           <section data-tour="events-stream">
             <div className="mb-4">
-              <h2 className="text-xl font-bold text-white">Сейчас происходит</h2>
+              <h2 className="text-xl font-bold text-white">Что сейчас открыто</h2>
               <p className="text-sm text-gray-400">
-                Бои арены, открытые вызовы и публичные споры, которые видны прямо сейчас.
+                Живые карточки платформы: от активных диспутов до тем, которые ждут второго участника.
               </p>
             </div>
 
             {activityCards.length === 0 ? (
               <div className="glass rounded-2xl border border-white/8 p-8 text-[15px] text-gray-300">
-                Пока здесь тихо. Как только появятся новые бои, вызовы или публичные споры, поток заполнится автоматически.
+                Пока здесь тихо. Как только появятся новые открытые диспуты или публичные споры, поток заполнится автоматически.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

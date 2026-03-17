@@ -1,20 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getDisplayName } from "@/lib/display-name";
 import ParticlesBackground from "@/components/ParticlesBackground";
 import ScrollReveal from "@/components/ScrollReveal";
 import TelegramAuthButton from "@/components/TelegramAuthButton";
-import { SUPPORT_GOALS, SUPPORT_LINKS, hasSupportLinks } from "@/lib/site-config";
 import type { Database } from "@/types/database";
 
 type Dispute = Database["public"]["Tables"]["disputes"]["Row"];
 type Challenge = Database["public"]["Tables"]["challenges"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type ReleaseAnnouncement =
-  Database["public"]["Tables"]["release_announcements"]["Row"];
-
 type LandingDispute = Pick<
   Dispute,
   "id" | "title" | "description" | "status" | "updated_at" | "max_rounds"
@@ -30,11 +25,6 @@ type LandingChallenge = Pick<
   accepted_profile: Pick<Profile, "display_name"> | null;
 };
 
-type LandingRelease = Pick<
-  ReleaseAnnouncement,
-  "id" | "slug" | "title" | "summary" | "features" | "created_at"
->;
-
 const STEPS = [
   {
     step: "01",
@@ -48,7 +38,7 @@ const STEPS = [
     icon: "📨",
     title: "Пригласите человека",
     description:
-      "По email, Telegram, invite-коду или через открытую арену. Вход в спор не должен быть сложным.",
+      "По email, Telegram, invite-коду или через открытый публичный вход. Подключение к спору не должно быть сложным.",
   },
   {
     step: "03",
@@ -75,18 +65,18 @@ const PROOF_BLOCKS = [
     chips: ["Общий итог", "Личный разбор", "Подсказка в ожидании"],
   },
   {
-    eyebrow: "Арена и наблюдение",
-    title: "Открытые бои и spectator-режим делают продукт живым, а не стерильным",
+    eyebrow: "Открытые диспуты",
+    title: "Публичный слой показывает ход мысли, а не превращает спор в шоу",
     description:
-        "Есть открытые бои, чат наблюдателей, подсказки по ходу спора и вызовы, к которым можно присоединиться.",
-    chips: ["Живые бои", "Режим наблюдателя", "Открытые вызовы"],
+      "Есть открытые диспуты, наблюдение за ходом разговора и публичные темы, к которым можно присоединиться без лишнего шума.",
+    chips: ["Открытые диспуты", "Наблюдение", "Публичные темы"],
   },
   {
-    eyebrow: "Профиль и возврат",
-    title: "Пользователь возвращается не только спорить, но и видеть собственный прогресс",
+    eyebrow: "Профиль и доверие",
+    title: "Профиль помогает понять свой стиль спора и вернуться к важным темам",
     description:
-      "Профиль собирает ачивки, AI-профиль, архив споров и историю вашего стиля диалога.",
-    chips: ["AI-профиль", "Архив", "Ачивки"],
+      "В профиле собраны AI-профиль, архив, доверительный слой и история качества вашего диалога.",
+    chips: ["AI-профиль", "Архив", "Качество диалога"],
   },
 ];
 
@@ -138,11 +128,9 @@ function SurfaceCard({
 }
 
 function HeroPreview({
-  release,
   dispute,
   challenge,
 }: {
-  release: LandingRelease | null;
   dispute: LandingDispute | null;
   challenge: LandingChallenge | null;
 }) {
@@ -199,31 +187,30 @@ function HeroPreview({
 
         <div className="glass rounded-3xl border border-emerald-500/15 bg-emerald-500/[0.05] p-5">
           <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-300">
-            Открытая арена
+            Открытый диспут
           </p>
           <p className="mt-3 text-sm font-medium text-white">
             {challenge
-              ? `${challengeAuthor} vs ${challengeOpponent}`
-              : "Открытые бои и вызовы"}
+              ? `${challengeAuthor} и ${challengeOpponent}`
+              : "Публичные темы и открытые входы"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-gray-300">
             {challenge
               ? `${challenge.topic} · ${challenge.max_rounds} раундов`
-              : "Открытые бои и spectator-режим показывают, что продукт живёт и вне личных споров."}
+              : "Публичный слой показывает живой диалог и даёт понятный вход в новые обсуждения."}
           </p>
         </div>
       </div>
 
       <div className="glass rounded-3xl border border-amber-500/15 bg-amber-500/[0.05] p-5">
         <p className="text-[11px] uppercase tracking-[0.16em] text-amber-300">
-          Что нового
+          Доверие к процессу
         </p>
         <h4 className="mt-3 text-base font-semibold text-white">
-          {release?.title ?? "Продукт обновляется и меняется не только на словах"}
+          ИИ не судья, а помощник в спокойной медиации
         </h4>
         <p className="mt-2 text-sm leading-relaxed text-gray-300">
-          {release?.summary ??
-            "Релизы, арена, Telegram и dispute-flow уже живут как одна система, а не как набор черновых страниц."}
+          Платформа по умолчанию приватна, не выбирает победителя и удерживает спор в понятной рамке, а не в хаосе чата.
         </p>
       </div>
     </div>
@@ -243,17 +230,8 @@ export default async function HomePage({
     redirect("/dashboard");
   }
 
-  const admin = createAdminClient();
-  const supportVisible = hasSupportLinks();
-
-  const [{ data: releases }, { data: disputes }, { data: challenges }] =
+  const [{ data: disputes }, { data: challenges }] =
     await Promise.all([
-      admin
-        .from("release_announcements")
-        .select("id, slug, title, summary, features, created_at")
-        .order("created_at", { ascending: false })
-        .limit(2)
-        .returns<LandingRelease[]>(),
       supabase
         .from("disputes")
         .select(`
@@ -286,7 +264,6 @@ export default async function HomePage({
         .returns<LandingChallenge[]>(),
     ]);
 
-  const latestRelease = releases?.[0] ?? null;
   const featuredDispute = disputes?.[0] ?? null;
   const featuredChallenge = challenges?.[0] ?? null;
 
@@ -329,11 +306,11 @@ export default async function HomePage({
             </div>
 
             <div className="mt-8 flex flex-wrap gap-2.5">
-              {[
+              {[ 
                 "Раунды вместо хаоса",
                 "ИИ без выбора победителя",
-                "Арена и публичные события",
-                "Telegram и живой продукт",
+                "Приватность по умолчанию",
+                "Открытые диспуты без шоу",
               ].map((item) => (
                 <span
                   key={item}
@@ -346,7 +323,6 @@ export default async function HomePage({
           </div>
 
           <HeroPreview
-            release={latestRelease}
             dispute={featuredDispute}
             challenge={featuredChallenge}
           />
@@ -430,7 +406,7 @@ export default async function HomePage({
                   Активность
                 </p>
                 <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">
-                  Продукт выглядит живым, когда движение видно сразу
+                  Открытые темы и публичные диспуты должны быть видны сразу
                 </h2>
               </div>
               <Link
@@ -446,23 +422,12 @@ export default async function HomePage({
             <ScrollReveal>
               <div className="glass rounded-3xl border border-emerald-500/15 bg-emerald-500/[0.05] p-6">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-300">
-                  Живая среда
+                  Публичный слой
                 </p>
                 <h3 className="mt-4 text-2xl font-semibold text-white">
-                  Арена, публичные споры и релизы уже работают как единый поток
+                  Движение платформы видно через открытые диспуты и темы, а не через рекламный шум
                 </h3>
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-gray-500">
-                      Релизы
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-white">
-                      {releases?.length ?? 0}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-300">
-                      недавних обновлений видно в продукте
-                    </p>
-                  </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-gray-500">
                       Споры
@@ -476,13 +441,13 @@ export default async function HomePage({
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
                     <p className="text-xs uppercase tracking-[0.16em] text-gray-500">
-                      Арена
+                      Открытые темы
                     </p>
                     <p className="mt-2 text-lg font-semibold text-white">
                       {challenges?.length ?? 0}
                     </p>
                     <p className="mt-1 text-sm text-gray-300">
-                      сигналов из открытых боёв и вызовов
+                      точек входа в публичный слой
                     </p>
                   </div>
                 </div>
@@ -492,38 +457,17 @@ export default async function HomePage({
             <div className="grid gap-4">
               <ScrollReveal delay={80}>
                 <SurfaceCard
-                  eyebrow="Последний релиз"
-                  title={
-                    latestRelease?.title ??
-                    "Новые пользовательские изменения появляются в потоке событий"
-                  }
-                  description={
-                    latestRelease?.summary ??
-                    "Релизная система уже встроена в продукт и Telegram, поэтому обновления можно подавать как часть живой среды."
-                  }
-                  chips={
-                    latestRelease?.features?.slice(0, 3) ?? [
-                      "Release cards",
-                      "Telegram",
-                      "Живой продукт",
-                    ]
-                  }
-                />
-              </ScrollReveal>
-
-              <ScrollReveal delay={140}>
-                <SurfaceCard
-                  eyebrow="Публичный спор"
+                  eyebrow="Открытый диспут"
                   title={
                     featuredDispute?.title ??
-                    "Публичные споры видны как реальные истории, а не как абстракция"
+                    "Публичные диспуты видны как реальные истории, а не как абстракция"
                   }
                   description={
                     featuredDispute
                       ? `${featuredDispute.description} · Обновлён ${formatTime(
                           featuredDispute.updated_at
                         )}`
-                      : "Когда спор становится публичным, он попадает в событийную ленту и становится точкой входа для новых людей."
+                      : "Когда спор становится публичным по согласию сторон, он становится понятной точкой входа для наблюдения и обсуждения."
                   }
                   chips={[
                     featuredDispute
@@ -532,81 +476,29 @@ export default async function HomePage({
                           null,
                           "Участник"
                         )
-                      : "Публичность по выбору",
-                    "События",
+                      : "Публичность по согласию",
+                    "Спокойная подача",
                     "Наблюдение",
                   ]}
+                />
+              </ScrollReveal>
+
+              <ScrollReveal delay={140}>
+                <SurfaceCard
+                  eyebrow="Нейтральный ИИ"
+                  title={
+                    "ИИ помогает понять, где спор сближается, а не выбирает победителя"
+                  }
+                  description={
+                    "После каждого раунда система показывает, как меняется дистанция между позициями, где можно снизить напряжение и что уточнить в следующем ходе."
+                  }
+                  chips={["ИИ не судья", "Подсказки в ожидании", "Медиация"]}
                 />
               </ScrollReveal>
             </div>
           </div>
         </div>
       </section>
-
-      {supportVisible && (
-        <section className="px-4 py-16 sm:py-20">
-          <div className="mx-auto max-w-6xl">
-            <ScrollReveal>
-              <div className="glass rounded-3xl border border-amber-500/15 bg-amber-500/[0.04] p-8">
-                <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">
-                      Поддержка развития
-                    </p>
-                    <h2 className="mt-4 text-3xl font-bold text-white">
-                      Поддержка нужна, чтобы продукт становился сильнее, а не зависал в черновике
-                    </h2>
-                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300">
-                      Konsensus уже состоит из споров, арены, AI-сопровождения и Telegram.
-                      Поддержка помогает ускорять UX, инфраструктуру и более сильную AI-модель.
-                    </p>
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      {SUPPORT_LINKS.boosty && (
-                        <Link
-                          href={SUPPORT_LINKS.boosty}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn-ripple rounded-xl bg-amber-400 px-6 py-3 font-semibold text-black transition-colors hover:bg-amber-300"
-                        >
-                          Boosty
-                        </Link>
-                      )}
-                      {SUPPORT_LINKS.crypto && (
-                        <Link
-                          href={SUPPORT_LINKS.crypto}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn-ripple rounded-xl border border-emerald-500/20 bg-emerald-500/15 px-6 py-3 font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/20"
-                        >
-                          Crypto
-                        </Link>
-                      )}
-                      <Link
-                        href="/support"
-                        className="btn-ripple glass rounded-xl px-6 py-3 font-semibold text-gray-200 transition-colors hover:text-white"
-                      >
-                        Все способы поддержки
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3">
-                    {SUPPORT_GOALS.map((goal) => (
-                      <div
-                        key={goal}
-                        className="rounded-2xl border border-white/10 bg-black/10 px-4 py-4 text-sm leading-relaxed text-gray-200"
-                      >
-                        {goal}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </ScrollReveal>
-          </div>
-        </section>
-      )}
 
       <section className="px-4 pb-24 pt-12 text-center sm:pb-28">
         <ScrollReveal>
@@ -620,7 +512,7 @@ export default async function HomePage({
               лучше вести его в системе, где можно дойти до решения.
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
-              Начните с первого спора, посмотрите события или откройте арену.
+              Начните с первого спора, посмотрите события или откройте публичные диспуты.
               Вход должен быть быстрым. Глубина идеи раскроется уже в самом
               взаимодействии с продуктом.
             </p>
@@ -636,7 +528,7 @@ export default async function HomePage({
                 href="/arena"
                 className="btn-ripple glass rounded-xl px-7 py-4 text-lg font-semibold text-gray-200 transition-colors hover:text-white"
               >
-                Открыть арену
+                Открытые диспуты
               </Link>
               <Link
                 href="/feed"

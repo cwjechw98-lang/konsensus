@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import RPGProfileCard from "@/components/RPGProfileCard";
-import type { RPGStats } from "@/lib/rpg";
 import type { PublicReputationBadge } from "@/lib/reputation";
+import PublicReputationBadges from "@/components/PublicReputationBadges";
 import { acceptChallenge, createChallenge } from "@/lib/arena-actions";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -33,7 +32,6 @@ interface ChallengeWithAuthor {
     display_name: string | null;
     bio: string | null;
   };
-  rpgStats: RPGStats;
   reputationBadges: PublicReputationBadge[];
 }
 
@@ -44,13 +42,41 @@ interface ChallengeBoardProps {
   canJoinPublicChallenge: boolean;
 }
 
+function AuthorSummaryCard({
+  displayName,
+  bio,
+  reputationBadges,
+}: {
+  displayName: string;
+  bio: string | null;
+  reputationBadges: PublicReputationBadge[];
+}) {
+  return (
+    <div className="min-w-[260px] max-w-[320px] rounded-2xl border border-white/10 bg-[#171223]/95 p-4 shadow-2xl shadow-black/30">
+      <p className="text-sm font-semibold text-white">{displayName}</p>
+      {bio ? (
+        <p className="mt-2 text-xs leading-relaxed text-gray-400">{bio}</p>
+      ) : (
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+          Короткое описание пока не заполнено.
+        </p>
+      )}
+      {reputationBadges.length > 0 ? (
+        <div className="mt-3 border-t border-white/8 pt-3">
+          <PublicReputationBadges badges={reputationBadges} compact title="Стиль диалога" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function CreateChallengeForm({ onClose }: { onClose: () => void }) {
   const [rounds, setRounds] = useState(3);
 
   return (
-    <div className="glass rounded-2xl p-6 border border-purple-500/30 mb-6">
+      <div className="glass rounded-2xl p-6 border border-purple-500/30 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Бросить вызов</h3>
+        <h3 className="text-sm font-semibold text-white">Открыть публичный диспут</h3>
         <button onClick={onClose} className="text-gray-500 hover:text-white text-lg leading-none">×</button>
       </div>
       <form action={createChallenge} className="flex flex-col gap-4">
@@ -102,7 +128,7 @@ function CreateChallengeForm({ onClose }: { onClose: () => void }) {
             pendingText="Публикуем вызов..."
             className="btn-ripple flex-1 rounded-lg bg-purple-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Бросить вызов ⚔️
+            Открыть диспут
           </SubmitButton>
           <button
             type="button"
@@ -154,11 +180,9 @@ function ChallengeCard({
         {/* Tooltip */}
         {tooltipVisible && (
           <div className="absolute top-full left-0 mt-2 z-50 drop-shadow-2xl">
-            <RPGProfileCard
-              stats={challenge.rpgStats}
+            <AuthorSummaryCard
               displayName={challenge.author.display_name ?? "Аноним"}
               bio={challenge.author.bio}
-              compact
               reputationBadges={challenge.reputationBadges}
             />
           </div>
@@ -194,11 +218,11 @@ function ChallengeCard({
               pendingText="Входим..."
               className="btn-ripple rounded-lg bg-purple-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Принять вызов ⚔️
+              Присоединиться
             </SubmitButton>
           </form>
         ) : isOwnChallenge ? (
-          <span className="text-xs text-gray-600 italic">Ваш вызов</span>
+          <span className="text-xs text-gray-600 italic">Ваша открытая тема</span>
         ) : currentUserId && !canJoinPublicChallenge ? (
           <span className="text-xs text-yellow-200">Нужен Linked</span>
         ) : (
@@ -251,8 +275,8 @@ export default function ChallengeBoard({
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-gray-400">
           {filtered.length > 0
-            ? `${filtered.length} открытых вызовов`
-            : "Нет активных вызовов"}
+            ? `${filtered.length} открытых тем`
+            : "Нет открытых тем"}
         </p>
         {currentUserId && (
           canCreatePublicChallenge ? (
@@ -260,11 +284,11 @@ export default function ChallengeBoard({
               onClick={() => setShowForm(!showForm)}
               className="btn-ripple text-sm bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
-              + Бросить вызов
+              + Открыть диспут
             </button>
           ) : (
             <span className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">
-              Для создания вызова нужен Trusted
+              Для открытия публичной темы нужен Trusted
             </span>
           )
         )}
@@ -276,13 +300,13 @@ export default function ChallengeBoard({
       {/* Challenges grid */}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">⚔️</p>
+          <p className="text-4xl mb-3">💬</p>
           <p className="text-gray-400 text-sm">
-            {challenges.length === 0 ? "Первым брось вызов!" : "Нет вызовов в этой категории"}
+            {challenges.length === 0 ? "Откройте первую публичную тему." : "В этой категории пока нет открытых тем"}
           </p>
           {!currentUserId && challenges.length === 0 && (
             <p className="text-gray-600 text-xs mt-2">
-              <a href="/login" className="text-purple-400 hover:underline">Войдите</a>, чтобы создать вызов
+              <a href="/login" className="text-purple-400 hover:underline">Войдите</a>, чтобы открыть публичный диспут
             </p>
           )}
         </div>

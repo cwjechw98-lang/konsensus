@@ -131,16 +131,16 @@ export default function ProfileQuestPanel({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Квесты профиля
+            Сценарии выбора
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-300">
             Короткие сценарии выбора дают ИИ более полезный сигнал о вашем стиле,
-            чем длинная анкета. Первый релиз включает три квеста без тяжёлого
-            narrative-движка.
+            чем длинная анкета. Это спокойный способ уточнить ваш профиль без
+            лишней формы и без игровой рамки.
           </p>
         </div>
         <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs text-purple-300">
-          v1 text scenarios
+          Короткий формат
         </span>
       </div>
 

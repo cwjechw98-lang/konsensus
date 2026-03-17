@@ -230,7 +230,7 @@ export default async function DashboardPage({
             userId={user.id}
             compact
             title="Следующий полезный шаг"
-            description="Короткие материалы подбираются под ваш текущий стиль спора."
+            description="Короткие материалы подбираются под ваш текущий стиль диалога."
           />
         </div>
 

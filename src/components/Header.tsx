@@ -32,7 +32,7 @@ export function Header({ isLoggedIn, isAdmin }: { isLoggedIn: boolean; isAdmin?:
                 Открытые
               </Link>
               <Link href="/arena" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
-                Арена ⚔️
+                Диспуты
               </Link>
               <Link href="/profile" className="text-sm text-gray-400 hover:text-white nav-link transition-colors">
                 Профиль

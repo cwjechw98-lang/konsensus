@@ -11,11 +11,8 @@ export function SupportStrip({ mobileOnly = false }: { mobileOnly?: boolean }) {
 
   const shouldShow = useMemo(() => {
     if (!hasSupportLinks() || dismissed) return false;
-
-    if (!mobileOnly) return true;
-
-    return pathname.startsWith("/profile") || pathname.startsWith("/support");
-  }, [dismissed, mobileOnly, pathname]);
+    return pathname.startsWith("/support");
+  }, [dismissed, pathname]);
 
   if (!shouldShow) return null;
 
