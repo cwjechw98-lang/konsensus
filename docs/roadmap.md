@@ -65,9 +65,9 @@
 - [x] Добавить полезные факты о коммуникации и мягкие AI-советы
 
 ### Пакет 3. Public disputes reset
-- [ ] Переписать публичный слой как `открытые диспуты`, а не `арена боёв`
-- [ ] Убрать `battle`, `spectator`, `show` и похожую лексику из пользовательских экранов
-- [ ] Оставить наблюдение, ход раундов и медиацию как полезный публичный формат
+- [x] Переписать публичный слой как `открытые диспуты`, а не `арена боёв`
+- [x] Убрать `battle`, `spectator`, `show` и похожую лексику из пользовательских экранов
+- [x] Оставить наблюдение, ход раундов и медиацию как полезный публичный формат
 
 ### Пакет 4. Calm profile reset
 - [ ] Очистить профиль от game-first подачи
@@ -98,16 +98,16 @@
 
 Следующий пакет по плану:
 
-**Public disputes reset**
+**Calm profile reset**
 
 Фокус:
-- [C:\project21\konsensus\src\components\ChallengeChat.tsx](/C:/project21/konsensus/src/components/ChallengeChat.tsx)
-- [C:\project21\konsensus\src\components\ShadowMediatorPanel.tsx](/C:/project21/konsensus/src/components/ShadowMediatorPanel.tsx)
-- [C:\project21\konsensus\src\components\ArenaLiveBoard.tsx](/C:/project21/konsensus/src/components/ArenaLiveBoard.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
+- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
+- [C:\project21\konsensus\src\components\RPGProfileCard.tsx](/C:/project21/konsensus/src/components/RPGProfileCard.tsx)
+- [C:\project21\konsensus\src\components\ProfileQuestPanel.tsx](/C:/project21/konsensus/src/components/ProfileQuestPanel.tsx)
+- [C:\project21\konsensus\src\lib\achievements.ts](/C:/project21/konsensus/src/lib/achievements.ts)
+- [C:\project21\konsensus\src\lib\rpg.ts](/C:/project21/konsensus/src/lib/rpg.ts)
 
 Результат шага:
-- публичный слой окончательно перестаёт звучать как battle/show;
-- наблюдение, комментарии и медиатор остаются, но без игрового соревновательного тона;
-- Telegram-уведомления публичного слоя тоже переходят на язык открытых диспутов.
+- профиль перестаёт звучать как RPG/game-система;
+- доверие, AI-профиль и сигналы диалога становятся главным слоем;
+- игровые хвосты уходят в фон или переосмысливаются как необязательные.

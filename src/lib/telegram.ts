@@ -705,7 +705,7 @@ export async function notifyChallengeAccepted(
   return upsertTelegramNotification({
     chatId,
     dedupeKey: `challenge_accepted:${challengeId}`,
-    text: `⚔️ <b>${acceptorName}</b> принял ваш вызов!\n\nТема: <i>${topic}</i>`,
+    text: `💬 <b>${acceptorName}</b> подключился к вашей открытой теме\n\nТема: <i>${topic}</i>`,
     url: `${APP_URL}/arena/${challengeId}`,
   });
 }
@@ -719,7 +719,7 @@ export async function notifyChallengeMessage(
   return upsertTelegramNotification({
     chatId,
     dedupeKey: `challenge_message:${challengeId}:${senderName}`,
-    text: `💬 <b>${senderName}</b> написал на арене\n\nТема: <i>${topic}</i>`,
+    text: `💬 <b>${senderName}</b> ответил в открытом диспуте\n\nТема: <i>${topic}</i>`,
     url: `${APP_URL}/arena/${challengeId}`,
   });
 }
@@ -898,7 +898,7 @@ export async function notifyNewChallenge(
   const emoji = categoryEmoji[category ?? "other"] ?? "📌";
   return sendTelegramMessage(
     chatId,
-    `${emoji} Новый вызов на арене!\n\n<b>${topic}</b>\nот ${authorName}`,
+    `${emoji} Новая открытая тема\n\n<b>${topic}</b>\nот ${authorName}`,
     `${APP_URL}/arena`
   );
 }
@@ -911,9 +911,9 @@ export async function notifyBattleWatcherUpdate(
   round?: number
 ): Promise<number | null> {
   const labelMap = {
-    round_complete: round ? `⚔️ Раунд ${round} завершён` : "⚔️ Раунд завершён",
-    reply: round ? `💬 Появился ответ в раунде ${round}` : "💬 В battle появился ответ",
-    closed: "🏁 Battle завершён",
+    round_complete: round ? `💬 Раунд ${round} завершён` : "💬 Раунд завершён",
+    reply: round ? `💬 Появился ответ в раунде ${round}` : "💬 В открытом диспуте появился новый ответ",
+    closed: "🏁 Открытый диспут завершён",
   };
 
   return upsertTelegramNotification({

@@ -278,7 +278,7 @@ export default function ShadowMediatorPanel({
             Теневой медиатор
           </p>
           <p className="text-sm text-gray-300">
-            Спокойный слой наблюдения: попробуйте угадать следующий ход и выбрать более полезную тактику без режима соревнования.
+            Спокойный слой наблюдения: попробуйте заранее считать следующий ход и сравнить две возможные тактики без режима соревнования.
           </p>
         </div>
         <button
@@ -313,7 +313,7 @@ export default function ShadowMediatorPanel({
                   : "bg-white/5 text-gray-400 border border-white/8 hover:text-gray-200"
               }`}
             >
-              Выберите одно из двух
+              Две тактики
             </button>
           </div>
 

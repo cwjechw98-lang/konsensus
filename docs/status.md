@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Public disputes reset`: публичный слой и Telegram-уведомления переведены с `battle/show`-языка на язык открытых диспутов и спокойного наблюдения.
 - 2026-03-17 — выполнен пакет `Waiting layer reset`: из waiting-state удалены мини-игры, добавлен спокойный блок `Теневой медиатор`, а ожидание в приватных и открытых диспутах переведено на полезный ambient-слой с форматом `Выберите одно из двух`.
 - 2026-03-17 — выполнен первый кодовый пакет `Concept realignment UI`: из основных экранов убраны editorial/release surfaces, глобальный support-strip, battle-copy и игровая подача профиля.
 - 2026-03-17 — проект заново сверен с исходной концепцией из `Konsensus_TZ_v0.1`, `vision-extended`, `concept` и `architecture`.
@@ -115,9 +116,10 @@
    - добавлен новый спокойный `Теневой медиатор`;
    - в ожидании появился формат `Выберите одно из двух` без очков и игровой рамки;
    - waiting-state синхронизирован и для приватных, и для открытых диспутов.
-3. Пересобрать публичный слой:
-   - `открытые диспуты`, а не `бои`;
-   - наблюдение и качество диалога, а не зрелищность.
+3. Завершён `Public disputes reset`:
+   - observer layer очищен от `бой/battle/show`;
+   - уведомления Telegram по публичному слою переведены на язык открытых тем и диспутов;
+   - наблюдение осталось полезным, но перестало звучать как соревнование.
 4. Убрать support/promotional surfaces со всех основных экранов и оставить их только на `/support`.
 5. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
    - меньше текста;
@@ -126,16 +128,16 @@
 
 ## Следующий практический шаг
 
-**Public disputes reset**
+**Calm profile reset**
 
 Нужно пройти:
-- [C:\project21\konsensus\src\components\ChallengeChat.tsx](/C:/project21/konsensus/src/components/ChallengeChat.tsx)
-- [C:\project21\konsensus\src\components\ShadowMediatorPanel.tsx](/C:/project21/konsensus/src/components/ShadowMediatorPanel.tsx)
-- [C:\project21\konsensus\src\components\ArenaLiveBoard.tsx](/C:/project21/konsensus/src/components/ArenaLiveBoard.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
+- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
+- [C:\project21\konsensus\src\components\RPGProfileCard.tsx](/C:/project21/konsensus/src/components/RPGProfileCard.tsx)
+- [C:\project21\konsensus\src\components\ProfileQuestPanel.tsx](/C:/project21/konsensus/src/components/ProfileQuestPanel.tsx)
+- [C:\project21\konsensus\src\lib\achievements.ts](/C:/project21/konsensus/src/lib/achievements.ts)
+- [C:\project21\konsensus\src\lib\rpg.ts](/C:/project21/konsensus/src/lib/rpg.ts)
 
 Цель следующего шага:
-- дочистить публичный слой до языка открытых диспутов;
-- убрать остатки `battle/arena show` из observer и Telegram copy;
-- оставить наблюдение, комментарии и публичную медиацию, но без соревновательной рамки.
+- убрать остатки game-first подачи из профиля;
+- переименовать или спрятать RPG/arena-achievement хвост;
+- оставить только спокойные сигналы диалога, AI-профиль, trust и appeals как основную пользовательскую рамку.

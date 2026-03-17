@@ -619,7 +619,7 @@ export default function ChallengeChat({
                   <div>
                     <p className="text-sm font-semibold text-white">Чат наблюдателей</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Видят все зрители. Писать могут только авторизованные наблюдатели.
+                      Видят все наблюдатели. Писать могут только авторизованные участники публичного слоя.
                     </p>
                   </div>
                   <span className="text-xs text-gray-600">{observerComments.length}</span>

@@ -247,7 +247,7 @@ export async function sendChallengeMessage(
 
   if (completedRound >= challengeInfo.max_rounds) {
     const result = await generateChallengeMediation(formatted, challengeInfo.topic);
-    const summary = `🏁 Финал арены\n\n${result.summary}\n\nОбщее:\n${result.commonGround}\n\nВарианты решения:\n${result.solutions.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
+    const summary = `🏁 Итог открытого диспута\n\n${result.summary}\n\nОбщее:\n${result.commonGround}\n\nВарианты решения:\n${result.solutions.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
 
     await admin.from("challenge_messages").insert({
       challenge_id: challengeId,
@@ -291,7 +291,7 @@ export async function sendChallengeMessage(
       await admin.from("challenge_messages").insert({
         challenge_id: challengeId,
         author_id: null,
-        content: `🤖 Комментарий арены · Раунд ${completedRound}\n\n${aiComment}`,
+        content: `🤖 Наблюдение медиатора · Раунд ${completedRound}\n\n${aiComment}`,
         is_ai: true,
       } as never);
     }
@@ -514,7 +514,7 @@ export async function submitChallengeOpinion(formData: FormData) {
     .eq("user_id", user.id);
 
   if ((totalOpinions ?? 0) >= MAX_OPINIONS_PER_CHALLENGE) {
-    return { error: "Лимит мнений для этого battle уже исчерпан." };
+    return { error: "Лимит мнений для этого открытого диспута уже исчерпан." };
   }
 
   const cooldownFrom = new Date(Date.now() - OPINION_COOLDOWN_MS).toISOString();
