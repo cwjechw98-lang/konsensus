@@ -174,5 +174,5 @@
 
 Следующий шаг:
 - пройти Mini App в реальном Telegram-контейнере на телефоне;
-- проверить safe-area, back/close, deep-link возврат и shell-переход уже не через браузерную эмуляцию;
+- проверить safe-area, back/close, deep-link возврат, shell-переход и Telegram auth session creation уже не через браузерную эмуляцию;
 - если контейнер чистый, затем сделать короткий `docs alignment pass` по status/roadmap.

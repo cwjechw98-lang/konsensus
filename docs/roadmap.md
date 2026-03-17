@@ -137,5 +137,5 @@
 
 Результат шага:
 - Mini App проверен в реальном Telegram-контейнере на телефоне;
-- safe-area, back/close и deep-link возврат подтверждены уже не через браузерную эмуляцию;
+- safe-area, back/close, deep-link возврат и Telegram auth session creation подтверждены уже не через браузерную эмуляцию;
 - после этого остаётся только короткий `docs alignment pass`, если расхождения между roadmap и status ещё останутся.

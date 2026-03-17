@@ -116,7 +116,6 @@ export default function TelegramAppPage() {
 
         const { error: verifyError } = await supabase.auth.verifyOtp({
           type: "magiclink",
-          email: data.email,
           token_hash: data.hashed_token,
         });
 
