@@ -1,272 +1,116 @@
-# Роадмап Konsensus MVP
+# Роадмап Konsensus
 
-## Фаза 0: Инициализация ✅
-- [x] Создание репозитория и структуры проекта
-- [x] Настройка инструментов (CLAUDE.md, логирование)
-- [x] Документация (концепт, архитектура)
-- [x] Инициализация Next.js + TypeScript + Tailwind
-- [x] Настройка Supabase проекта
+## Принцип
 
-## Фаза 1: Фундамент ✅
-- [x] Подключение Supabase клиента
-- [x] Создание схемы БД (миграции)
-- [x] Настройка RLS-политик
-- [x] Аутентификация (email/password)
-- [x] Базовый layout (header, navigation)
-- [x] Страница профиля
+Основной продуктовый курс только один:
 
-## Фаза 2: Споры ✅
-- [x] Создание спора (форма + API)
-- [x] Список споров (dashboard)
-- [x] Страница спора (просмотр деталей)
-- [x] Приглашение оппонента (инвайт-код + email через Resend)
-- [x] Присоединение к спору (invite flow)
-- [x] Прямой вызов по email (direct challenge)
-- [x] Гостевой режим (anonymous join)
-- [x] Direct challenge для существующего email-аккаунта усилен: надёжный поиск пользователя, мгновенный Telegram push и более информативный контекст приглашения
-- [x] Персональный архив споров: пользователь может убрать спор из активного списка только у себя, открыть его из архива и автоматически вернуть в active при новом событии
-- [x] Reminder flow для архивированных споров: ожидающий участник может мягко напомнить о споре, а после повторной архивации попытки копятся в архиве без Telegram-спама
+- спокойная медиация;
+- полезное ожидание;
+- открытые диспуты вместо battle-подачи;
+- нейтральный ИИ как помощник, а не судья;
+- профессиональный интерфейс без игрового шума и без editorial/support-слоя на главных пользовательских экранах.
 
-## Фаза 3: Аргументы ✅
-- [x] Форма ввода аргумента (позиция + обоснование + доказательства)
-- [x] Раундовая система (1–20 раундов, настраивается)
-- [x] Чат-стиль отображения аргументов
-- [x] Realtime обновления (Supabase Realtime)
-- [x] Email-уведомления оппоненту
+Всё, что относится к gamification, editorial ops и marketing/support, больше не считается частью основного пользовательского roadmap.
 
-## Фаза 4: ИИ-медиатор ✅
-- [x] Интеграция Groq API (llama-3.3-70b-versatile)
-- [x] Категоризация спора (плоскость, тон, суть конфликта)
-- [x] Персональные AI-инсайты после каждого раунда
-- [x] SQL-хранилище обычных AI-инсайтов и waiting-insights закреплено реальной миграцией (`00017`)
-- [x] AI waiting insight (подсказка сразу после подачи аргумента)
-- [x] Tension meter (накал спора, 1–5)
-- [x] Страница медиации (анализ + предложение решений)
-- [x] Принятие решений (consensus flow с real-time)
+## Уже сделано по ядру
 
-## Фаза 5: Завершение MVP ✅
-- [x] Принятие/отклонение решений (resolutions + consensus UI)
-- [x] Статусы споров (open → in_progress → mediation → resolved)
-- [x] Досрочное завершение (early end proposal)
-- [x] Landing page
-- [x] Деплой на Vercel (автодеплой из main)
-- [x] Rate limiting + валидация входных данных
-- [x] Graceful AI error states
+### Фаза 0–5: Основа продукта
+- [x] Инициализация проекта, Supabase, auth, layout
+- [x] Создание спора и invite-flow
+- [x] Guest join и direct challenge
+- [x] Раундовый dispute-flow
+- [x] AI mediation core
+- [x] Статусы спора и consensus-flow
+- [x] Landing и deploy
+- [x] Базовый rate limiting и error states
 
-## Фаза 6: Геймификация ✅
-- [x] Очки опыта (user_points)
-- [x] Достижения — 11 штук (user_achievements)
-- [x] Страница профиля с прогрессом и достижениями (двухколоночный layout)
-- [x] AnimatedCounter для очков
-- [x] Achievement unlock toast notification
-
-## Фаза 7: UX-polish ✅
-- [x] Character count в textarea аргумента (0/2000)
-- [x] Loading state на кнопке "Запустить медиацию"
-- [x] Round progress bar в dispute view
-- [x] Rotating AI tips пока ждёшь ответа оппонента
-- [x] Round count на карточках dashboard
-- [x] Пагинация + фильтры по статусу в dashboard
-- [x] Мобильный UX аудит и фиксы
-- [x] Google OAuth (один клик для приглашённых оппонентов)
-- [x] Google OAuth callback синхронизирует `display_name` в `profiles`, чтобы обычный dispute-flow не падал в `Участник`
-- [x] Dashboard получил фильтр `Активные / Архив`, а споры архивируются явным действием без скрытых жестов
-- [x] Dashboard показывает архивный бар с попытками возобновления и поднимает архивные споры с pending reminders выше остальных
-- [x] Navigation + Onboarding v1
-  Утверждённый пакет зафиксирован в `docs/ops/navigation-onboarding-rollout.md`
-  Реализовано: auth-aware redirect с `/`, top-level IA `Споры / Открытые / Арена / События / Профиль`, постоянный support-layer и двухслойный first-run onboarding
-- [x] Contextual help для ключевых внутренних экранов
-  В рамках `docs/ops/navigation-onboarding-rollout.md`
-  Реализовано: page-context cards и повторный запуск подсказок на `Спорах`, `Открытых`, `Событиях`, `Профиле`, `Новом споре` и экране хода
-- [x] Второй проход по UX внутренних экранов Mini App
-  После внешнего аудита упрощены тексты и подсказки на внутренних вкладках, убраны служебные формулировки и англицизмы, усилена читаемость context/help-блоков на mobile
-- [x] Landing v2
-  Реализация разбита по этапам и зафиксирована в `docs/ops/landing-v2-rollout.md`
-  Реализовано: лендинг пересобран как product-first вход с быстрым hero, 3-шаговым сценарием, proof-blocks и activity-подачей вместо длинного scroll-essay
-
-## Фаза 8: Социальный слой ✅ (частично)
-- [x] Публичные споры (поле is_public, тумблер при создании)
-- [x] Лента публичных споров (/feed, без авторизации)
-- [x] Emoji реакции на споры (👍👎🤔🔥💯, Supabase Realtime)
-- [x] Чат наблюдателей с анонимными никнеймами (1925 комбинаций)
-- [x] "Всезнающий Сурок" — AI-комментатор в чате каждые 5 сообщений
-- [x] Антиспам: прогрессивные блокировки 1 мин / 5 мин, DDoS-защита
-- [x] Telegram-бот (уведомления, привязка, Mini App, Telegram-first вход, автоочистка и дедупликация уведомлений, push о вызовах)
-- [x] Telegram dispute-уведомления переведены на one-live-message-per-dispute: архив удаляет текущий статус из чата, новое событие создаёт/обновляет его заново
-- [x] Telegram surface на вебе: явные CTA входа через Telegram на лендинге, логине и регистрации
-- [x] Dispute reminder flow ограничен anti-spam лимитами `3/час` и `15/сутки`, а повторная архивация переводит возвраты в тихий режим без новых Telegram-push
-- [x] Арена вызовов /arena (доска, hover RPG-тултипы, раундовая дискуссия, редкие AI-комментарии, авто-медиация)
-- [x] Arena Live: список идущих battle, публичный spectator-view, observer chat, delayed observer hints, Telegram-подписка на battle
-- [x] Shadow Mediator для Arena Live: spectator-панель по кнопке с прогнозом реакции и тематическим параллельным кейсом вместо пузырьковой idle-игры
-- [x] AI-категоризация тем при создании спора/вызова
-- [x] Шаблоны тем споров (15 шаблонов, 6 категорий, быстрое заполнение формы)
-- [x] Поиск оппонента (матчинг по теме, фильтры категорий, прямое вступление в open-спор и open-вызов арены)
-
-## Фаза 9: ИИ-углубление ✅ (частично)
-- [x] Публичная карточка ИИ после каждого раунда (видна обоим, индикатор сближения)
-- [x] Оценка силы аргумента перед отправкой (score 1–5, советы)
-- [x] Персональные AI-инсайты после каждого завершённого раунда, включая сохранение последнего инсайта в mediation-flow
-- [x] Структурированный формат AI-инсайтов и waiting-insights (3-секционная персональная подача)
-- [x] Визуальная раскладка AI-инсайтов по смысловым секциям в споре и mediation-flow
-- [x] Единый round package в UI: аргументы + public summary + private insight как итог одного раунда
-- [x] Внутри round package показана динамика обмена: дистанция позиций, сдвиг к/от консенсуса и текущая температура диалога
-- [x] Третий блок персонального инсайта превращён в явный "Вектор следующего хода" без нового AI-вызова и без шаблонных реплик
-- [x] Пост-конфликтный момент (конфетти, общие интересы, инлайн-ачивка)
-- [x] Waiting-stage обычного спора подан как приватная фаза: AI-подсказка, ambient-layer, советы и мини-игры читаются как один порядок ожидания
-- [x] Мягкий orchestration v1 внутри `src/lib/ai.ts`: virtual subagents (`legal_lens`, `empathy_lens`, `mediation_lens`, `fact_lens`) уже обслуживают waiting/private/public/final AI-path с legacy fallback и без переписывания UI
-- [ ] Многоагентная архитектура (Оркестратор + субагенты: Юрист, Психолог, Медиатор) — v2.0
-  Реализация разбита по этапам и зафиксирована в `docs/ops/ai-orchestration-rollout.md`
-  v1 уже внедрён как role-based orchestration внутри `src/lib/ai.ts` без смены UX и без отдельных моделей
-  Что остаётся добить после v1: feature registry, `ai_agent_runs`, AI-profile-driven routing, затем real multi-model routing
-- [ ] Профилирование участников через текстовые квесты — v2.0
-  Реализация разбита по этапам и зафиксирована в `docs/ops/profile-quests-rollout.md`
-  [x] Первый шаг выполнен: 3 коротких текстовых сценария выбора без игрового движка, с обновлением `user_ai_profiles`
-
-## Фаза 10: Личный кабинет v2 + ИИ-профиль ✅
-- [x] Переработка профиля: 4 вкладки (Обзор, Достижения, ИИ-профиль, Настройки)
-- [x] Статистика: споры, аргументы, % консенсуса, категории тем
-- [x] Контрагенты: список людей с кем спорил, частота, исходы
-- [x] Расширенные достижения: 35+ ачивок в 8 категориях (было 10)
-- [x] ИИ-профиль: стиль аргументации, компромисс, эмпатия, импульсивность
-- [x] AI-резюме пользователя
-- [x] Отслеживание эффективности подсказок ИИ (hint logs)
-- [ ] Репутация как история качества диалога
-  Реализация разбита по этапам и зафиксирована в `docs/ops/reputation-rollout.md`
-  [x] Первый шаг выполнен: безопасные публичные бейджи стиля на базе текущих dispute signals без leaderboard и без негативных ярлыков
-- [x] Pre-submission анализ: предупреждение об эскалации конфликта (escalation_risk)
-- [x] Мини-игры при ожидании оппонента (реакция, память, математика)
-- [x] Визуальный waiting-layer без геймплейного шума (ambient-сцена для ожидания ответа)
-- [x] Интерактивный онбординг — tour с подсветкой кнопок
-- [x] Браузерные push-уведомления (Notification API)
-- [x] Шутки/мудрости ИИ в Telegram-боте
-- [x] Broadcast API для рассылки changelog всем пользователям
-- [x] ИИ-генерируемые уникальные достижения (отдельное хранение, профиль, realtime-toast)
-- [x] Мини-игры ожидания расширены до 6 локальных механик и случайной витрины без новых таблиц и серверной логики
-- [x] Образовательный слой
-  Реализация разбита по этапам и зафиксирована в `docs/ops/education-layer-rollout.md`
-  [x] Первый шаг выполнен: 6 коротких Markdown-материалов, rule-based рекомендации на dashboard/profile, страницы `/learn` и server-side completion state
-
-## Фаза 11: Инфраструктура (бэклог)
-- [ ] E2E тестирование основных сценариев (Playwright)
-  Существенно продвинуто: стабилен Playwright-контур на `desktop` / `desktop-wide` / `mobile`, добавлены `public-smoke` и `arena-live` suites, текущий полный прогон проходит `33/33`
-- [x] Unit-тесты для server actions
-  Первый рабочий слой зафиксирован в `docs/ops/server-actions-tests-rollout.md`
-  Реализовано: `Vitest`, команда `npm run test:unit` и покрытие pure-policy веток для reminder-flow, trust-tier logic и appeals helpers
-- [ ] Error tracking (Sentry)
-- [ ] Supabase Metrics Dashboard (мониторинг)
-- [ ] Оптимизация запросов (N+1, индексы)
-- [x] Release automation для Telegram: структурированный release payload, картинка релиза, публикация в бот и канал, идемпотентность по slug
-- [x] Scheduled editorial posting для Telegram release-flow
-  Реализовано: `scheduleAt` в broadcast/script, cron-runner `/api/telegram/editorial/run` и daily Vercel Cron sweep поверх `release_announcements`
-- [x] Invite/direct challenge сообщения приведены к более полному контексту: тема, описание и понятный post-create сигнал при сбое email-канала
-- [x] Персональное состояние спора вынесено в отдельную SQL-модель `dispute_user_state` (`00018`) с RLS, чтобы dashboard и Telegram синхронно обрабатывали архив и auto-unarchive
-- [x] Добавлена SQL-модель `dispute_reminders` и расширено `dispute_user_state` (`00019`) для лимитов напоминаний, pending counters и mute после повторной архивации
-- [x] Апелляционный слой для AI-выводов и репутации
-  Реализация разбита по этапам и зафиксирована в `docs/ops/appeals-rollout.md`
-  [x] Первый шаг выполнен: апелляция на конкретный автоматический вывод (`AI summary` и `reputation badge`) с auto-review и скрытием спорного вывода при низкой уверенности
-  [x] Второй шаг выполнен: manual moderation queue и ручной override поверх auto-review внутри `AI-профиля`
-- [x] Типы аккаунтов и trust tiers для публичного слоя
-  Реализация разбита по этапам и зафиксирована в `docs/ops/trust-tiers-rollout.md`
-  [x] Первый шаг выполнен: `basic / linked / trusted`, rule-based evaluator и gating публичных write-операций без тяжёлой KYC-модели
-- [x] Ops-документация: local-only настройки, release-flow, model-strategy
-- [x] Витрина поддержки проекта: support links через env, отдельная страница и ссылки в веб-интерфейсе
-- [x] Подготовлен маркетинговый контент-пакет для Boosty: уровни поддержки, цели, блок `О проекте`, стартовые посты, витринный paid-post и промпты визуалов в `docs/marketing/boosty/`
-- [x] Подготовлен редакционный пакет для Telegram: канальные посты, bot-тизер и structured release payloads в `docs/marketing/telegram/`
-- [x] Vercel production env для support/release visibility
-  Env добавлены через Vercel dashboard, production redeploy выполнен
-- [x] Редакционная Telegram-логика второго слоя
-  Зафиксирована в `docs/ops/telegram-editorial-rollout.md`
-  Реализовано: полный post/card уходит в канал, бот отправляет только teaser, suppress для подписанных пользователей идёт через `getChatMember` и SQL-кэш `telegram_channel_memberships`
-
-## Текущий порядок выполнения
-
-- [x] AI orchestration v1
+### Фаза 6: Спокойный UX-слой
 - [x] Navigation + Onboarding v1.1
+- [x] Contextual help на ключевых экранах
 - [x] Perceived Performance v1
-  Зафиксирован в `docs/ops/perceived-performance-rollout.md`
-  Реализовано: route-level `loading.tsx`, общий loading-shell и pending-state на ключевых server-action CTA
 - [x] Activity Feed v1
-  Зафиксирован в `docs/ops/activity-feed-rollout.md`
-  Реализовано: `События` собраны из release cards, arena activity и публичных dispute events вместо простого списка публичных споров
-- [x] Landing v2 implementation
-  Зафиксирован в `docs/ops/landing-v2-rollout.md`
-  Реализовано: product-first hero, 3-step flow, proof blocks, activity bridge и support bridge вместо длинного scroll-essay
+- [x] Landing v2 как product-first вход
 
-- [x] Profile Quests v1
-  Зафиксирован в `docs/ops/profile-quests-rollout.md`
-  Реализовано: 3 сценария, история прохождения, rule-based обновление `user_ai_profiles` и UI внутри вкладки `AI-профиль`
-
-- [x] Reputation v1
-  Зафиксирован в `docs/ops/reputation-rollout.md`
-  Реализовано: безопасные публичные бейджи стиля в профиле и на публичной hover-карточке арены
-
-- [x] Education Layer v1
-  [x] Выполнено: первый набор коротких материалов и рекомендаций уже реализован
-
-- [x] Trust Tiers v1
-  Выполнено: первый trust-layer публичного слоя уже внедрён
-
-- [x] Appeals v1
-  Выполнено: первый слой апелляций на автоматические выводы уже собран в `docs/ops/appeals-rollout.md`
-
-- [x] Appeals v1.1
-  Выполнено: admin-only очередь ручной модерации и manual override уже добавлены поверх auto-review
-
-- [x] Unit tests for server actions v1
-  Зафиксирован в `docs/ops/server-actions-tests-rollout.md`
-  Реализовано: минимальный `Vitest`-контур и unit-покрытие policy-логики для reminder, trust-tier и appeals
-
-- [x] Telegram editorial layer v2
-  Зафиксирован в `docs/ops/telegram-editorial-rollout.md`
-  Реализовано: раздельная delivery-модель `channel full post / bot teaser`, suppress bot-тизеров для подписанных пользователей и membership-cache через SQL + webhook sync
-
-- [x] Scheduled editorial posting
-  Выполнено: release subsystem умеет отложенную публикацию через cron-runner и schedule fields в `release_announcements`
-
-- [x] Cleanup build-warning по editorial OG-route
-  Выполнено: из `/api/releases/[slug]/image` убран принудительный `edge runtime`, после чего `next build` больше не показывает warning про отключение static generation
-
-- [x] Telegram editorial reporting v1.2
-  Выполнено: в `release_announcements` сохраняются delivery-метрики бота/канала, а admin-only панель в профиле показывает последние editorial reports и очередь запланированных релизов
-
-- [x] Синхронизация admin whitelist
-  Выполнено: локально задан `KONSENSUS_ADMIN_EMAILS`, а формат env задокументирован в `.env.example`
-
-- [x] Editorial Ops v1
-  Выполнено: отдельный admin-only `/ops/editorial`, cursor/draft SQL-модель, AI-черновики по GitHub commit range, review/edit/publish/schedule и вынесенный editorial delivery layer
-
-- [x] Editorial Ops v1.1
-  Выполнено: добавлен `/ops` landing, admin-only appeals moderation вынесен в `/ops/appeals`, а профиль очищен от remaining ops-блоков
-
-- [x] Editorial Ops v1.2
-  Выполнено: draft generation стал богаче за счёт signal-based context, а активный editorial draft теперь умеет rebase на текущий `HEAD`
-
-- [x] Editorial Ops v1.3
-  Выполнено: active draft показывает compare до/после rebase, история draft-ов получила фильтры, а `/ops/editorial` яснее показывает workflow и scheduled state
-
-- [x] Editorial Ops v1.4
-  Выполнено: release workflow получил явные типы сценариев, compare переключается между несколькими rebase snapshot'ами, а history поддерживает поиск и фильтр `With rebase`
-
-- [x] Editorial Ops finalization
-  Выполнено: bulk actions, delivery summary cards, workflow timeline, ручная корректировка release type и conflict guards для multi-admin сценариев
-
-- [x] Telegram Mini-App UX cleanup
-  Выполнено: landing переведён на человеческий copy без dev-терминов, support-strip убран из каждого мобильного экрана, добавлен scroll progress bar и улучшен safe-area у нижнего shell
-
-- [x] Cleanup старых lint-warning
-  Закрыты хвосты в `GuestJoinButton.tsx` и `TelegramConnect.tsx`, после чего `eslint` снова проходит без предупреждений
-
-## Отдельно зафиксированные вещи
-
+### Фаза 7: Надёжность и сопровождение спора
+- [x] Персональный архив споров
 - [x] Reminder flow для архивированных споров
-  Уже реализован: `00019`, anti-spam лимиты, pending reminders, mute после повторной архивации и auto-unarchive
-- [ ] Reminder / bell для обычного активного спора
-  Реализация теперь зафиксирована в `docs/ops/active-reminder-rollout.md`
-  [x] Первый шаг выполнен: waiting-state обычного активного спора шлёт реальный Telegram bell через текущий `sendDisputeReminder`
+- [x] Reminder bell для активного waiting-state
+- [x] Trust Tiers v1
+- [x] Appeals v1
+- [x] Appeals v1.1
+- [x] Unit tests for server actions
 
-## Внутренние правила работы
-- [x] Уточнён git-workflow для агентов: staging только по согласованным файлам текущей итерации, без `git add -A`
-- [x] Зафиксировано правило последовательного git-потока: `git add` → дождаться результата → `git commit` → дождаться результата → `git push`
-- [x] Концептуальная документация переведена в Markdown как основной рабочий формат: главный файл теперь `тз и концепция/Konsensus_TZ_v0.1.md`, а не `docx`
-- [x] Стратегические rollout-блоки сведены в единый индекс `docs/ops/README.md`, а в `AGENTS.md` зафиксировано правило: перед возвратом к такому пласту читать его rollout-файл и обновлять статус блока в нём самом, а также в `docs/status.md` и `docs/roadmap.md`
-- [x] Все стратегические rollout-блоки доведены до рабочего формата: в каждом есть `статус блока`, `пакет реализации v1`, конкретные файлы/поверхности и отдельный хвост того, что отложено после первого внедрения
+### Фаза 8: ИИ и полезное сопровождение
+- [x] AI orchestration v1
+- [x] Education Layer v1
+- [ ] Waiting-layer v2 по финальной концепции
+  Нужен новый спокойный слой ожидания:
+  - мягкие AI-подсказки;
+  - факты о коммуникации;
+  - визуализация сближения;
+  - `Теневой медиатор`;
+  - простая текстовая микро-механика `Выбери одно из двух`
+
+## Активный основной план
+
+### Пакет 1. Concept realignment UI
+- [ ] Убрать battle/game/editorial/support drift из основных экранов
+- [ ] Убрать оставшиеся служебные и внутренние формулировки
+- [ ] Пересобрать подачу `События / Открытые / Арена / Профиль` в спокойной профессиональной рамке
+
+### Пакет 2. Waiting layer reset
+- [ ] Убрать любые мини-игры из основного waiting-state
+- [ ] Собрать новый waiting-layer вокруг `Теневого медиатора`
+- [ ] Добавить текстовую микро-механику `Выбери одно из двух`
+- [ ] Добавить полезные факты о коммуникации и мягкие AI-советы
+
+### Пакет 3. Public disputes reset
+- [ ] Переписать публичный слой как `открытые диспуты`, а не `арена боёв`
+- [ ] Убрать `battle`, `spectator`, `show` и похожую лексику из пользовательских экранов
+- [ ] Оставить наблюдение, ход раундов и медиацию как полезный публичный формат
+
+### Пакет 4. Calm profile reset
+- [ ] Очистить профиль от game-first подачи
+- [ ] Сохранить полезные части AI-профиля, trust и appeals
+- [ ] Спрятать или переосмыслить RPG/XP/achievement слой как необязательный внутренний хвост
+
+## Parked / internal backlog
+
+Эти блоки не удаляются из репозитория, но больше не двигают основной пользовательский roadmap:
+
+### Internal ops
+- [ ] Editorial Ops дальнейших версий
+- [ ] Delivery analytics / editorial tooling polishing
+- [ ] Release workflow improvements
+
+### Support / marketing
+- [ ] Boosty контент
+- [ ] Support marketing
+- [ ] Telegram editorial campaigns
+
+### Неосновная игровая ветка
+- [ ] RPG-подача профиля
+- [ ] XP / achievements как заметный главный слой
+- [ ] Любые игровые waiting-механики
+- [ ] Шоу-подача публичных диспутов
+
+## Следующий шаг
+
+Следующий пакет по плану:
+
+**Concept realignment UI**
+
+Фокус:
+- [C:\project21\konsensus\src\app\page.tsx](/C:/project21/konsensus/src/app/page.tsx)
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
+- [C:\project21\konsensus\src\components\SupportStrip.tsx](/C:/project21/konsensus/src/components/SupportStrip.tsx)
+- [C:\project21\konsensus\src\components\OnboardingGuide.tsx](/C:/project21/konsensus/src/components/OnboardingGuide.tsx)
+- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
+
+Результат шага:
+- основные экраны перестают выглядеть как смесь продукта, админки и витрины;
+- у пользователя остаётся только спокойная медиационная рамка;
+- support уходит на `/support`, а editorial и ops перестают просачиваться в user-facing copy.
