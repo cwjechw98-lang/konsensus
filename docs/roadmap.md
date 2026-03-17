@@ -95,9 +95,14 @@
 - [x] Добить последние мобильные хвосты по фактическим скринам, а не по коду
 
 ### Пакет 9. Dashboard card cleanup
-- [ ] Упростить архивные dispute-card на мобильном
-- [ ] Проверить иерархию действий внутри reminder/archived состояний
-- [ ] Добить оставшийся вертикальный шум в пользовательском слое, если он подтверждается реальными скринами
+- [x] Упростить архивные dispute-card на мобильном
+- [x] Проверить иерархию действий внутри reminder/archived состояний
+- [x] Добить оставшийся вертикальный шум в пользовательском слое, если он подтверждается реальными скринами
+
+### Пакет 10. Telegram Mini App sweep
+- [ ] Пройти интерфейс внутри реального Telegram WebApp-контейнера
+- [ ] Проверить container-specific safe-area, back/close behaviour и header
+- [ ] Оставить только Telegram-специфичные доработки, если они реально подтверждаются
 
 ## Parked / internal backlog
 
@@ -123,12 +128,14 @@
 
 Следующий пакет по плану:
 
-**Dashboard card cleanup**
+**Telegram Mini App sweep**
 
 Фокус:
-- [C:\project21\konsensus\src\components\DashboardDisputeCard.tsx](/C:/project21/konsensus/src/components/DashboardDisputeCard.tsx)
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
+- [C:\project21\konsensus\src\components\Header.tsx](/C:/project21/konsensus/src/components/Header.tsx)
+- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
+- [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
 
 Результат шага:
-- карточки споров и reminder-состояния проверены на мобильном;
-- следующий пакет, если потребуется, будет уже совсем узким и локальным.
+- интерфейс проверен внутри самого Telegram-контейнера;
+- если хвосты останутся, они будут уже именно Telegram-специфичными, а не общими mobile-предположениями.

@@ -306,15 +306,6 @@ export default async function DashboardPage({
           </div>
         ) : (
           <>
-            <div className="mb-5 sm:hidden">
-              <EducationRecommendationsPanel
-                userId={user.id}
-                compact
-                title="Следующий полезный шаг"
-                description="Один короткий материал под ваш текущий стиль диалога."
-              />
-            </div>
-
             <div className="flex flex-col gap-3" data-tour="disputes-list">
               {paginatedDisputes.map((dispute) => {
                 const disputeState = stateByDisputeId.get(dispute.id);
@@ -369,6 +360,15 @@ export default async function DashboardPage({
                 )}
               </div>
             )}
+
+            <div className="mt-5 sm:hidden">
+              <EducationRecommendationsPanel
+                userId={user.id}
+                compact
+                title="Следующий полезный шаг"
+                description="Один короткий материал под ваш текущий стиль диалога."
+              />
+            </div>
           </>
         )}
 

@@ -49,19 +49,35 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
     lastReminderFrom,
     canClose,
   } = props;
+  const hasPriorityReminder = archived && pendingReminderCount > 0;
+  const formattedReminderAt = lastRemindedAt
+    ? new Date(lastRemindedAt).toLocaleString("ru-RU", {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const primaryActionLabel = archived ? "Продолжить спор" : "Открыть спор";
+  const primaryPendingText = archived ? "Возвращаем..." : "Открываем...";
 
   return (
     <div className="card-gradient-top glass rounded-xl p-4">
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
-          <Link href={`/dispute/${id}`} className="font-medium text-white hover:text-purple-200 transition-colors">
+          <Link
+            href={`/dispute/${id}`}
+            className="font-medium text-white hover:text-purple-200 transition-colors"
+          >
             {title}
           </Link>
-          <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+          <p className="mt-1 text-sm text-gray-500 line-clamp-3 sm:line-clamp-2">
             {description}
           </p>
         </div>
-        <span className={`text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[status]}`}>
+        <span
+          className={`text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[status]}`}
+        >
           {STATUS_LABELS[status]}
         </span>
       </div>
@@ -80,52 +96,75 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
         )}
       </div>
 
-      {archived && pendingReminderCount > 0 && (
-        <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          <p className="font-medium">
-            Новых попыток возобновить спор: {pendingReminderCount}
-          </p>
+      {hasPriorityReminder && (
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
+          <p className="font-medium">Попыток возобновить спор: {pendingReminderCount}</p>
           <p className="mt-1 text-amber-100/80">
-            {lastReminderFrom ? `Последнее напоминание: ${lastReminderFrom}` : "Последнее напоминание уже зафиксировано"}
-            {lastRemindedAt ? ` · ${new Date(lastRemindedAt).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+            {lastReminderFrom ? `Последнее напоминание от ${lastReminderFrom}` : "Последнее напоминание уже зафиксировано"}
+            {formattedReminderAt ? ` · ${formattedReminderAt}` : ""}
           </p>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <form action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <form
+            action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}
+            className="sm:flex-shrink-0"
+          >
             <input type="hidden" name="dispute_id" value={id} />
             <input type="hidden" name="return_to" value={returnTo} />
             <SubmitButton
-              pendingText={archived ? "Возвращаем..." : "Архивируем..."}
-              className="text-gray-500 transition-colors hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              pendingText={primaryPendingText}
+              className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto ${
+                archived
+                  ? "bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/20"
+                  : "bg-purple-600/20 text-purple-200 hover:bg-purple-600/30"
+              }`}
             >
-              {archived ? "Продолжить" : "Архивировать"}
+              {primaryActionLabel}
             </SubmitButton>
           </form>
 
-          {archived && canClose && (status === "open" || status === "in_progress") && (
-            <form action={closeDispute}>
-              <input type="hidden" name="dispute_id" value={id} />
-              <SubmitButton
-                pendingText="Закрываем..."
-                className="text-gray-500 transition-colors hover:text-red-300 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Закрыть
-              </SubmitButton>
-            </form>
-          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+            {!archived ? (
+              <form action={archiveDisputeForUser}>
+                <input type="hidden" name="dispute_id" value={id} />
+                <input type="hidden" name="return_to" value={returnTo} />
+                <SubmitButton
+                  pendingText="Архивируем..."
+                  className="text-gray-500 transition-colors hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Архивировать
+                </SubmitButton>
+              </form>
+            ) : null}
 
-          <Link href={`/dispute/${id}`} className="text-gray-500 hover:text-white transition-colors">
-            Открыть
-          </Link>
+            {archived && canClose && (status === "open" || status === "in_progress") && (
+              <form action={closeDispute}>
+                <input type="hidden" name="dispute_id" value={id} />
+                <SubmitButton
+                  pendingText="Закрываем..."
+                  className="text-gray-500 transition-colors hover:text-red-300 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Закрыть
+                </SubmitButton>
+              </form>
+            )}
+
+            <Link
+              href={`/dispute/${id}`}
+              className="text-gray-500 hover:text-white transition-colors"
+            >
+              Открыть детали
+            </Link>
+          </div>
         </div>
 
-        {archived && pendingReminderCount > 0 && (
-          <span className="text-[11px] uppercase tracking-[0.16em] text-amber-300/80">
-            Возврат в приоритете
-          </span>
+        {hasPriorityReminder && (
+          <div className="text-[11px] uppercase tracking-[0.16em] text-amber-300/80">
+            Приоритетный возврат в обсуждение
+          </div>
         )}
       </div>
     </div>
