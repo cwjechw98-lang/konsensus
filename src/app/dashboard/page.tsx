@@ -208,15 +208,16 @@ export default async function DashboardPage({
             eyebrow="Ваши споры"
             title="Главный рабочий экран"
             description="Создайте спор, войдите по коду или вернитесь к уже начатому обсуждению."
-            bullets={[
-              "Активные и архивные карточки",
-              "Напоминания по важным спорам",
-            ]}
-            tone="purple"
-            compact
-            actions={
-              <OnboardingTour
-                page="dashboard"
+          bullets={[
+            "Активные и архивные карточки",
+            "Напоминания по важным спорам",
+          ]}
+          tone="purple"
+          compact
+          mobileTerse
+          actions={
+            <OnboardingTour
+              page="dashboard"
                 showReplayButton
                 buttonLabel="Подсказки по экрану"
               />
@@ -224,7 +225,7 @@ export default async function DashboardPage({
           />
         </div>
 
-        <div className="mb-5">
+        <div className="mb-5 hidden sm:block">
           <EducationRecommendationsPanel
             userId={user.id}
             compact
@@ -253,7 +254,7 @@ export default async function DashboardPage({
           </Link>
         )}
 
-        <div className="flex gap-1.5 mb-4 flex-wrap">
+        <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
           {VIEW_FILTERS.map((filter) => (
             <Link
               key={filter.value}
@@ -269,7 +270,7 @@ export default async function DashboardPage({
           ))}
         </div>
 
-        <div className="flex gap-1.5 mb-5 flex-wrap" data-tour="filters">
+        <div className="mb-5 flex gap-1.5 overflow-x-auto pb-1" data-tour="filters">
           {STATUS_FILTERS.map((filter) => (
             <Link
               key={filter.value}
@@ -305,6 +306,15 @@ export default async function DashboardPage({
           </div>
         ) : (
           <>
+            <div className="mb-5 sm:hidden">
+              <EducationRecommendationsPanel
+                userId={user.id}
+                compact
+                title="Следующий полезный шаг"
+                description="Один короткий материал под ваш текущий стиль диалога."
+              />
+            </div>
+
             <div className="flex flex-col gap-3" data-tour="disputes-list">
               {paginatedDisputes.map((dispute) => {
                 const disputeState = stateByDisputeId.get(dispute.id);

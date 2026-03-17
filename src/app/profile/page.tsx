@@ -244,6 +244,7 @@ export default async function ProfilePage({
             "Настройки и Telegram",
           ]}
           tone="amber"
+          mobileTerse
           actions={
             <OnboardingTour
               page="profile"

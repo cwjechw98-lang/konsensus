@@ -90,9 +90,14 @@
 - [x] Зафиксировать остаточные точечные дефекты отдельным коротким пакетом
 
 ### Пакет 8. Secondary mobile QA sweep
-- [ ] Пройти авторизованные мобильные экраны с нижней навигацией
-- [ ] Проверить safe-area и визуальный ритм уже внутри залогиненной Mini App-сессии
-- [ ] Добить последние мобильные хвосты по фактическим скринам, а не по коду
+- [x] Пройти авторизованные мобильные экраны с нижней навигацией
+- [x] Проверить safe-area и визуальный ритм уже внутри залогиненной Mini App-сессии
+- [x] Добить последние мобильные хвосты по фактическим скринам, а не по коду
+
+### Пакет 9. Dashboard card cleanup
+- [ ] Упростить архивные dispute-card на мобильном
+- [ ] Проверить иерархию действий внутри reminder/archived состояний
+- [ ] Добить оставшийся вертикальный шум в пользовательском слое, если он подтверждается реальными скринами
 
 ## Parked / internal backlog
 
@@ -118,14 +123,12 @@
 
 Следующий пакет по плану:
 
-**Secondary mobile QA sweep**
+**Dashboard card cleanup**
 
 Фокус:
+- [C:\project21\konsensus\src\components\DashboardDisputeCard.tsx](/C:/project21/konsensus/src/components/DashboardDisputeCard.tsx)
 - [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
-- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
-- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
 
 Результат шага:
-- нижняя навигация и safe-area проверены на реальной авторизованной поверхности;
-- следующий пакет, если понадобится, будет совсем коротким и предметным.
+- карточки споров и reminder-состояния проверены на мобильном;
+- следующий пакет, если потребуется, будет уже совсем узким и локальным.

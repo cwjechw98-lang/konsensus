@@ -47,6 +47,7 @@ type PageContextCardProps = {
   actions?: ReactNode;
   dataTour?: string;
   compact?: boolean;
+  mobileTerse?: boolean;
 };
 
 export default function PageContextCard({
@@ -58,6 +59,7 @@ export default function PageContextCard({
   actions,
   dataTour,
   compact = false,
+  mobileTerse = false,
 }: PageContextCardProps) {
   const styles = TONE_STYLES[tone];
 
@@ -74,13 +76,23 @@ export default function PageContextCard({
             {eyebrow}
           </p>
           <h2 className={`${compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"} font-bold text-white`}>{title}</h2>
-          <p className={`mt-2 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed text-gray-300`}>{description}</p>
+          <p
+            className={`mt-2 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed text-gray-300 ${
+              mobileTerse ? "hidden sm:block" : ""
+            }`}
+          >
+            {description}
+          </p>
         </div>
 
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
 
-      <div className={`mt-4 flex flex-wrap ${compact ? "gap-2" : "gap-2.5"}`}>
+      <div
+        className={`mt-4 flex flex-wrap ${compact ? "gap-2" : "gap-2.5"} ${
+          mobileTerse ? "hidden sm:flex" : ""
+        }`}
+      >
         {bullets.map((bullet) => (
           <div
             key={bullet}

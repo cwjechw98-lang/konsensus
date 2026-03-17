@@ -199,6 +199,7 @@ export default function NewDisputePage() {
           ]}
           tone="purple"
           compact
+          mobileTerse
           actions={
             <OnboardingTour
               page="dispute_new"
@@ -385,7 +386,7 @@ export default function NewDisputePage() {
             Публичные споры доступны с уровня Trusted. Текущий уровень доверия виден в профиле.
           </p>
 
-          <div className="flex gap-3 mt-2">
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
             <SubmitButton
               pendingText="Создаём спор..."
               className="btn-ripple rounded-lg bg-purple-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -394,15 +395,9 @@ export default function NewDisputePage() {
             </SubmitButton>
             <Link
               href="/matchmaking"
-              className="glass px-6 py-2.5 rounded-lg font-medium text-gray-300 hover:text-white transition-colors"
+              className="glass rounded-lg px-6 py-2.5 text-center font-medium text-gray-300 transition-colors hover:text-white"
             >
               Найти оппонента
-            </Link>
-            <Link
-              href="/dashboard"
-              className="glass px-6 py-2.5 rounded-lg font-medium text-gray-300 hover:text-white transition-colors"
-            >
-              Отмена
             </Link>
           </div>
         </form>
