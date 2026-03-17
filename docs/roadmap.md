@@ -128,15 +128,14 @@
 
 Следующий пакет по плану:
 
-**Production Telegram smoke**
+**Post-deploy Telegram verify**
 
 Фокус:
-- [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 - [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
 - [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
-- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
+- [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 
 Результат шага:
-- задеплоенный Mini App проверен в живом Telegram-контейнере;
-- back/close и safe-area подтверждены уже не по браузерной имитации;
-- если хвосты останутся, это будут точечные production-specific правки, а не новый широкий mobile пакет.
+- прод повторно проверен после деплоя фикса `BackButton`;
+- shell-cookie сценарий не даёт Telegram SDK warning;
+- после этого остаётся только финальная ручная проверка в реальном Telegram-контейнере.

@@ -10,6 +10,7 @@ const TELEGRAM_INIT_TIMEOUT_MS = 1200;
 type TelegramWebApp = {
   initData?: string;
   close?: () => void;
+  isVersionAtLeast?: (version: string) => boolean;
   BackButton?: {
     show?: () => void;
     hide?: () => void;
@@ -45,6 +46,10 @@ function isTopLevelShellPath(pathname: string) {
     pathname === "/support" ||
     pathname === "/ops"
   );
+}
+
+function supportsBackButton(tg?: TelegramWebApp) {
+  return Boolean(tg?.isVersionAtLeast?.("6.1"));
 }
 
 export default function TelegramShellSync() {
@@ -83,22 +88,28 @@ export default function TelegramShellSync() {
           tg?.close?.();
         };
 
-        tg?.BackButton?.show?.();
-        tg?.BackButton?.onClick?.(backHandler);
+        if (supportsBackButton(tg)) {
+          tg?.BackButton?.show?.();
+          tg?.BackButton?.onClick?.(backHandler);
+        }
         return true;
       }
 
-      tg?.BackButton?.hide?.();
+      if (supportsBackButton(tg)) {
+        tg?.BackButton?.hide?.();
+      }
       return false;
     };
 
     if (applyTelegramShell()) {
       return () => {
         const tg = (window as TelegramWindow).Telegram?.WebApp;
-        if (backHandler) {
+        if (backHandler && supportsBackButton(tg)) {
           tg?.BackButton?.offClick?.(backHandler);
         }
-        tg?.BackButton?.hide?.();
+        if (supportsBackButton(tg)) {
+          tg?.BackButton?.hide?.();
+        }
       };
     }
 
@@ -139,10 +150,12 @@ export default function TelegramShellSync() {
       cancelled = true;
       window.clearInterval(interval);
       const tg = (window as TelegramWindow).Telegram?.WebApp;
-      if (backHandler) {
+      if (backHandler && supportsBackButton(tg)) {
         tg?.BackButton?.offClick?.(backHandler);
       }
-      tg?.BackButton?.hide?.();
+      if (supportsBackButton(tg)) {
+        tg?.BackButton?.hide?.();
+      }
     };
   }, [pathname, router]);
 

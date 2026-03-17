@@ -158,12 +158,17 @@
    - back/close поведение синхронизировано на уровне shell;
    - верхний и нижний safe-area учтены для Telegram-контейнера;
    - липкий `konsensus_tg_shell` теперь сбрасывается вне контейнера.
+11. Завершён `Production Telegram smoke`:
+   - задеплоенный `/tg` проверен через Playwright CLI;
+   - подтверждено, что entry-screen в проде больше не тянет обычный web chrome;
+   - найден production-specific шум от `BackButton is not supported in version 6.0`;
+   - шум устранён через version-gate для Telegram `BackButton` в shell-sync.
 
 ## Следующий практический шаг
 
-**Production Telegram smoke**
+**Post-deploy Telegram verify**
 
 Следующий шаг:
-- проверить уже задеплоенный Mini App внутри реального Telegram WebApp;
-- пройти сценарии `/tg -> /dashboard -> nested page -> back/close`;
-- подтвердить safe-area и shell-поведение не по браузерной имитации, а в живом контейнере Telegram.
+- дождаться Vercel deploy с фиксом `BackButton` gating;
+- повторно проверить продовый `/tg` и shell-cookie сценарий;
+- затем пройти уже живой Telegram-контейнер на телефоне для финального container verification.
