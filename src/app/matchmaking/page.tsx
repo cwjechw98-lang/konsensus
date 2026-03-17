@@ -93,19 +93,20 @@ export default async function MatchmakingPage({
         <PageContextCard
           dataTour="open-intro"
           eyebrow="Готовые к старту"
-          title="Здесь ждут споры и вызовы, куда можно войти сразу"
-          description="Выберите тему, откройте карточку и подключитесь. После входа спор или вызов начнётся без лишних шагов."
+          title="Здесь ждут споры и открытые темы"
+          description="Выберите карточку и подключитесь. После входа обсуждение начнётся без лишних шагов."
           bullets={[
-            "Обычные споры и арена",
+            "Споры и открытые темы",
             "Фильтр по темам",
             "Быстрый вход",
           ]}
           tone="cyan"
+          compact
           actions={
             <OnboardingTour
               page="matchmaking"
               showReplayButton
-              buttonLabel="Как пользоваться этим экраном"
+              buttonLabel="Подсказки"
             />
           }
         />
@@ -149,13 +150,13 @@ export default async function MatchmakingPage({
       {totalItems === 0 ? (
         <div className="text-center py-16">
           <span className="text-4xl">🔍</span>
-          <p className="text-gray-300 text-[15px] mt-3">Сейчас нет открытых карточек. Можно создать свой спор или выйти в арену.</p>
+          <p className="text-gray-300 text-[15px] mt-3">Сейчас нет открытых карточек. Можно создать спор или открыть раздел с публичными темами.</p>
           <div className="flex gap-3 justify-center mt-4">
             <Link href="/dispute/new" className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">
               Создать спор
             </Link>
             <Link href="/arena" className="glass px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white">
-              Арена ⚔️
+              Открытые темы
             </Link>
           </div>
         </div>
@@ -211,7 +212,7 @@ export default async function MatchmakingPage({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                        Вызов
+                        Открытая тема
                       </span>
                       {cat && (
                         <span className="text-xs text-gray-600">{cat.icon} {cat.label}</span>
@@ -228,7 +229,7 @@ export default async function MatchmakingPage({
                       pendingText="Подключаем..."
                       className="rounded-lg bg-orange-600/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Принять вызов →
+                      Подключиться →
                     </SubmitButton>
                   </form>
                 </div>

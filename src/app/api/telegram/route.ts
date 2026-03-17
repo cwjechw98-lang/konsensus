@@ -11,7 +11,7 @@ const TELEGRAM_RELEASE_CHANNEL_ID = getTelegramReleaseChannelId();
 // Persistent bottom keyboard — shown to linked users
 const MAIN_KEYBOARD = {
   keyboard: [
-    [{ text: "⚔️ Вызовы" }, { text: "📋 Споры" }],
+    [{ text: "⚖️ Темы" }, { text: "📋 Споры" }],
     [{ text: "👤 Профиль" }, { text: "🔓 Отвязать" }],
   ],
   resize_keyboard: true,
@@ -21,7 +21,7 @@ const MAIN_KEYBOARD = {
 // Keyboard for unlinked users
 const UNLINKED_KEYBOARD = {
   keyboard: [
-    [{ text: "⚔️ Вызовы" }],
+    [{ text: "⚖️ Темы" }],
     [{ text: "🔗 Привязать аккаунт" }],
   ],
   resize_keyboard: true,
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
       await editMessage(
         chatId,
         messageId,
-        `🔓 Аккаунт <b>${me.display_name ?? "участник"}</b> отвязан.\n\nВы больше не будете получать уведомления.`
+      `🔓 Аккаунт <b>${me.display_name ?? "участник"}</b> отвязан.\n\nВы больше не будете получать уведомления.`
       );
       // Send follow-up with unlinked keyboard
       await replyUnlinked(
@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
 
     await sendMessage(
       chatId,
-      `✅ Аккаунт привязан, <b>${profile.display_name ?? "участник"}</b>!\n\nТеперь вы будете получать уведомления о спорах и вызовах.\n\nИспользуйте кнопки меню ниже 👇`,
+      `✅ Аккаунт привязан, <b>${profile.display_name ?? "участник"}</b>!\n\nТеперь вы будете получать уведомления о спорах и открытых темах.\n\nИспользуйте кнопки меню ниже 👇`,
       { keyboard: MAIN_KEYBOARD }
     );
     return NextResponse.json({ ok: true });
@@ -323,7 +323,7 @@ export async function POST(req: NextRequest) {
 
     await sendMessage(
       chatId,
-      `⚠️ Вы уверены, что хотите отвязать Telegram от аккаунта <b>${me.display_name ?? "участник"}</b>?\n\nВы перестанете получать уведомления о спорах и вызовах.`,
+      `⚠️ Вы уверены, что хотите отвязать Telegram от аккаунта <b>${me.display_name ?? "участник"}</b>?\n\nВы перестанете получать уведомления о спорах и открытых темах.`,
       {
         inline: [
           [
@@ -371,8 +371,8 @@ export async function POST(req: NextRequest) {
   // ── /help ─────────────────────────────────────────────────────────────────
   if (text === "/help") {
     const helpText = me
-      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые темы и диспуты\n📋 Споры — ваши активные споры\n👤 Профиль — краткий срез вашего профиля\n🔓 Отвязать — отвязать Telegram от аккаунта\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /disputes /profile /unlink /help`
-      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые темы и диспуты\n🔗 Привязать аккаунт — подключить уведомления\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /start /help`;
+      ? `ℹ️ <b>Команды бота:</b>\n\n⚖️ Темы — открытые темы и диспуты\n📋 Споры — ваши активные споры\n👤 Профиль — краткий срез вашего профиля\n🔓 Отвязать — отвязать Telegram от аккаунта\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /disputes /profile /unlink /help`
+      : `ℹ️ <b>Команды бота:</b>\n\n⚖️ Темы — открытые темы и диспуты\n🔗 Привязать аккаунт — подключить уведомления\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /start /help`;
 
     if (me) {
       await reply(chatId, helpText, undefined, userMsgId);
@@ -383,7 +383,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── ⚔️ Вызовы / /challenges ───────────────────────────────────────────────
-  if (text === "/challenges" || text === "⚔️ Вызовы") {
+  if (text === "/challenges" || text === "⚔️ Вызовы" || text === "⚖️ Темы") {
     const { data: challenges } = await admin
       .from("challenges")
       .select("id, topic, position_hint, profiles(display_name)")
@@ -393,11 +393,11 @@ export async function POST(req: NextRequest) {
       .returns<{ id: string; topic: string; position_hint: string; profiles: { display_name: string | null } | null }[]>();
 
     if (!challenges || challenges.length === 0) {
-      const msg = "🏟 На арене пока нет открытых вызовов.";
+      const msg = "📭 Сейчас нет открытых тем.";
       if (me) {
-        await reply(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+        await reply(chatId, msg, { label: "Открыть темы →", url: `${APP_URL}/arena` });
       } else {
-        await replyUnlinked(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+        await replyUnlinked(chatId, msg, { label: "Открыть темы →", url: `${APP_URL}/arena` });
       }
       return NextResponse.json({ ok: true });
     }
@@ -406,11 +406,11 @@ export async function POST(req: NextRequest) {
       .map((c, i) => `${i + 1}. <b>${c.topic}</b>\nот ${c.profiles?.display_name ?? "Участник"} · <i>${c.position_hint}</i>`)
       .join("\n\n");
 
-    const msg = `⚔️ <b>Открытые вызовы:</b>\n\n${lines}`;
+    const msg = `⚖️ <b>Открытые темы:</b>\n\n${lines}`;
     if (me) {
-      await reply(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+      await reply(chatId, msg, { label: "Открыть темы →", url: `${APP_URL}/arena` });
     } else {
-      await replyUnlinked(chatId, msg, { label: "Открыть арену →", url: `${APP_URL}/arena` });
+      await replyUnlinked(chatId, msg, { label: "Открыть темы →", url: `${APP_URL}/arena` });
     }
     return NextResponse.json({ ok: true });
   }

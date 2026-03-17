@@ -80,9 +80,14 @@
 - [x] Добить визуальную иерархию на `Споры / События / Новый спор / Арена`
 
 ### Пакет 6. Residual terminology sweep
-- [ ] Убрать остатки `battle/arena-show` и служебного языка из второстепенных экранов
-- [ ] Привести loading/help/Telegram copy к одной спокойной рамке
-- [ ] Дочистить promotional/support следы с пользовательских поверхностей
+- [x] Убрать остатки `battle/arena-show` и служебного языка из второстепенных экранов
+- [x] Привести loading/help/Telegram copy к одной спокойной рамке
+- [x] Дочистить promotional/support следы с пользовательских поверхностей
+
+### Пакет 7. Mobile QA pass
+- [ ] Пройти реальные мобильные экраны после всех текстовых и UX-правок
+- [ ] Проверить safe-area, плотность карточек и читаемость на Telegram Mini App
+- [ ] Зафиксировать остаточные точечные дефекты отдельным коротким пакетом
 
 ## Parked / internal backlog
 
@@ -108,15 +113,16 @@
 
 Следующий пакет по плану:
 
-**Residual terminology sweep**
+**Mobile QA pass**
 
 Фокус:
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
 - [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
-- [C:\project21\konsensus\src\app\arena\loading.tsx](/C:/project21/konsensus/src/app/arena/loading.tsx)
-- [C:\project21\konsensus\src\components\Footer.tsx](/C:/project21/konsensus/src/components/Footer.tsx)
-- [C:\project21\konsensus\src\app\api\telegram\route.ts](/C:/project21/konsensus/src/app/api/telegram/route.ts)
-- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
+- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
 
 Результат шага:
-- пользовательские поверхности перестают смешивать спокойную медиацию с остаточным служебным и battle-языком;
-- Telegram и Mini App говорят одним и тем же нейтральным языком.
+- все ключевые мобильные экраны проверены уже визуально;
+- следующий пакет формируется не из предположений, а из конкретных найденных UX-дефектов.

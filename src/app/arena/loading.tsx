@@ -3,8 +3,8 @@ import AppLoadingShell from "@/components/AppLoadingShell";
 export default function ArenaLoading() {
   return (
     <AppLoadingShell
-      title="Загружаем арену"
-      description="Сначала появится каркас battle-экрана, затем — активные вызовы и live-состояние."
+      title="Загружаем открытые диспуты"
+      description="Сначала появится каркас экрана, затем — активные обсуждения и открытые темы."
       blocks={4}
     />
   );

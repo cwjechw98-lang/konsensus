@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Residual terminology sweep`: из `Открытых`, loading-state и Telegram-слоя убраны оставшиеся `Арена ⚔️`, `battle-screen`, `вызовы` и другой хвост старой battle-подачи.
 - 2026-03-17 — выполнен пакет `Calm mini-app polish`: page-level туры переведены в ручной режим, внутренние экраны укорочены по copy, блок шаблонов в создании спора свёрнут, а глобальные `Boosty/Crypto`-кнопки убраны из footer.
 - 2026-03-17 — выполнен пакет `Calm profile reset`: профиль, achievement-слой, Telegram-профиль и сценарии выбора очищены от `RPG/XP/квест/награда`-подачи и переведены на язык спокойных сигналов диалога.
 - 2026-03-17 — выполнен пакет `Public disputes reset`: публичный слой и Telegram-уведомления переведены с `battle/show`-языка на язык открытых диспутов и спокойного наблюдения.
@@ -131,22 +132,27 @@
    - контекстные блоки на ключевых экранах стали короче;
    - создание спора больше не начинается со стены шаблонов;
    - footer очищен от глобальных support-кнопок.
-6. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
-   - добить остаточные служебные и battle-термины;
-   - пройти второстепенные экраны и loading-copy;
-   - выровнять Telegram/Mini App language до конца.
+6. Завершён `Residual terminology sweep`:
+   - `Открытые` и Telegram-бот больше не подают публичный слой как `вызовы` и `арену`;
+   - loading-copy очищен от `battle-screen`;
+   - пользовательский copy между Mini App и Telegram стал ближе к одной нейтральной рамке.
+7. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
+   - пройти реальные мобильные скрины и safe-area;
+   - проверить плотность карточек и контраст;
+   - дочистить остаточные второстепенные user-facing хвосты, если они всплывут на реальных экранах.
 
 ## Следующий практический шаг
 
-**Residual terminology sweep**
+**Mobile QA pass**
 
 Нужно пройти:
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
 - [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
-- [C:\project21\konsensus\src\app\arena\loading.tsx](/C:/project21/konsensus/src/app/arena/loading.tsx)
-- [C:\project21\konsensus\src\components\Footer.tsx](/C:/project21/konsensus/src/components/Footer.tsx)
-- [C:\project21\konsensus\src\app\api\telegram\route.ts](/C:/project21/konsensus/src/app/api/telegram/route.ts)
-- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
+- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
 
 Цель следующего шага:
-- убрать последние пользовательские хвосты вроде `Арена ⚔️`, `battle-screen`, устаревших help-текстов и promotional следов;
-- синхронизировать остаточный пользовательский copy между Mini App, Telegram и loading-state.
+- пройти реальные мобильные поверхности и проверить, что спокойная рамка держится не только по тексту, но и по плотности интерфейса;
+- зафиксировать оставшиеся UX-дефекты уже по живым скринам, а не по коду.
