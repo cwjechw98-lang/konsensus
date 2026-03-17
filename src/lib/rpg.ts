@@ -15,14 +15,14 @@ type CoreStats = Omit<RPGStats, "characterClass" | "characterTitle" | "xp">;
 export function computeCharacterClass(stats: CoreStats & { xp: number }): { class: string; title: string } {
   const { xp, argumentation, diplomacy, activity } = stats;
 
-  if (xp < 15) return { class: "Новобранец 🌱", title: "Первые шаги в мире дискуссий" };
-  if (diplomacy >= 75) return { class: "Дипломат 🕊️", title: "Мастер нахождения точек соприкосновения" };
-  if (argumentation >= 75) return { class: "Полемист ⚔️", title: "Острый ум, железные аргументы" };
-  if (activity >= 80) return { class: "Ветеран 🛡️", title: "Прошёл огонь и споры" };
+  if (xp < 15) return { class: "Начальный профиль 🌱", title: "Первые сигналы стиля только начинают собираться" };
+  if (diplomacy >= 75) return { class: "Дипломатичный профиль 🕊️", title: "Чаще других удерживает путь к договорённости" };
+  if (argumentation >= 75) return { class: "Структурный профиль 📐", title: "Опирается на ясные формулировки и сильную аргументацию" };
+  if (activity >= 80) return { class: "Устойчивый профиль 🛡️", title: "Редко выпадает из разговора и держит темп обсуждения" };
   if (argumentation >= 65 && diplomacy >= 65 && activity >= 65 && stats.persistence >= 65) {
-    return { class: "Мастер 👑", title: "Переговорщик высшего уровня" };
+    return { class: "Сбалансированный профиль 👑", title: "Ровно сочетает аргументацию, выдержку и движение к согласию" };
   }
-  return { class: "Переговорщик 🤝", title: "На пути к консенсусу" };
+  return { class: "Рабочий профиль 🤝", title: "Движется к более устойчивому стилю диалога" };
 }
 
 export async function fetchRPGStats(

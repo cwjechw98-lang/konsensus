@@ -88,10 +88,10 @@ export default function AchievementToast() {
               <span className="text-2xl flex-shrink-0">{ach.icon}</span>
               <div className="min-w-0">
                 <p className="text-xs text-purple-400 font-semibold uppercase tracking-wide">
-                  Достижение!
+                  Сигнал профиля
                 </p>
                 <p className="text-sm text-white font-semibold truncate">{ach.title}</p>
-                <p className="text-xs text-gray-500">+{ach.points} очков опыта</p>
+                <p className="text-xs text-gray-500">Добавлено в историю профиля</p>
               </div>
               <span className="ml-auto text-lg flex-shrink-0">✨</span>
             </div>
@@ -105,10 +105,10 @@ export default function AchievementToast() {
             <span className="text-2xl flex-shrink-0">{toast.icon}</span>
             <div className="min-w-0">
               <p className="text-xs text-purple-400 font-semibold uppercase tracking-wide">
-                Уникальная награда!
+                Индивидуальная заметка
               </p>
               <p className="text-sm text-white font-semibold truncate">{toast.title}</p>
-              <p className="text-xs text-gray-500">+{toast.points} очков опыта</p>
+              <p className="text-xs text-gray-500">Добавлено в историю профиля</p>
             </div>
             <span className="ml-auto text-lg flex-shrink-0">✨</span>
           </div>

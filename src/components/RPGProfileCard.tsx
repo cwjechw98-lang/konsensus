@@ -46,7 +46,7 @@ export default function RPGProfileCard({
           <span className="text-xs font-bold text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded-full">
             Профиль диалога
           </span>
-          <span className="text-xs text-gray-500">Опыт: {stats.xp}</span>
+          <span className="text-xs text-gray-500">Индекс: {stats.xp}</span>
         </div>
         <p className="text-sm font-semibold text-white mb-3 truncate">{displayName}</p>
         <div className="flex flex-col gap-1.5 mb-3">
@@ -73,17 +73,17 @@ export default function RPGProfileCard({
   }
 
   return (
-    <div className="glass rounded-2xl p-6 border border-purple-500/20">
+      <div className="glass rounded-2xl p-6 border border-purple-500/20">
       <div className="flex items-center justify-between mb-4">
         <div>
           <span className="text-sm font-bold text-purple-400 bg-purple-500/15 px-3 py-1 rounded-full">
             Профиль диалога
           </span>
-          <p className="text-xs text-gray-500 mt-1">Спокойный срез сильных и слабых сторон в споре</p>
+          <p className="text-xs text-gray-500 mt-1">Спокойный срез ваших привычек в диалоге</p>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-white">{stats.xp}</p>
-          <p className="text-xs text-gray-500">Опыт диалога</p>
+          <p className="text-xs text-gray-500">Индекс диалога</p>
         </div>
       </div>
 

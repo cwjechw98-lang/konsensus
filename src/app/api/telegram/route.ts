@@ -371,8 +371,8 @@ export async function POST(req: NextRequest) {
   // ── /help ─────────────────────────────────────────────────────────────────
   if (text === "/help") {
     const helpText = me
-      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n📋 Споры — ваши активные споры\n👤 Профиль — ваш профиль и XP\n🔓 Отвязать — отвязать Telegram от аккаунта\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /disputes /profile /unlink /help`
-      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые вызовы на арене\n🔗 Привязать аккаунт — подключить уведомления\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /start /help`;
+      ? `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые темы и диспуты\n📋 Споры — ваши активные споры\n👤 Профиль — краткий срез вашего профиля\n🔓 Отвязать — отвязать Telegram от аккаунта\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /disputes /profile /unlink /help`
+      : `ℹ️ <b>Команды бота:</b>\n\n⚔️ Вызовы — открытые темы и диспуты\n🔗 Привязать аккаунт — подключить уведомления\n\n💡 Откройте Mini App через синюю кнопку внизу.\n\nТакже: /challenges /start /help`;
 
     if (me) {
       await reply(chatId, helpText, undefined, userMsgId);
@@ -458,24 +458,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const { data: points } = await admin
-      .from("user_points")
-      .select("total")
-      .eq("user_id", me.id)
-      .single<{ total: number }>();
-
     const { count: disputeCount } = await admin
       .from("disputes")
       .select("*", { count: "exact", head: true })
       .or(`creator_id.eq.${me.id},opponent_id.eq.${me.id}`);
 
-    const xp = points?.total ?? 0;
     const bio = me.bio ? `\n📝 ${me.bio}` : "";
     const stance = me.debate_stance ? `\n💬 <i>${me.debate_stance}</i>` : "";
 
     await reply(
       chatId,
-      `👤 <b>${me.display_name ?? "Участник"}</b>\n⚡ ${xp} XP · 🗣 ${disputeCount ?? 0} споров${bio}${stance}`,
+      `👤 <b>${me.display_name ?? "Участник"}</b>\n🗣 ${disputeCount ?? 0} споров${bio}${stance}`,
       { label: "Открыть профиль →", url: `${APP_URL}/profile` }
     );
     return NextResponse.json({ ok: true });

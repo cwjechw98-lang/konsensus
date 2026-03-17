@@ -155,7 +155,7 @@ export default function ProfileQuestPanel({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-emerald-300">
-                Квест завершён
+                Сценарий завершён
               </p>
               <h3 className="mt-2 text-lg font-semibold text-white">
                 {completion.questTitle}
@@ -246,7 +246,7 @@ export default function ProfileQuestPanel({
             <div className="mt-5">
               <p className="text-sm leading-relaxed text-gray-300">
                 Все шаги пройдены. Теперь можно зафиксировать результат и обновить
-                ваш AI-профиль на основе этих выборов.
+                ваш AI-профиль на основе этих ответов.
               </p>
               <button
                 type="button"
@@ -320,7 +320,7 @@ export default function ProfileQuestPanel({
                 disabled={isPending || isCompleted || Boolean(activeRun && activeRun.questKey !== quest.key && !completion)}
                 className="mt-5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isCurrent ? "Продолжить сценарий" : isCompleted ? "Пройдено" : "Начать сценарий"}
+                {isCurrent ? "Продолжить сценарий" : isCompleted ? "Пройден" : "Начать сценарий"}
               </button>
             </div>
           );

@@ -70,9 +70,14 @@
 - [x] Оставить наблюдение, ход раундов и медиацию как полезный публичный формат
 
 ### Пакет 4. Calm profile reset
-- [ ] Очистить профиль от game-first подачи
-- [ ] Сохранить полезные части AI-профиля, trust и appeals
-- [ ] Спрятать или переосмыслить RPG/XP/achievement слой как необязательный внутренний хвост
+- [x] Очистить профиль от game-first подачи
+- [x] Сохранить полезные части AI-профиля, trust и appeals
+- [x] Спрятать или переосмыслить RPG/XP/achievement слой как необязательный внутренний хвост
+
+### Пакет 5. Calm mini-app polish
+- [ ] Упростить внутренние экраны Mini App по плотности текста
+- [ ] Сделать онбординг одноразовым и менее навязчивым
+- [ ] Добить визуальную иерархию на `Споры / События / Новый спор / Арена`
 
 ## Parked / internal backlog
 
@@ -98,16 +103,17 @@
 
 Следующий пакет по плану:
 
-**Calm profile reset**
+**Calm mini-app polish**
 
 Фокус:
-- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
-- [C:\project21\konsensus\src\components\RPGProfileCard.tsx](/C:/project21/konsensus/src/components/RPGProfileCard.tsx)
-- [C:\project21\konsensus\src\components\ProfileQuestPanel.tsx](/C:/project21/konsensus/src/components/ProfileQuestPanel.tsx)
-- [C:\project21\konsensus\src\lib\achievements.ts](/C:/project21/konsensus/src/lib/achievements.ts)
-- [C:\project21\konsensus\src\lib\rpg.ts](/C:/project21/konsensus/src/lib/rpg.ts)
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
+- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\components\PageContextCard.tsx](/C:/project21/konsensus/src/components/PageContextCard.tsx)
+- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
 
 Результат шага:
-- профиль перестаёт звучать как RPG/game-система;
-- доверие, AI-профиль и сигналы диалога становятся главным слоем;
-- игровые хвосты уходят в фон или переосмысливаются как необязательные.
+- внутренние экраны Mini App читаются быстрее и спокойнее;
+- одноразовый onboarding не повторяется как шум;
+- пользователь быстрее понимает, что делать дальше, без ощущения внутреннего черновика.

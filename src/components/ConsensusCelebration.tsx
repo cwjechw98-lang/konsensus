@@ -1,82 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 
 const ACH = ACHIEVEMENTS["resolution"];
 const PROFILE_HINT_KEY = "konsensus_profile_hint_shown";
-
-// ─── Confetti ────────────────────────────────────────────────────────────────
-const CONFETTI_COLORS = [
-  "#a855f7", "#ec4899", "#3b82f6",
-  "#10b981", "#f59e0b", "#e879f9",
-  "#60a5fa", "#34d399",
-];
-
-type Piece = {
-  id: number; left: number; color: string; size: number;
-  duration: number; delay: number; isCircle: boolean;
-};
-
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return ((s >>> 0) / 0xffffffff);
-  };
-}
-
-function Confetti({ active }: { active: boolean }) {
-  const pieces = useMemo<Piece[]>(() => {
-    const rng = seededRandom(42);
-    return Array.from({ length: 72 }, (_, i) => ({
-      id: i,
-      left: rng() * 100,
-      color: CONFETTI_COLORS[Math.floor(rng() * CONFETTI_COLORS.length)],
-      size: 5 + rng() * 7,
-      duration: 2.4 + rng() * 2.2,
-      delay: rng() * 2.4,
-      isCircle: rng() > 0.5,
-    }));
-  }, []);
-
-  if (!active) return null;
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
-      {pieces.map((p) => (
-        <div
-          key={p.id}
-          style={{
-            position: "absolute",
-            top: -12,
-            left: `${p.left}%`,
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            borderRadius: p.isCircle ? "50%" : "2px",
-            animation: `confettiFall ${p.duration}s ${p.delay}s ease-in forwards,
-                        confettiDrift ${p.duration * 0.6}s ${p.delay}s ease-in-out infinite`,
-            opacity: 0,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── Floating +30 points ─────────────────────────────────────────────────────
-function FloatingPoints() {
-  return (
-    <div
-      className="absolute -top-3 right-4 text-emerald-400 font-bold text-lg float-up pointer-events-none select-none"
-      style={{ animationDelay: "0.6s" }}
-    >
-      +{ACH.points} очков
-    </div>
-  );
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ConsensusCelebration({
@@ -87,8 +16,6 @@ export default function ConsensusCelebration({
   solutionIndex: number;
 }) {
   const [showHint, setShowHint] = useState(false);
-  const [pointsVisible, setPointsVisible] = useState(false);
-  const [confettiActive, setConfettiActive] = useState(true);
 
   useEffect(() => {
     // Show one-time profile hint
@@ -99,11 +26,7 @@ export default function ConsensusCelebration({
         setShowHint(true);
       }
     }
-    // Trigger floating points after entrance
-    const t1 = setTimeout(() => setPointsVisible(true), 400);
-    // Stop confetti after 5s so it doesn't loop forever
-    const t2 = setTimeout(() => setConfettiActive(false), 5000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return undefined;
   }, []);
 
   function dismissHint() {
@@ -113,8 +36,6 @@ export default function ConsensusCelebration({
 
   return (
     <>
-      <Confetti active={confettiActive} />
-
       <div className="flex flex-col gap-5">
         {/* ── Hero banner ── */}
         <div
@@ -130,7 +51,7 @@ export default function ConsensusCelebration({
 
           {/* Stars */}
           <div className="flex justify-center gap-3 mb-4">
-            {["✨", "🎉", "✨"].map((s, i) => (
+            {["✨", "🤝", "✨"].map((s, i) => (
               <span
                 key={i}
                 className="star-pop text-2xl"
@@ -184,10 +105,8 @@ export default function ConsensusCelebration({
             border: "1px solid rgba(124,58,237,0.25)",
           }}
         >
-          {pointsVisible && <FloatingPoints />}
-
           <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">
-            🏅 Достижение разблокировано
+            🧭 Сигнал профиля обновлён
           </p>
 
           <div className="flex items-center gap-4">
@@ -200,7 +119,7 @@ export default function ConsensusCelebration({
             <div>
               <p className="text-white font-bold text-lg leading-tight">{ACH.title}</p>
               <p className="text-gray-400 text-sm mt-0.5">{ACH.desc}</p>
-              <p className="text-purple-400 text-xs font-semibold mt-1.5">+{ACH.points} очков опыта</p>
+              <p className="text-purple-400 text-xs font-semibold mt-1.5">Результат добавлен в историю вашего стиля диалога</p>
             </div>
           </div>
 
@@ -212,7 +131,7 @@ export default function ConsensusCelebration({
             >
               <p className="text-xs text-gray-500 flex items-center gap-1.5">
                 <span>💡</span>
-                <span>Отслеживайте все достижения в личном кабинете</span>
+                <span>Подробности можно посмотреть в личном профиле</span>
               </p>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Link

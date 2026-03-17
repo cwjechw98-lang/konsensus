@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Calm profile reset`: профиль, achievement-слой, Telegram-профиль и сценарии выбора очищены от `RPG/XP/квест/награда`-подачи и переведены на язык спокойных сигналов диалога.
 - 2026-03-17 — выполнен пакет `Public disputes reset`: публичный слой и Telegram-уведомления переведены с `battle/show`-языка на язык открытых диспутов и спокойного наблюдения.
 - 2026-03-17 — выполнен пакет `Waiting layer reset`: из waiting-state удалены мини-игры, добавлен спокойный блок `Теневой медиатор`, а ожидание в приватных и открытых диспутах переведено на полезный ambient-слой с форматом `Выберите одно из двух`.
 - 2026-03-17 — выполнен первый кодовый пакет `Concept realignment UI`: из основных экранов убраны editorial/release surfaces, глобальный support-strip, battle-copy и игровая подача профиля.
@@ -120,7 +121,10 @@
    - observer layer очищен от `бой/battle/show`;
    - уведомления Telegram по публичному слою переведены на язык открытых тем и диспутов;
    - наблюдение осталось полезным, но перестало звучать как соревнование.
-4. Убрать support/promotional surfaces со всех основных экранов и оставить их только на `/support`.
+4. Завершён `Calm profile reset`:
+   - профиль очищен от `RPG/XP/квест`-рамки;
+   - achievement-слой переименован в спокойные сигналы профиля;
+   - Telegram-профиль и блок согласования больше не говорят языком очков опыта и разблокировок.
 5. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
    - меньше текста;
    - чище иерархия;
@@ -128,16 +132,17 @@
 
 ## Следующий практический шаг
 
-**Calm profile reset**
+**Calm mini-app polish**
 
 Нужно пройти:
-- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
-- [C:\project21\konsensus\src\components\RPGProfileCard.tsx](/C:/project21/konsensus/src/components/RPGProfileCard.tsx)
-- [C:\project21\konsensus\src\components\ProfileQuestPanel.tsx](/C:/project21/konsensus/src/components/ProfileQuestPanel.tsx)
-- [C:\project21\konsensus\src\lib\achievements.ts](/C:/project21/konsensus/src/lib/achievements.ts)
-- [C:\project21\konsensus\src\lib\rpg.ts](/C:/project21/konsensus/src/lib/rpg.ts)
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
+- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\components\PageContextCard.tsx](/C:/project21/konsensus/src/components/PageContextCard.tsx)
+- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
 
 Цель следующего шага:
-- убрать остатки game-first подачи из профиля;
-- переименовать или спрятать RPG/arena-achievement хвост;
-- оставить только спокойные сигналы диалога, AI-профиль, trust и appeals как основную пользовательскую рамку.
+- сократить плотность текста на внутренних экранах Mini App;
+- сделать онбординг действительно одноразовым и менее навязчивым;
+- добить визуальную иерархию и спокойный темп восприятия на `Споры / События / Новый спор / Арена`.
