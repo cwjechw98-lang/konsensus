@@ -163,12 +163,16 @@
    - подтверждено, что entry-screen в проде больше не тянет обычный web chrome;
    - найден production-specific шум от `BackButton is not supported in version 6.0`;
    - шум устранён через version-gate для Telegram `BackButton` в shell-sync.
+12. Завершён `Post-deploy Telegram verify`:
+   - продовый `/tg` повторно проверен после деплоя;
+   - shell-cookie сценарий подтверждён без Telegram SDK warning;
+   - route-based back semantics для deep-link экранов зафиксированы как текущая рабочая модель.
 
 ## Следующий практический шаг
 
-**Post-deploy Telegram verify**
+**Telegram container verification**
 
 Следующий шаг:
-- дождаться Vercel deploy с фиксом `BackButton` gating, shell-timeout hardening и route-based back semantics;
-- повторно проверить продовый `/tg` и shell-cookie сценарий;
-- затем пройти уже живой Telegram-контейнер на телефоне для финального container verification.
+- пройти Mini App в реальном Telegram-контейнере на телефоне;
+- проверить safe-area, back/close, deep-link возврат и shell-переход уже не через браузерную эмуляцию;
+- если контейнер чистый, затем сделать короткий `docs alignment pass` по status/roadmap.

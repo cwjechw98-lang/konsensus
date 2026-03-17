@@ -128,7 +128,7 @@
 
 Следующий пакет по плану:
 
-**Post-deploy Telegram verify**
+**Telegram container verification**
 
 Фокус:
 - [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
@@ -136,7 +136,6 @@
 - [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 
 Результат шага:
-- прод повторно проверен после деплоя фикса `BackButton`;
-- shell-cookie сценарий не даёт Telegram SDK warning и не срывается на агрессивном timeout;
-- deep-link экраны (`/arena/:id`, `/dispute/:id`, `/mediation`) возвращаются по предсказуемому shell-route;
-- после этого остаётся только финальная ручная проверка в реальном Telegram-контейнере.
+- Mini App проверен в реальном Telegram-контейнере на телефоне;
+- safe-area, back/close и deep-link возврат подтверждены уже не через браузерную эмуляцию;
+- после этого остаётся только короткий `docs alignment pass`, если расхождения между roadmap и status ещё останутся.
