@@ -55,7 +55,15 @@ export default async function RootLayout({
         <BrowserNotificationPermission />
         <Header isLoggedIn={Boolean(user)} isAdmin={isAdmin} />
         <PageScrollProgress />
-        <main className={`flex-1 pt-14 ${showMobileShell ? "pb-20 md:pb-0" : ""}`}>{children}</main>
+        <main
+          className={`flex-1 pt-14 ${
+            showMobileShell
+              ? "pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0"
+              : ""
+          }`}
+        >
+          {children}
+        </main>
         {showMobileShell && <MobileBottomNav />}
         <Footer />
       </body>

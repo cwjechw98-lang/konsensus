@@ -85,9 +85,14 @@
 - [x] Дочистить promotional/support следы с пользовательских поверхностей
 
 ### Пакет 7. Mobile QA pass
-- [ ] Пройти реальные мобильные экраны после всех текстовых и UX-правок
-- [ ] Проверить safe-area, плотность карточек и читаемость на Telegram Mini App
-- [ ] Зафиксировать остаточные точечные дефекты отдельным коротким пакетом
+- [x] Пройти реальные мобильные экраны после всех текстовых и UX-правок
+- [x] Проверить safe-area, плотность карточек и читаемость на Telegram Mini App
+- [x] Зафиксировать остаточные точечные дефекты отдельным коротким пакетом
+
+### Пакет 8. Secondary mobile QA sweep
+- [ ] Пройти авторизованные мобильные экраны с нижней навигацией
+- [ ] Проверить safe-area и визуальный ритм уже внутри залогиненной Mini App-сессии
+- [ ] Добить последние мобильные хвосты по фактическим скринам, а не по коду
 
 ## Parked / internal backlog
 
@@ -113,16 +118,14 @@
 
 Следующий пакет по плану:
 
-**Mobile QA pass**
+**Secondary mobile QA sweep**
 
 Фокус:
 - [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
-- [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
 - [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
 - [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
 
 Результат шага:
-- все ключевые мобильные экраны проверены уже визуально;
-- следующий пакет формируется не из предположений, а из конкретных найденных UX-дефектов.
+- нижняя навигация и safe-area проверены на реальной авторизованной поверхности;
+- следующий пакет, если понадобится, будет совсем коротким и предметным.

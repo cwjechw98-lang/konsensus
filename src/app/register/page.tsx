@@ -61,7 +61,7 @@ export default async function RegisterPage({
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="flex min-h-[calc(100vh-3.5rem)] justify-center px-4 pb-12 pt-24 sm:min-h-[80vh] sm:items-center sm:pb-0 sm:pt-0">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold gradient-text">Регистрация</h1>
@@ -93,7 +93,8 @@ export default async function RegisterPage({
                 name="display_name"
                 type="text"
                 required
-                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+                autoComplete="nickname"
+                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
                 placeholder="Как вас называть"
               />
             </label>
@@ -104,7 +105,11 @@ export default async function RegisterPage({
                 name="email"
                 type="email"
                 required
-                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                inputMode="email"
+                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
                 placeholder="email@example.com"
               />
             </label>
@@ -116,7 +121,8 @@ export default async function RegisterPage({
                 type="password"
                 required
                 minLength={6}
-                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
+                autoComplete="new-password"
+                className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
                 placeholder="Минимум 6 символов"
               />
             </label>

@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Mobile QA pass`: на мобильном отключён scroll-reveal как обязательное условие видимости секций, footer упрощён до компактного формата, а login/register приведены к верхнему ритму с корректным `autocomplete`.
 - 2026-03-17 — выполнен пакет `Residual terminology sweep`: из `Открытых`, loading-state и Telegram-слоя убраны оставшиеся `Арена ⚔️`, `battle-screen`, `вызовы` и другой хвост старой battle-подачи.
 - 2026-03-17 — выполнен пакет `Calm mini-app polish`: page-level туры переведены в ручной режим, внутренние экраны укорочены по copy, блок шаблонов в создании спора свёрнут, а глобальные `Boosty/Crypto`-кнопки убраны из footer.
 - 2026-03-17 — выполнен пакет `Calm profile reset`: профиль, achievement-слой, Telegram-профиль и сценарии выбора очищены от `RPG/XP/квест/награда`-подачи и переведены на язык спокойных сигналов диалога.
@@ -136,23 +137,16 @@
    - `Открытые` и Telegram-бот больше не подают публичный слой как `вызовы` и `арену`;
    - loading-copy очищен от `battle-screen`;
    - пользовательский copy между Mini App и Telegram стал ближе к одной нейтральной рамке.
-7. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
-   - пройти реальные мобильные скрины и safe-area;
-   - проверить плотность карточек и контраст;
-   - дочистить остаточные второстепенные user-facing хвосты, если они всплывут на реальных экранах.
+7. Завершён `Mobile QA pass`:
+   - на мобильном убрана зависимость длинных страниц от scroll-reveal;
+   - footer перестал дублировать навигацию на узком экране;
+   - auth-экраны получили более практичный мобильный ритм и корректное поведение полей.
 
 ## Следующий практический шаг
 
-**Mobile QA pass**
+**Secondary mobile QA sweep**
 
-Нужно пройти:
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
-- [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
-- [C:\project21\konsensus\src\components\MobileBottomNav.tsx](/C:/project21/konsensus/src/components/MobileBottomNav.tsx)
-
-Цель следующего шага:
-- пройти реальные мобильные поверхности и проверить, что спокойная рамка держится не только по тексту, но и по плотности интерфейса;
-- зафиксировать оставшиеся UX-дефекты уже по живым скринам, а не по коду.
+Следующий шаг:
+- пройти уже авторизованные экраны Mini App с реальной нижней навигацией;
+- проверить safe-area и вертикальный ритм у `Споры / Профиль / Новый спор`;
+- отдельно пройти Telegram Mini App внутри авторизованной сессии, а не только публичные страницы.

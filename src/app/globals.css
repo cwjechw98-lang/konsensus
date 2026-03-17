@@ -90,6 +90,14 @@ body {
   transform: translateY(0);
 }
 
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* ── Ripple on buttons ─────────────────────────── */
 .btn-ripple {
   position: relative;

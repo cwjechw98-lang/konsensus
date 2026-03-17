@@ -170,7 +170,7 @@ export default async function MatchmakingPage({
                 key={d.id}
                 className="glass rounded-xl p-4 hover:border-purple-500/30 transition-all border border-white/8"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -180,17 +180,17 @@ export default async function MatchmakingPage({
                         <span className="text-xs text-gray-600">{cat.icon} {cat.label}</span>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-white truncate">{d.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{d.description}</p>
+                    <h3 className="text-sm font-semibold text-white sm:truncate">{d.title}</h3>
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-3 sm:line-clamp-2">{d.description}</p>
                     <p className="text-xs text-gray-600 mt-2">
                       от {d.profiles?.display_name ?? "Участник"} · {new Date(d.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
                     </p>
                   </div>
-                  <form action={joinDisputeFromMatchmaking} className="flex-shrink-0">
+                  <form action={joinDisputeFromMatchmaking} className="sm:flex-shrink-0">
                     <input type="hidden" name="dispute_id" value={d.id} />
                     <SubmitButton
                       pendingText="Входим..."
-                      className="rounded-lg bg-purple-600/20 px-3 py-1.5 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full rounded-lg bg-purple-600/20 px-3 py-2 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-600/30 disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:px-3 sm:py-1.5"
                     >
                       Вступить в спор →
                     </SubmitButton>
@@ -208,7 +208,7 @@ export default async function MatchmakingPage({
                 key={c.id}
                 className="glass rounded-xl p-4 hover:border-purple-500/30 transition-all border border-white/8"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
@@ -218,16 +218,16 @@ export default async function MatchmakingPage({
                         <span className="text-xs text-gray-600">{cat.icon} {cat.label}</span>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-white truncate">{c.topic}</h3>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.position_hint}</p>
+                    <h3 className="text-sm font-semibold text-white sm:truncate">{c.topic}</h3>
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-3 sm:line-clamp-2">{c.position_hint}</p>
                     <p className="text-xs text-gray-600 mt-2">
                       от {c.profiles?.display_name ?? "Участник"} · {new Date(c.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
                     </p>
                   </div>
-                  <form action={acceptChallenge.bind(null, c.id)} className="flex-shrink-0">
+                  <form action={acceptChallenge.bind(null, c.id)} className="sm:flex-shrink-0">
                     <SubmitButton
                       pendingText="Подключаем..."
-                      className="rounded-lg bg-orange-600/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full rounded-lg bg-orange-600/20 px-3 py-2 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-600/30 disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto sm:px-3 sm:py-1.5"
                     >
                       Подключиться →
                     </SubmitButton>
