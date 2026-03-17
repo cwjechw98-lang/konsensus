@@ -12,6 +12,7 @@ import {
   toggleChallengeWatch,
 } from "@/lib/arena-actions";
 import WaitingAmbient from "@/components/WaitingAmbient";
+import WaitingShadowMediator from "@/components/WaitingShadowMediator";
 import ShadowMediatorPanel from "@/components/ShadowMediatorPanel";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -375,7 +376,7 @@ export default function ChallengeChat({
       <div className="border-b border-white/8 px-5 py-4">
         <div className="flex items-center justify-between gap-3 mb-2">
           <h2 className="text-sm font-semibold text-white">
-            {isParticipant ? "Раундовая дискуссия" : "Публичный бой"}
+            {isParticipant ? "Раундовый диспут" : "Открытый диспут"}
           </h2>
           <span className="text-xs text-gray-500">
             {completedRounds} / {maxRounds}
@@ -389,8 +390,8 @@ export default function ChallengeChat({
         </div>
         <p className="text-xs text-gray-600 mt-2">
           {isParticipant
-            ? `Арена идёт по раундам. После ${formatRoundLabel(maxRounds)} медиация запускается автоматически.`
-            : "Смотреть бой можно без входа. Чат наблюдателей и мнение доступны после авторизации."}
+            ? `Открытый диспут идёт по раундам. После ${formatRoundLabel(maxRounds)} медиация запускается автоматически.`
+            : "Наблюдать за диспутом можно без входа. Чат наблюдателей и мнение доступны после авторизации."}
         </p>
       </div>
 
@@ -486,6 +487,11 @@ export default function ChallengeChat({
               Раунд {Math.min(maxRounds, myCount)}: ждём ответ от {opponentName}.
             </div>
             <WaitingAmbient variant="arena" />
+            <WaitingShadowMediator
+              variant="arena"
+              round={Math.min(maxRounds, myCount)}
+              maxRounds={maxRounds}
+            />
           </div>
         )}
 
@@ -515,7 +521,7 @@ export default function ChallengeChat({
         <div className="border-t border-white/8 p-4">
           {!acceptedById ? (
             <p className="text-center text-sm text-gray-500 py-2">
-              Ждём второго участника. Как только вызов примут, начнётся раунд 1.
+              Ждём второго участника. Как только к теме подключится второй человек, начнётся раунд 1.
             </p>
           ) : isParticipant ? (
             waitingForOpponent ? (
@@ -554,7 +560,7 @@ export default function ChallengeChat({
                       pendingText="Закрываем..."
                       className="h-full rounded-lg border border-white/8 px-3 py-2 text-xs text-gray-600 transition-colors hover:border-white/20 hover:text-gray-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Закрыть вызов
+                      Закрыть тему
                     </SubmitButton>
                   </form>
                 </div>
@@ -565,9 +571,9 @@ export default function ChallengeChat({
               <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Наблюдать за боем</p>
+                    <p className="text-sm font-semibold text-white">Наблюдать за диспутом</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      Подписка в Telegram предупредит о завершении раунда и финале боя.
+                      Подписка в Telegram предупредит о завершении раунда и финале диспута.
                     </p>
                   </div>
                   {currentUserId ? (
@@ -581,7 +587,7 @@ export default function ChallengeChat({
                             : "border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/15"
                         }`}
                       >
-                        {isWatching ? "Вы подписаны в Telegram" : "Подписаться на бой в Telegram"}
+                        {isWatching ? "Вы подписаны в Telegram" : "Подписаться на диспут в Telegram"}
                       </button>
                     ) : (
                       <Link href="/profile" className="text-sm text-cyan-300 hover:text-cyan-200 transition-colors">
@@ -674,7 +680,7 @@ export default function ChallengeChat({
                   <div>
                     <p className="text-sm font-semibold text-white">Оставить мнение</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      До 3 мнений на бой. Участники увидят только мягкую AI-агрегацию, а не сырые сообщения.
+                      До 3 мнений на диспут. Участники увидят только мягкую AI-агрегацию, а не сырые сообщения.
                     </p>
                   </div>
                   <span className="text-xs text-violet-300">{opinionCount}/3</span>

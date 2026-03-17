@@ -35,7 +35,7 @@ export default function WaitingTips() {
   return (
     <div className="glass rounded-xl p-4">
       <p className="text-xs text-gray-600 uppercase tracking-wider mb-2.5">
-        Совет дебатёра
+        Подсказка на паузе
       </p>
       <p
         className="text-sm text-gray-400 leading-relaxed transition-opacity duration-300"

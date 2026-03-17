@@ -229,7 +229,6 @@ export default function ShadowMediatorPanel({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"forecast" | "case">("forecast");
-  const [forecastPoints, setForecastPoints] = useState(0);
   const [pendingPrediction, setPendingPrediction] = useState<PendingPrediction | null>(null);
   const [lastForecastResult, setLastForecastResult] = useState<string>("");
   const [selectedCaseOption, setSelectedCaseOption] = useState<string | null>(null);
@@ -249,6 +248,7 @@ export default function ShadowMediatorPanel({
     return bucket[scenarioIndex];
   }, [challengeId, completedRounds, normalizedCategory, topic]);
 
+  const displayedOptions = scenario.options.slice(0, 2);
   const selectedScenarioOption = scenario.options.find((option) => option.id === selectedCaseOption) ?? null;
 
   const resolvedPrediction = useMemo(() => {
@@ -261,16 +261,14 @@ export default function ShadowMediatorPanel({
     return {
       isMatch: actual === guessed,
       text: actual === guessed
-        ? "Прогноз совпал. Вы правильно считали динамику ответа и получаете +3 очка осознанности."
-        : "Ход ушёл в другую сторону. Это тоже полезно: арена показывает, где наши ожидания о людях ломаются.",
+        ? "Прогноз совпал. Это хороший знак: вы точно считали динамику следующего ответа."
+        : "Ход ушёл в другую сторону. Это тоже полезно: в открытом диспуте ожидания о людях часто ломаются именно в паузе.",
     };
   }, [lastHumanMessage, pendingPrediction]);
 
-  const awarenessPoints = forecastPoints + (selectedScenarioOption?.points ?? 0);
-
   const forecastQuestion = lastHumanMessage
     ? `Как, по-вашему, ${nextSpeakerName} отреагирует на следующий ход по теме «${topic}»?`
-    : `Battle только разворачивается. Какой тон первым задаст ${authorName}?`;
+    : `Диспут только разворачивается. Какой тон первым задаст ${authorName}?`;
 
   return (
     <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.04]">
@@ -280,22 +278,16 @@ export default function ShadowMediatorPanel({
             Теневой медиатор
           </p>
           <p className="text-sm text-gray-300">
-            Панель зрителя: прогнозируйте реакцию и проходите параллельный кейс по теме battle.
+            Спокойный слой наблюдения: попробуйте угадать следующий ход и выбрать более полезную тактику без режима соревнования.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-lg font-semibold text-cyan-200">{awarenessPoints}</p>
-            <p className="text-xs text-cyan-300/70">очки осознанности</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsOpen((value) => !value)}
-            className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-200 transition-colors hover:bg-cyan-500/15"
-          >
-            {isOpen ? "Свернуть" : "Открыть"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen((value) => !value)}
+          className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-200 transition-colors hover:bg-cyan-500/15"
+        >
+          {isOpen ? "Свернуть" : "Открыть"}
+        </button>
       </div>
 
       {isOpen && (
@@ -310,7 +302,7 @@ export default function ShadowMediatorPanel({
                   : "bg-white/5 text-gray-400 border border-white/8 hover:text-gray-200"
               }`}
             >
-              Прогноз
+              Следующий ход
             </button>
             <button
               type="button"
@@ -321,13 +313,13 @@ export default function ShadowMediatorPanel({
                   : "bg-white/5 text-gray-400 border border-white/8 hover:text-gray-200"
               }`}
             >
-              Параллельный кейс
+              Выберите одно из двух
             </button>
           </div>
 
           {activeTab === "forecast" ? (
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-white mb-2">Прогноз и ставки</p>
+              <p className="text-sm font-semibold text-white mb-2">Спокойный прогноз</p>
               <p className="text-sm text-gray-300 leading-relaxed mb-4">{forecastQuestion}</p>
 
               {lastHumanMessage && (
@@ -364,7 +356,7 @@ export default function ShadowMediatorPanel({
               </div>
 
               <p className="text-xs text-gray-500 mt-4">
-                Очки начисляются локально в этой сессии, когда придёт следующий человеческий ответ и станет видна фактическая реакция.
+                Здесь нет очков и победителей. Это короткий способ потренировать внимание к динамике ответа.
               </p>
 
               {resolvedPrediction && (
@@ -373,9 +365,6 @@ export default function ShadowMediatorPanel({
                   <button
                     type="button"
                     onClick={() => {
-                      if (resolvedPrediction.isMatch) {
-                        setForecastPoints((value) => value + 3);
-                      }
                       setLastForecastResult(resolvedPrediction.text);
                       setPendingPrediction(null);
                     }}
@@ -398,7 +387,7 @@ export default function ShadowMediatorPanel({
               <p className="text-sm text-gray-300 leading-relaxed mb-4">{scenario.prompt}</p>
 
               <div className="grid gap-2">
-                {scenario.options.map((option) => (
+                {displayedOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
@@ -419,12 +408,9 @@ export default function ShadowMediatorPanel({
                 <div className="mt-4 rounded-xl border border-violet-500/15 bg-violet-500/[0.06] px-4 py-4">
                   <p className="text-xs uppercase tracking-wide text-violet-300/80 mb-2">Разбор Теневого медиатора</p>
                   <p className="text-sm text-gray-200 leading-relaxed mb-3">{selectedScenarioOption.outcome}</p>
-                  <div className="flex items-center justify-between gap-3 text-xs">
-                    <span className="rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-violet-100">
-                      Профильный след: {selectedScenarioOption.trait}
-                    </span>
-                    <span className="text-violet-200/90">+{selectedScenarioOption.points} очка осознанности</span>
-                  </div>
+                  <p className="text-xs leading-relaxed text-gray-500">
+                    Это не тест на правильность. Смысл в том, чтобы заметить, какой ход чаще снижает оборону и делает разговор управляемее.
+                  </p>
                 </div>
               )}
             </div>

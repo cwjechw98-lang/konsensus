@@ -59,10 +59,10 @@
 - [x] Пересобрать подачу `События / Открытые / Арена / Профиль` в спокойной профессиональной рамке
 
 ### Пакет 2. Waiting layer reset
-- [ ] Убрать любые мини-игры из основного waiting-state
-- [ ] Собрать новый waiting-layer вокруг `Теневого медиатора`
-- [ ] Добавить текстовую микро-механику `Выбери одно из двух`
-- [ ] Добавить полезные факты о коммуникации и мягкие AI-советы
+- [x] Убрать любые мини-игры из основного waiting-state
+- [x] Собрать новый waiting-layer вокруг `Теневого медиатора`
+- [x] Добавить текстовую микро-механику `Выбери одно из двух`
+- [x] Добавить полезные факты о коммуникации и мягкие AI-советы
 
 ### Пакет 3. Public disputes reset
 - [ ] Переписать публичный слой как `открытые диспуты`, а не `арена боёв`
@@ -98,19 +98,16 @@
 
 Следующий пакет по плану:
 
-**Concept realignment UI**
+**Public disputes reset**
 
 Фокус:
-- [C:\project21\konsensus\src\app\page.tsx](/C:/project21/konsensus/src/app/page.tsx)
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
+- [C:\project21\konsensus\src\components\ChallengeChat.tsx](/C:/project21/konsensus/src/components/ChallengeChat.tsx)
+- [C:\project21\konsensus\src\components\ShadowMediatorPanel.tsx](/C:/project21/konsensus/src/components/ShadowMediatorPanel.tsx)
+- [C:\project21\konsensus\src\components\ArenaLiveBoard.tsx](/C:/project21/konsensus/src/components/ArenaLiveBoard.tsx)
 - [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
-- [C:\project21\konsensus\src\components\SupportStrip.tsx](/C:/project21/konsensus/src/components/SupportStrip.tsx)
-- [C:\project21\konsensus\src\components\OnboardingGuide.tsx](/C:/project21/konsensus/src/components/OnboardingGuide.tsx)
-- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
+- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
 
 Результат шага:
-- основные экраны перестают выглядеть как смесь продукта, админки и витрины;
-- у пользователя остаётся только спокойная медиационная рамка;
-- support уходит на `/support`, а editorial и ops перестают просачиваться в user-facing copy.
+- публичный слой окончательно перестаёт звучать как battle/show;
+- наблюдение, комментарии и медиатор остаются, но без игрового соревновательного тона;
+- Telegram-уведомления публичного слоя тоже переходят на язык открытых диспутов.

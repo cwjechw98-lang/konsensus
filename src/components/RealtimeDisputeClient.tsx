@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { proposeEarlyEnd, acceptEarlyEnd, declineEarlyEnd, sendDisputeReminder } from "@/lib/actions";
 import WaitingTips from "@/components/WaitingTips";
-import MiniGames from "@/components/MiniGames";
 import WaitingAmbient from "@/components/WaitingAmbient";
+import WaitingShadowMediator from "@/components/WaitingShadowMediator";
 import InsightBreakdown from "@/components/InsightBreakdown";
 import SubmitButton from "@/components/SubmitButton";
 
@@ -804,6 +804,11 @@ export default function RealtimeDisputeClient({
                 </div>
               )}
               <WaitingAmbient />
+              <WaitingShadowMediator
+                round={Math.min(dispute.max_rounds, myArgCount)}
+                maxRounds={dispute.max_rounds}
+                insight={currentWaitingInsight}
+              />
               <WaitingTips />
               <form action={sendDisputeReminder} className="flex justify-center">
                 <input type="hidden" name="dispute_id" value={dispute.id} />
@@ -845,8 +850,12 @@ export default function RealtimeDisputeClient({
                 </div>
               )}
               <WaitingAmbient />
+              <WaitingShadowMediator
+                round={Math.min(dispute.max_rounds, myArgCount)}
+                maxRounds={dispute.max_rounds}
+                insight={currentWaitingInsight}
+              />
               <WaitingTips />
-              <MiniGames />
               <form action={sendDisputeReminder} className="flex justify-center">
                 <input type="hidden" name="dispute_id" value={dispute.id} />
                 <input type="hidden" name="return_to" value={`/dispute/${dispute.id}`} />

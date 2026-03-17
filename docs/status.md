@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Waiting layer reset`: из waiting-state удалены мини-игры, добавлен спокойный блок `Теневой медиатор`, а ожидание в приватных и открытых диспутах переведено на полезный ambient-слой с форматом `Выберите одно из двух`.
 - 2026-03-17 — выполнен первый кодовый пакет `Concept realignment UI`: из основных экранов убраны editorial/release surfaces, глобальный support-strip, battle-copy и игровая подача профиля.
 - 2026-03-17 — проект заново сверен с исходной концепцией из `Konsensus_TZ_v0.1`, `vision-extended`, `concept` и `architecture`.
 - 2026-03-17 — из основного курса разработки убраны игровая ветка, editorial/marketing-ветка и support-поверхности на пользовательских экранах.
@@ -109,11 +110,11 @@
    - глобальный support-strip убран из shell;
    - `События` очищены от релизного слоя;
    - профиль и арена переведены на более спокойную рамку.
-2. Пересобрать waiting-layer:
-   - полезное ожидание;
-   - `Теневой медиатор`;
-   - простая текстовая микро-механика `Выбери одно из двух`;
-   - никаких игровых наборов и idle-игр.
+2. Завершён `Waiting layer reset`:
+   - `MiniGames` и spectator idle-game удалены;
+   - добавлен новый спокойный `Теневой медиатор`;
+   - в ожидании появился формат `Выберите одно из двух` без очков и игровой рамки;
+   - waiting-state синхронизирован и для приватных, и для открытых диспутов.
 3. Пересобрать публичный слой:
    - `открытые диспуты`, а не `бои`;
    - наблюдение и качество диалога, а не зрелищность.
@@ -125,15 +126,16 @@
 
 ## Следующий практический шаг
 
-**Waiting layer reset**
+**Public disputes reset**
 
 Нужно пройти:
-- [C:\project21\konsensus\src\components\WaitingAmbient.tsx](/C:/project21/konsensus/src/components/WaitingAmbient.tsx)
-- [C:\project21\konsensus\src\components\RealtimeDisputeClient.tsx](/C:/project21/konsensus/src/components/RealtimeDisputeClient.tsx)
 - [C:\project21\konsensus\src\components\ChallengeChat.tsx](/C:/project21/konsensus/src/components/ChallengeChat.tsx)
-- [C:\project21\konsensus\src\lib\ai.ts](/C:/project21/konsensus/src/lib/ai.ts)
+- [C:\project21\konsensus\src\components\ShadowMediatorPanel.tsx](/C:/project21/konsensus/src/components/ShadowMediatorPanel.tsx)
+- [C:\project21\konsensus\src\components\ArenaLiveBoard.tsx](/C:/project21/konsensus/src/components/ArenaLiveBoard.tsx)
+- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
+- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
 
 Цель следующего шага:
-- собрать полезное ожидание вместо любой mini-game логики;
-- добавить `Теневого медиатора` как спокойный помощник ожидания;
-- ввести простую текстовую микро-механику `Выбери одно из двух`.
+- дочистить публичный слой до языка открытых диспутов;
+- убрать остатки `battle/arena show` из observer и Telegram copy;
+- оставить наблюдение, комментарии и публичную медиацию, но без соревновательной рамки.
