@@ -154,6 +154,7 @@ export default function NewDisputePage() {
   const searchParams = useSearchParams();
   const [showOpponentField, setShowOpponentField] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activeCategory, setActiveCategory] = useState("Все");
@@ -190,14 +191,14 @@ export default function NewDisputePage() {
         <PageContextCard
           dataTour="new-dispute-intro"
           eyebrow="Создание спора"
-          title="Сформулируйте тему и запустите спор"
-          description="Короткая тема, ясный контекст и количество раундов — этого достаточно, чтобы начать."
+          title="Коротко сформулируйте тему"
+          description="Достаточно ясной темы, пары фраз контекста и количества раундов."
           bullets={[
-            "Сначала суть, потом детали",
             "Раунды задают темп",
             "Оппонента можно пригласить сразу или позже",
           ]}
           tone="purple"
+          compact
           actions={
             <OnboardingTour
               page="dispute_new"
@@ -210,58 +211,75 @@ export default function NewDisputePage() {
 
       {/* ── Templates ── */}
       <div className="mb-6">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span>✨</span>
-          <span>Начать с шаблона</span>
-        </p>
+        <button
+          type="button"
+          onClick={() => setShowTemplates((value) => !value)}
+          aria-expanded={showTemplates}
+          aria-controls="dispute-template-list"
+          className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left transition-colors hover:bg-white/[0.05]"
+        >
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Готовые примеры
+            </p>
+            <p className="mt-1 text-sm text-gray-300">
+              Можно открыть шаблоны, если нужен быстрый старт.
+            </p>
+          </div>
+          <span className={`text-sm text-gray-500 transition-transform ${showTemplates ? "rotate-180" : ""}`}>
+            ▼
+          </span>
+        </button>
 
-        {/* Category filter */}
-        <div className="flex gap-2 flex-wrap mb-3">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-purple-600/30 text-purple-300 border border-purple-500/40"
-                  : "glass text-gray-500 hover:text-gray-300"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {showTemplates ? (
+          <div id="dispute-template-list" className="mt-3">
+            <div className="flex gap-2 flex-wrap mb-3">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    activeCategory === cat
+                      ? "bg-purple-600/30 text-purple-300 border border-purple-500/40"
+                      : "glass text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
 
-        {/* Template grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {filtered.map((t) => {
-            const isSelected = selectedTemplate === t.title;
-            return (
-              <button
-                key={t.title}
-                type="button"
-                onClick={() => applyTemplate(t)}
-                className={`text-left rounded-xl px-3 py-2.5 transition-all group ${
-                  isSelected
-                    ? "bg-purple-500/15 border border-purple-500/40"
-                    : "glass hover:border-white/15 hover:bg-white/6"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg flex-shrink-0">{t.emoji}</span>
-                  <div className="min-w-0">
-                    <p className={`text-sm font-medium truncate ${isSelected ? "text-purple-200" : "text-gray-300 group-hover:text-white"}`}>
-                      {t.title}
-                    </p>
-                    <p className="text-xs text-gray-600">{t.category}</p>
-                  </div>
-                  {isSelected && <span className="ml-auto text-purple-400 flex-shrink-0">✓</span>}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {filtered.map((t) => {
+                const isSelected = selectedTemplate === t.title;
+                return (
+                  <button
+                    key={t.title}
+                    type="button"
+                    onClick={() => applyTemplate(t)}
+                    className={`text-left rounded-xl px-3 py-2.5 transition-all group ${
+                      isSelected
+                        ? "bg-purple-500/15 border border-purple-500/40"
+                        : "glass hover:border-white/15 hover:bg-white/6"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg flex-shrink-0">{t.emoji}</span>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium truncate ${isSelected ? "text-purple-200" : "text-gray-300 group-hover:text-white"}`}>
+                          {t.title}
+                        </p>
+                        <p className="text-xs text-gray-600">{t.category}</p>
+                      </div>
+                      {isSelected && <span className="ml-auto text-purple-400 flex-shrink-0">✓</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* ── Form ── */}
@@ -342,7 +360,7 @@ export default function NewDisputePage() {
                   placeholder="email оппонента (если уже зарегистрирован)"
                 />
                 <p className="text-xs text-gray-600">
-                  Если пользователь уже есть в системе, спор откроется для него сразу. Иначе вы получите обычную ссылку-приглашение.
+                  Если человек уже есть в системе, спор откроется для него сразу. Иначе вы получите обычную ссылку-приглашение.
                 </p>
               </div>
             )}
@@ -352,7 +370,7 @@ export default function NewDisputePage() {
           <div className="flex items-center justify-between py-1">
             <div>
               <p className="text-sm font-medium text-gray-300">Публичный спор</p>
-              <p className="text-xs text-gray-600 mt-0.5">Виден всем в ленте без регистрации</p>
+              <p className="text-xs text-gray-600 mt-0.5">Будет виден в открытом потоке платформы</p>
             </div>
             <button
               type="button"
@@ -364,7 +382,7 @@ export default function NewDisputePage() {
             <input type="hidden" name="is_public" value={isPublic ? "true" : "false"} />
           </div>
           <p className="text-xs text-gray-600 -mt-2">
-            Публичные споры доступны с уровня Trusted. Прогресс по уровню доверия виден в профиле.
+            Публичные споры доступны с уровня Trusted. Текущий уровень доверия виден в профиле.
           </p>
 
           <div className="flex gap-3 mt-2">

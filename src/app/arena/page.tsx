@@ -3,6 +3,8 @@ import { fetchPublicReputationBadges } from "@/lib/reputation";
 import { fetchTrustTierState, hasMinimumTrustTier } from "@/lib/trust-tier";
 import ChallengeBoard from "@/components/ChallengeBoard";
 import ArenaLiveBoard from "@/components/ArenaLiveBoard";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import PageContextCard from "@/components/PageContextCard";
 
 export const revalidate = 0;
 
@@ -105,11 +107,23 @@ export default async function ArenaPage({
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Открытые диспуты</h1>
-        <p className="text-[15px] text-gray-300">
-          Здесь собраны открытые темы и активные публичные диспуты, к которым можно присоединиться или наблюдать за ходом обсуждения.
-        </p>
+      <div className="mb-6">
+        <PageContextCard
+          dataTour="arena-intro"
+          eyebrow="Открытые диспуты"
+          title="Публичный слой без лишнего шума"
+          description="Здесь можно открыть тему, подключиться к обсуждению или просто наблюдать за ходом открытого диспута."
+          bullets={["Активные диспуты", "Темы в ожидании", "Наблюдение за ходом обсуждения"]}
+          tone="amber"
+          compact
+          actions={
+            <OnboardingTour
+              page="arena"
+              showReplayButton
+              buttonLabel="Как устроен открытый слой"
+            />
+          }
+        />
       </div>
 
       {error && (
@@ -125,13 +139,17 @@ export default async function ArenaPage({
       )}
 
       <div className="grid grid-cols-1 gap-8">
-        <ArenaLiveBoard challenges={liveChallenges} />
-        <ChallengeBoard
-          challenges={challengesWithStats}
-          currentUserId={user?.id ?? null}
-          canCreatePublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "trusted") : false}
-          canJoinPublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "linked") : false}
-        />
+        <div data-tour="arena-live">
+          <ArenaLiveBoard challenges={liveChallenges} />
+        </div>
+        <div data-tour="arena-open-list">
+          <ChallengeBoard
+            challenges={challengesWithStats}
+            currentUserId={user?.id ?? null}
+            canCreatePublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "trusted") : false}
+            canJoinPublicChallenge={currentTrustState ? hasMinimumTrustTier(currentTrustState.tier, "linked") : false}
+          />
+        </div>
       </div>
     </div>
   );

@@ -21,6 +21,11 @@ const TOUR_STEPS: Record<string, TourStep[]> = {
     { target: "[data-tour='events-summary']", title: "Быстрый срез", description: "Сверху собраны ключевые цифры по открытым диспутам, темам в ожидании второго участника и публичным спорам.", position: "bottom" },
     { target: "[data-tour='events-stream']", title: "Основной поток", description: "Ниже идут открытые диспуты, темы в ожидании второго участника и публичные споры, которые видны прямо сейчас.", position: "top" },
   ],
+  arena: [
+    { target: "[data-tour='arena-intro']", title: "Что это за экран", description: "Здесь собраны открытые темы, к которым можно подключиться, и активные диспуты, за которыми можно наблюдать.", position: "bottom" },
+    { target: "[data-tour='arena-live']", title: "Активные диспуты", description: "Верхний блок показывает обсуждения, которые уже идут прямо сейчас.", position: "bottom" },
+    { target: "[data-tour='arena-open-list']", title: "Открытые темы", description: "Ниже находятся темы, где ещё ждут второго участника.", position: "top" },
+  ],
   matchmaking: [
     { target: "[data-tour='open-intro']", title: "Где вступать", description: "Здесь ждут готовые споры и вызовы, куда можно войти сразу.", position: "bottom" },
     { target: "[data-tour='open-filters']", title: "Темы", description: "Оставьте только те категории, которые вам интересны.", position: "bottom" },
@@ -52,11 +57,13 @@ export function OnboardingTour({
   showReplayButton = false,
   buttonLabel = "Подсказки по экрану",
   className = "",
+  autoStart = false,
 }: {
   page: string;
   showReplayButton?: boolean;
   buttonLabel?: string;
   className?: string;
+  autoStart?: boolean;
 }) {
   const [step, setStep] = useState(-1);
   const [highlight, setHighlight] = useState<DOMRect | null>(null);
@@ -68,6 +75,7 @@ export function OnboardingTour({
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
+    if (!autoStart) return;
     const done = localStorage.getItem(storageKey);
     if (done) return;
 
@@ -86,7 +94,7 @@ export function OnboardingTour({
     window.addEventListener("konsensus:welcome-onboarding-done", handleWelcomeDone);
     return () =>
       window.removeEventListener("konsensus:welcome-onboarding-done", handleWelcomeDone);
-  }, [storageKey]);
+  }, [autoStart, storageKey]);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const updateHighlight = useCallback(() => {
@@ -169,6 +177,9 @@ export function OnboardingTour({
       {highlight && (
         <div
           className="fixed z-[9999] w-72 p-4 rounded-2xl bg-[#1a1428] border border-purple-500/30 shadow-2xl shadow-purple-500/10"
+          role="dialog"
+          aria-modal="true"
+          aria-label={current.title}
           style={{
             top: current.position === "top" ? highlight.top - 140 : highlight.bottom + 16,
             left: Math.max(16, Math.min(highlight.left, window.innerWidth - 304)),

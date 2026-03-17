@@ -46,6 +46,7 @@ type PageContextCardProps = {
   tone?: Tone;
   actions?: ReactNode;
   dataTour?: string;
+  compact?: boolean;
 };
 
 export default function PageContextCard({
@@ -56,13 +57,14 @@ export default function PageContextCard({
   tone = "purple",
   actions,
   dataTour,
+  compact = false,
 }: PageContextCardProps) {
   const styles = TONE_STYLES[tone];
 
   return (
     <div
       data-tour={dataTour}
-      className={`glass rounded-2xl border ${styles.border} ${styles.bg} p-5 sm:p-6`}
+      className={`glass rounded-2xl border ${styles.border} ${styles.bg} ${compact ? "p-4 sm:p-5" : "p-5 sm:p-6"}`}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="max-w-xl">
@@ -71,18 +73,18 @@ export default function PageContextCard({
           >
             {eyebrow}
           </p>
-          <h2 className="text-xl font-bold text-white sm:text-2xl">{title}</h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-gray-300">{description}</p>
+          <h2 className={`${compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"} font-bold text-white`}>{title}</h2>
+          <p className={`mt-2 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed text-gray-300`}>{description}</p>
         </div>
 
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2.5">
+      <div className={`mt-4 flex flex-wrap ${compact ? "gap-2" : "gap-2.5"}`}>
         {bullets.map((bullet) => (
           <div
             key={bullet}
-            className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-[13px] text-gray-200"
+            className={`flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] ${compact ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-[13px]"} text-gray-200`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${styles.bullet}`} />
             <span>{bullet}</span>

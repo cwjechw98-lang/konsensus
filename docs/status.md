@@ -5,6 +5,7 @@
 
 ## Последние изменения
 
+- 2026-03-17 — выполнен пакет `Calm mini-app polish`: page-level туры переведены в ручной режим, внутренние экраны укорочены по copy, блок шаблонов в создании спора свёрнут, а глобальные `Boosty/Crypto`-кнопки убраны из footer.
 - 2026-03-17 — выполнен пакет `Calm profile reset`: профиль, achievement-слой, Telegram-профиль и сценарии выбора очищены от `RPG/XP/квест/награда`-подачи и переведены на язык спокойных сигналов диалога.
 - 2026-03-17 — выполнен пакет `Public disputes reset`: публичный слой и Telegram-уведомления переведены с `battle/show`-языка на язык открытых диспутов и спокойного наблюдения.
 - 2026-03-17 — выполнен пакет `Waiting layer reset`: из waiting-state удалены мини-игры, добавлен спокойный блок `Теневой медиатор`, а ожидание в приватных и открытых диспутах переведено на полезный ambient-слой с форматом `Выберите одно из двух`.
@@ -125,24 +126,27 @@
    - профиль очищен от `RPG/XP/квест`-рамки;
    - achievement-слой переименован в спокойные сигналы профиля;
    - Telegram-профиль и блок согласования больше не говорят языком очков опыта и разблокировок.
-5. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
-   - меньше текста;
-   - чище иерархия;
-   - один onboarding, а не повторяющиеся обучалки.
+5. Завершён `Calm mini-app polish`:
+   - page-level подсказки больше не стартуют автоматически;
+   - контекстные блоки на ключевых экранах стали короче;
+   - создание спора больше не начинается со стены шаблонов;
+   - footer очищен от глобальных support-кнопок.
+6. Довести интерфейс до спокойной, нейтральной, профессиональной подачи:
+   - добить остаточные служебные и battle-термины;
+   - пройти второстепенные экраны и loading-copy;
+   - выровнять Telegram/Mini App language до конца.
 
 ## Следующий практический шаг
 
-**Calm mini-app polish**
+**Residual terminology sweep**
 
 Нужно пройти:
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
-- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\components\PageContextCard.tsx](/C:/project21/konsensus/src/components/PageContextCard.tsx)
-- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
+- [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
+- [C:\project21\konsensus\src\app\arena\loading.tsx](/C:/project21/konsensus/src/app/arena/loading.tsx)
+- [C:\project21\konsensus\src\components\Footer.tsx](/C:/project21/konsensus/src/components/Footer.tsx)
+- [C:\project21\konsensus\src\app\api\telegram\route.ts](/C:/project21/konsensus/src/app/api/telegram/route.ts)
+- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
 
 Цель следующего шага:
-- сократить плотность текста на внутренних экранах Mini App;
-- сделать онбординг действительно одноразовым и менее навязчивым;
-- добить визуальную иерархию и спокойный темп восприятия на `Споры / События / Новый спор / Арена`.
+- убрать последние пользовательские хвосты вроде `Арена ⚔️`, `battle-screen`, устаревших help-текстов и promotional следов;
+- синхронизировать остаточный пользовательский copy между Mini App, Telegram и loading-state.

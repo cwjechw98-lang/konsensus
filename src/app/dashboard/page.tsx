@@ -175,7 +175,6 @@ export default async function DashboardPage({
   return (
     <>
       <OnboardingGuide />
-      <OnboardingTour page="dashboard" />
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
@@ -207,14 +206,14 @@ export default async function DashboardPage({
           <PageContextCard
             dataTour="dashboard-intro"
             eyebrow="Ваши споры"
-            title="Здесь вы ведёте свои споры и возвращаетесь к важным"
-            description="Создайте новый спор, войдите по коду или вернитесь к уже начатым. Архив и напоминания тоже управляются здесь."
+            title="Главный рабочий экран"
+            description="Создайте спор, войдите по коду или вернитесь к уже начатому обсуждению."
             bullets={[
-              "Новый спор или вход по коду",
               "Активные и архивные карточки",
               "Напоминания по важным спорам",
             ]}
             tone="purple"
+            compact
             actions={
               <OnboardingTour
                 page="dashboard"
@@ -230,7 +229,7 @@ export default async function DashboardPage({
             userId={user.id}
             compact
             title="Следующий полезный шаг"
-            description="Короткие материалы подбираются под ваш текущий стиль диалога."
+            description="Один короткий материал под ваш текущий стиль диалога."
           />
         </div>
 
@@ -300,7 +299,7 @@ export default async function DashboardPage({
                 {activeView === "archived"
                   ? "Архивированные споры появятся здесь. Новые напоминания поднимут важные из них наверх."
                   : activeStatus === "all"
-                ? "Создайте новый спор или присоединитесь по инвайт-коду"
+                ? "Создайте спор или войдите по инвайт-коду."
                 : "Попробуйте другой фильтр"}
             </p>
           </div>

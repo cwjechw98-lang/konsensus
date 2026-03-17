@@ -75,9 +75,14 @@
 - [x] Спрятать или переосмыслить RPG/XP/achievement слой как необязательный внутренний хвост
 
 ### Пакет 5. Calm mini-app polish
-- [ ] Упростить внутренние экраны Mini App по плотности текста
-- [ ] Сделать онбординг одноразовым и менее навязчивым
-- [ ] Добить визуальную иерархию на `Споры / События / Новый спор / Арена`
+- [x] Упростить внутренние экраны Mini App по плотности текста
+- [x] Сделать онбординг одноразовым и менее навязчивым
+- [x] Добить визуальную иерархию на `Споры / События / Новый спор / Арена`
+
+### Пакет 6. Residual terminology sweep
+- [ ] Убрать остатки `battle/arena-show` и служебного языка из второстепенных экранов
+- [ ] Привести loading/help/Telegram copy к одной спокойной рамке
+- [ ] Дочистить promotional/support следы с пользовательских поверхностей
 
 ## Parked / internal backlog
 
@@ -103,17 +108,15 @@
 
 Следующий пакет по плану:
 
-**Calm mini-app polish**
+**Residual terminology sweep**
 
 Фокус:
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\app\feed\page.tsx](/C:/project21/konsensus/src/app/feed/page.tsx)
-- [C:\project21\konsensus\src\app\dispute\new\page.tsx](/C:/project21/konsensus/src/app/dispute/new/page.tsx)
-- [C:\project21\konsensus\src\app\arena\page.tsx](/C:/project21/konsensus/src/app/arena/page.tsx)
-- [C:\project21\konsensus\src\components\PageContextCard.tsx](/C:/project21/konsensus/src/components/PageContextCard.tsx)
-- [C:\project21\konsensus\src\components\OnboardingTour.tsx](/C:/project21/konsensus/src/components/OnboardingTour.tsx)
+- [C:\project21\konsensus\src\app\matchmaking\page.tsx](/C:/project21/konsensus/src/app/matchmaking/page.tsx)
+- [C:\project21\konsensus\src\app\arena\loading.tsx](/C:/project21/konsensus/src/app/arena/loading.tsx)
+- [C:\project21\konsensus\src\components\Footer.tsx](/C:/project21/konsensus/src/components/Footer.tsx)
+- [C:\project21\konsensus\src\app\api\telegram\route.ts](/C:/project21/konsensus/src/app/api/telegram/route.ts)
+- [C:\project21\konsensus\src\lib\telegram.ts](/C:/project21/konsensus/src/lib/telegram.ts)
 
 Результат шага:
-- внутренние экраны Mini App читаются быстрее и спокойнее;
-- одноразовый onboarding не повторяется как шум;
-- пользователь быстрее понимает, что делать дальше, без ощущения внутреннего черновика.
+- пользовательские поверхности перестают смешивать спокойную медиацию с остаточным служебным и battle-языком;
+- Telegram и Mini App говорят одним и тем же нейтральным языком.

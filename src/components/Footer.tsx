@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { SUPPORT_LINKS, getTelegramBotLink, getTelegramBotUsername, hasSupportLinks } from "@/lib/site-config";
+import { getTelegramBotLink, getTelegramBotUsername } from "@/lib/site-config";
 
 export function Footer() {
   const botLink = getTelegramBotLink();
   const botUsername = getTelegramBotUsername();
-  const supportVisible = hasSupportLinks();
 
   return (
     <footer className="border-t border-white/8 bg-black/20">
@@ -43,41 +42,6 @@ export function Footer() {
             </Link>
           )}
         </div>
-
-        {supportVisible && (
-          <div className="flex flex-wrap gap-2">
-            {SUPPORT_LINKS.boosty && (
-              <Link
-                href={SUPPORT_LINKS.boosty}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/15"
-              >
-                Boosty
-              </Link>
-            )}
-            {SUPPORT_LINKS.crypto && (
-              <Link
-                href={SUPPORT_LINKS.crypto}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200 transition-colors hover:bg-emerald-500/15"
-              >
-                Crypto
-              </Link>
-            )}
-            {SUPPORT_LINKS.alternative && (
-              <Link
-                href={SUPPORT_LINKS.alternative}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-200 transition-colors hover:bg-violet-500/15"
-              >
-                Поддержка
-              </Link>
-            )}
-          </div>
-        )}
       </div>
     </footer>
   );

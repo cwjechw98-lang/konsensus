@@ -335,14 +335,14 @@ export default async function FeedPage() {
         <PageContextCard
           dataTour="events-intro"
           eyebrow="Сейчас в Konsensus"
-          title="Здесь видно, где сейчас идут открытые обсуждения"
-          description="Откройте экран, чтобы быстро понять, где есть движение: активные публичные диспуты, темы в ожидании второго участника и публичные споры."
+          title="Открытая активность платформы"
+          description="Короткий срез того, где сейчас есть движение: открытые диспуты, темы в ожидании и публичные споры."
           bullets={[
             "Активные открытые диспуты",
             "Темы в ожидании участника",
-            "Публичные споры для просмотра",
           ]}
           tone="emerald"
+          compact
           actions={
             <OnboardingTour
               page="feed"
@@ -374,7 +374,7 @@ export default async function FeedPage() {
               <div>
                 <h2 className="text-xl font-bold text-white">Пульс платформы</h2>
                 <p className="text-sm text-gray-400">
-                  Короткий срез по тому, где сейчас идёт диалог.
+                  Где сейчас идёт диалог.
                 </p>
               </div>
             </div>
@@ -405,7 +405,7 @@ export default async function FeedPage() {
             <div className="mb-4">
               <h2 className="text-xl font-bold text-white">Что сейчас открыто</h2>
               <p className="text-sm text-gray-400">
-                Живые карточки платформы: от активных диспутов до тем, которые ждут второго участника.
+                Активные карточки без лишнего шума.
               </p>
             </div>
 
