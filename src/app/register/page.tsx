@@ -52,12 +52,13 @@ export default async function RegisterPage({
       redirect(`/register?${p}`);
     }
 
-    redirect(
-      "/login?info=" +
-        encodeURIComponent(
-          "Подтвердите адрес почты — письмо уже на пути к вам."
-        )
-    );
+    const params = new URLSearchParams({
+      info: "Подтвердите адрес почты — письмо уже на пути к вам.",
+    });
+    if (nextUrl !== "/dashboard") {
+      params.set("redirect", nextUrl);
+    }
+    redirect(`/login?${params.toString()}`);
   }
 
   return (
@@ -139,7 +140,7 @@ export default async function RegisterPage({
         <p className="text-sm text-center text-gray-500 mt-6">
           Уже есть аккаунт?{" "}
           <Link
-            href="/login"
+            href={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : "/login"}
             className="text-purple-400 hover:text-purple-300 transition-colors"
           >
             Войти

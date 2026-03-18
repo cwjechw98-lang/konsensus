@@ -150,7 +150,7 @@ export default function OnboardingGuide() {
         {/* Skip */}
         <button
           onClick={dismiss}
-          className="absolute top-4 right-4 text-gray-600 hover:text-gray-400 text-sm transition-colors"
+          className="absolute right-4 top-4 z-20 text-gray-600 transition-colors hover:text-gray-400"
         >
           Пропустить ✕
         </button>

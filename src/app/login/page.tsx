@@ -18,16 +18,17 @@ const translateError = (msg: string): string => {
   return msg;
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string; info?: string }>;
+  searchParams: Promise<{ message?: string; info?: string; redirect?: string }>;
 }) {
   async function signIn(formData: FormData) {
     "use server";
 
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    const nextUrl = ((formData.get("next_url") as string) || "/dashboard").trim() || "/dashboard";
     const supabase = await createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -36,13 +37,19 @@ export default function LoginPage({
     });
 
     if (error) {
-      redirect(
-        "/login?message=" + encodeURIComponent(translateError(error.message))
-      );
+      const params = new URLSearchParams({
+        message: translateError(error.message),
+      });
+      if (nextUrl !== "/dashboard") {
+        params.set("redirect", nextUrl);
+      }
+      redirect(`/login?${params.toString()}`);
     }
 
-    redirect("/dashboard");
+    redirect(nextUrl);
   }
+
+  const { redirect: redirectUrl } = await searchParams;
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] justify-center px-4 pb-12 pt-24 sm:min-h-[80vh] sm:items-center sm:pb-0 sm:pt-0">
@@ -54,7 +61,7 @@ export default function LoginPage({
 
         <div className="glass rounded-2xl p-8 flex flex-col gap-4">
           <TelegramAuthButton />
-          <GoogleOAuthButton />
+          <GoogleOAuthButton next={redirectUrl || undefined} />
           <Divider />
           <LoginForm action={signIn} searchParams={searchParams} />
         </div>
@@ -62,7 +69,7 @@ export default function LoginPage({
         <p className="text-sm text-center text-gray-500 mt-6">
           Нет аккаунта?{" "}
           <Link
-            href="/register"
+            href={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}` : "/register"}
             className="text-purple-400 hover:text-purple-300 transition-colors"
           >
             Зарегистрироваться
@@ -88,9 +95,9 @@ async function LoginForm({
   searchParams,
 }: {
   action: (formData: FormData) => void;
-  searchParams: Promise<{ message?: string; info?: string }>;
+  searchParams: Promise<{ message?: string; info?: string; redirect?: string }>;
 }) {
-  const { message, info } = await searchParams;
+  const { message, info, redirect } = await searchParams;
 
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -113,6 +120,8 @@ async function LoginForm({
           {message}
         </div>
       )}
+
+      <input type="hidden" name="next_url" value={redirect || "/dashboard"} />
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-gray-300">Email</span>
