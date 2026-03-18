@@ -178,12 +178,17 @@
    - найден и исправлен сломанный `redirect` после логина для invite-flow;
    - найден и исправлен дефект welcome-overlay: кнопка `Пропустить` снова кликабельна и не держит экран поверх действий;
    - локальным Playwright CLI подтверждено, что `login?redirect=...` теперь действительно ведёт в целевой экран после входа.
+15. Завершён `Production regression verify`:
+   - после деплоя на production подтверждено, что `Пропустить ✕` закрывает welcome-overlay обычным кликом;
+   - после деплоя на production подтверждено, что `login?redirect=/dispute/join?...` после входа приводит прямо в invite-screen;
+   - regression-проверка выполнена на живых временных аккаунтах без локальных обходов;
+   - QA-пользователи и тестовый production-спор удалены после проверки.
 
 ## Следующий практический шаг
 
-**Production regression verify**
+**Telegram container verification**
 
 Следующий шаг:
-- дождаться деплоя патча с `redirect` и onboarding fix;
-- повторно проверить production invite-flow и dismiss welcome-overlay без локальных обходов;
-- затем уже пройти ручную проверку в реальном Telegram-контейнере на телефоне.
+- пройти Mini App внутри реального Telegram-контейнера на телефоне;
+- подтвердить safe-area, back/close, deep-link возврат и создание auth session;
+- если Telegram-контейнер покажет новые дефекты, зафиксировать уже только их как отдельный узкий пакет.

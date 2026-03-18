@@ -109,6 +109,11 @@
 - [x] Исправить реальные баги, найденные во время e2e-прогона, а не по чтению кода
 - [x] Локально подтвердить фикс `redirect` и welcome-overlay через Playwright CLI
 
+### Пакет 12. Production regression verify
+- [x] Подтвердить на production dismiss welcome-overlay без force-кликов и локальных обходов
+- [x] Подтвердить на production invite login redirect после деплоя
+- [x] Очистить временные QA-данные после проверки
+
 ## Parked / internal backlog
 
 Эти блоки не удаляются из репозитория, но больше не двигают основной пользовательский roadmap:
@@ -134,16 +139,14 @@
 
 Следующий пакет по плану:
 
-**Production regression verify**
+**Telegram container verification**
 
 Фокус:
-- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
-- [C:\project21\konsensus\src\components\DashboardDisputeCard.tsx](/C:/project21/konsensus/src/components/DashboardDisputeCard.tsx)
-- [C:\project21\konsensus\src\app\login\page.tsx](/C:/project21/konsensus/src/app/login/page.tsx)
-- [C:\project21\konsensus\src\app\register\page.tsx](/C:/project21/konsensus/src/app/register/page.tsx)
-- [C:\project21\konsensus\src\components\OnboardingGuide.tsx](/C:/project21/konsensus/src/components/OnboardingGuide.tsx)
+- [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
+- [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
+- [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 
 Результат шага:
-- production после деплоя повторно подтверждает `login redirect` и dismiss welcome-overlay;
-- invite-flow не теряет пользователя между `/login`, `/register` и `/dispute/join`;
-- после этого остаётся только ручной Telegram-container verify на телефоне.
+- Mini App пройден уже внутри реального Telegram-контейнера на телефоне;
+- safe-area, back/close и deep-link возврат подтверждены в живой среде;
+- после этого останутся только точечные container-specific дефекты, если они реально проявятся.
