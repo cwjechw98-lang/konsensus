@@ -108,23 +108,25 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <form
-            action={archived ? unarchiveDisputeForUser : archiveDisputeForUser}
-            className="sm:flex-shrink-0"
-          >
-            <input type="hidden" name="dispute_id" value={id} />
-            <input type="hidden" name="return_to" value={returnTo} />
-            <SubmitButton
-              pendingText={primaryPendingText}
-              className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed sm:w-auto ${
-                archived
-                  ? "bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/20"
-                  : "bg-purple-600/20 text-purple-200 hover:bg-purple-600/30"
-              }`}
+          {archived ? (
+            <form action={unarchiveDisputeForUser} className="sm:flex-shrink-0">
+              <input type="hidden" name="dispute_id" value={id} />
+              <input type="hidden" name="return_to" value={`/dispute/${id}`} />
+              <SubmitButton
+                pendingText={primaryPendingText}
+                className="w-full rounded-lg bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-200 transition-colors hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {primaryActionLabel}
+              </SubmitButton>
+            </form>
+          ) : (
+            <Link
+              href={`/dispute/${id}`}
+              className="w-full rounded-lg bg-purple-600/20 px-4 py-2 text-center text-sm font-medium text-purple-200 transition-colors hover:bg-purple-600/30 sm:w-auto sm:flex-shrink-0"
             >
               {primaryActionLabel}
-            </SubmitButton>
-          </form>
+            </Link>
+          )}
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
             {!archived ? (

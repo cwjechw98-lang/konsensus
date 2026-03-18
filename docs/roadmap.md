@@ -143,5 +143,5 @@
 - в Opik появляются traces после реальных AI-сценариев (`evaluateArgument`, `submitArgument`, arena commentary, editorial draft);
 - подтверждён safe no-op режим: при проблемах с Opik основной продуктовый flow не ломается;
 - Mini App проверен в реальном Telegram-контейнере на телефоне;
-- safe-area, back/close, deep-link возврат и Telegram auth session creation подтверждены уже не через браузерную эмуляцию;
+- safe-area, back/close, deep-link возврат, Telegram auth session creation и исправленный сценарий `Открыть спор / Продолжить спор` подтверждены уже не через браузерную эмуляцию;
 - после этого остаётся только короткий `docs alignment pass`, если расхождения между roadmap и status ещё останутся.

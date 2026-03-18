@@ -177,5 +177,5 @@
 - открыть Opik UI и проверить, что после реального вызова `evaluateArgument`, `submitArgument`, `challenge`-flow и editorial draft появляются traces в проекте `konsensus`;
 - если traces видны стабильно, решить отдельным внутренним пакетом, нужен ли lightweight review-script по последним ошибочным/медленным AI traces;
 - пройти Mini App в реальном Telegram-контейнере на телефоне;
-- проверить safe-area, back/close, deep-link возврат, shell-переход и Telegram auth session creation уже не через браузерную эмуляцию;
+- проверить safe-area, back/close, deep-link возврат, shell-переход, Telegram auth session creation и исправленный сценарий `Открыть спор / Продолжить спор` уже не через браузерную эмуляцию;
 - если контейнер чистый, затем сделать короткий `docs alignment pass` по status/roadmap.
