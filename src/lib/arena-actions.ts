@@ -7,6 +7,11 @@ import { generateChallengeInsight, generateChallengeMediation, generateChallenge
 import { notifyBattleWatcherUpdate, notifyChallengeAccepted, notifyChallengeMessage, notifyNewChallenge } from "@/lib/telegram";
 import { categorizeTopicAI } from "@/lib/ai";
 import {
+  endOpikEntity,
+  startOpikTrace,
+  updateOpikEntity,
+} from "@/lib/opik";
+import {
   fetchTrustTierState,
   getTrustTierGateMessage,
   hasMinimumTrustTier,
@@ -127,6 +132,14 @@ export async function sendChallengeMessage(
   challengeId: string,
   content: string
 ) {
+  const trace = startOpikTrace({
+    name: "arena.sendChallengeMessage",
+    input: {
+      challengeId,
+      contentLength: content.trim().length,
+    },
+    tags: ["opik", "arena", "challenge"],
+  });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
@@ -134,6 +147,8 @@ export async function sendChallengeMessage(
   const admin = createAdminClient();
   const trimmed = content.trim();
   if (!trimmed) return;
+
+  try {
 
   const { data: challengeInfo } = await admin
     .from("challenges")
@@ -281,6 +296,12 @@ export async function sendChallengeMessage(
       }
     } catch { /* non-critical */ }
 
+    updateOpikEntity(trace, {
+      output: {
+        state: "closed",
+        completedRound,
+      },
+    });
     return;
   }
 
@@ -350,6 +371,16 @@ export async function sendChallengeMessage(
       }
     }
   } catch { /* non-critical */ }
+
+  updateOpikEntity(trace, {
+    output: {
+      state: "round_complete",
+      completedRound,
+    },
+  });
+  } finally {
+    endOpikEntity(trace);
+  }
 }
 
 export async function closeChallenge(challengeId: string) {
@@ -490,6 +521,15 @@ export async function addChallengeComment(formData: FormData) {
 }
 
 export async function submitChallengeOpinion(formData: FormData) {
+  const trace = startOpikTrace({
+    name: "arena.submitChallengeOpinion",
+    input: {
+      challengeId: formData.get("challenge_id"),
+      round: formData.get("round"),
+      contentLength: String(formData.get("content") ?? "").trim().length,
+    },
+    tags: ["opik", "arena", "opinion"],
+  });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: getTrustTierGateMessage("linked") };
@@ -540,5 +580,11 @@ export async function submitChallengeOpinion(formData: FormData) {
     is_selected: false,
   } as never);
 
+  updateOpikEntity(trace, {
+    output: {
+      moderationStatus: moderation.approved ? "approved" : "rejected",
+    },
+  });
+  endOpikEntity(trace);
   return { ok: true };
 }

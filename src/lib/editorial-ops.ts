@@ -9,6 +9,7 @@ import {
 } from "@/lib/telegram";
 import { collectEditorialChanges, fetchGitHubHeadCommit } from "@/lib/editorial-git";
 import { generateEditorialReleaseDraft } from "@/lib/ai";
+import { endOpikEntity, startOpikTrace, updateOpikEntity } from "@/lib/opik";
 
 export const EDITORIAL_SCOPE = "telegram_release";
 
@@ -271,17 +272,32 @@ export async function createEditorialDraft(input: {
   | { ok: true; draft: EditorialDraftRecord; reusedExisting: boolean }
   | { ok: false; error: string }
 > {
+  const trace = startOpikTrace({
+    name: "editorial.createEditorialDraft",
+    input: {
+      scope: input.scope ?? EDITORIAL_SCOPE,
+      target: input.target ?? "both",
+    },
+    tags: ["opik", "editorial"],
+  });
   const scope = input.scope ?? EDITORIAL_SCOPE;
-  const overview = await fetchEditorialOverview(scope);
+  try {
+    const overview = await fetchEditorialOverview(scope);
 
-  if (overview.pendingCommitCount === 0) {
-    return { ok: false, error: "Новых изменений для editorial draft сейчас нет." };
-  }
+    if (overview.pendingCommitCount === 0) {
+      return { ok: false, error: "Новых изменений для editorial draft сейчас нет." };
+    }
 
-  const existing = await findExistingDraftByHeadCommit(overview.headCommit.sha, scope);
-  if (existing) {
-    return { ok: true, draft: existing, reusedExisting: true };
-  }
+    const existing = await findExistingDraftByHeadCommit(overview.headCommit.sha, scope);
+    if (existing) {
+      updateOpikEntity(trace, {
+        output: {
+          reusedExisting: true,
+          pendingCommitCount: overview.pendingCommitCount,
+        },
+      });
+      return { ok: true, draft: existing, reusedExisting: true };
+    }
 
   const changes = await collectEditorialChanges({
     fromCommit: overview.baselineCommit,
@@ -332,15 +348,24 @@ export async function createEditorialDraft(input: {
     .select("*")
     .single<EditorialDraftRow>();
 
-  if (error || !data) {
-    return { ok: false, error: error?.message ?? "Не удалось сохранить editorial draft." };
-  }
+    if (error || !data) {
+      return { ok: false, error: error?.message ?? "Не удалось сохранить editorial draft." };
+    }
 
-  return {
-    ok: true,
-    draft: toDraftRecord(data),
-    reusedExisting: false,
-  };
+    updateOpikEntity(trace, {
+      output: {
+        reusedExisting: false,
+        pendingCommitCount: overview.pendingCommitCount,
+      },
+    });
+    return {
+      ok: true,
+      draft: toDraftRecord(data),
+      reusedExisting: false,
+    };
+  } finally {
+    endOpikEntity(trace);
+  }
 }
 
 export async function updateEditorialDraft(input: {
@@ -535,12 +560,20 @@ export async function rebaseEditorialDraft(input: {
   userId: string;
   expectedUpdatedAt?: string | null;
 }) {
+  const trace = startOpikTrace({
+    name: "editorial.rebaseEditorialDraft",
+    input: {
+      draftId: input.draftId,
+    },
+    tags: ["opik", "editorial", "rebase"],
+  });
   const admin = await getAdmin();
-  const draftRow = await getDraftRowById(input.draftId);
+  try {
+    const draftRow = await getDraftRowById(input.draftId);
 
-  if (!draftRow) {
-    return { ok: false as const, error: "Editorial draft не найден." };
-  }
+    if (!draftRow) {
+      return { ok: false as const, error: "Editorial draft не найден." };
+    }
 
   const draft = toDraftRecord(draftRow);
   const freshness = ensureFreshDraft(draft, input.expectedUpdatedAt);
@@ -624,11 +657,20 @@ export async function rebaseEditorialDraft(input: {
     .select("*")
     .maybeSingle<EditorialDraftRow>();
 
-  if (error || !data) {
-    return { ok: false as const, error: error?.message ?? "Не удалось выполнить rebase draft." };
-  }
+    if (error || !data) {
+      return { ok: false as const, error: error?.message ?? "Не удалось выполнить rebase draft." };
+    }
 
-  return { ok: true as const, draft: toDraftRecord(data) };
+    updateOpikEntity(trace, {
+      output: {
+        rebasedToCommit: changes.headCommit,
+        commitCount: changes.commitCount,
+      },
+    });
+    return { ok: true as const, draft: toDraftRecord(data) };
+  } finally {
+    endOpikEntity(trace);
+  }
 }
 
 export async function duplicateEditorialDraft(input: {

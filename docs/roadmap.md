@@ -109,6 +109,7 @@
 Эти блоки не удаляются из репозитория, но больше не двигают основной пользовательский roadmap:
 
 ### Internal ops
+- [x] Opik observability bootstrap для ключевых AI traces/spans
 - [ ] Editorial Ops дальнейших версий
 - [ ] Delivery analytics / editorial tooling polishing
 - [ ] Release workflow improvements
@@ -128,14 +129,19 @@
 
 Следующий пакет по плану:
 
-**Telegram container verification**
+**Opik trace verification, затем Telegram container verification**
 
 Фокус:
+- [C:\project21\konsensus\src\lib\opik.ts](/C:/project21/konsensus/src/lib/opik.ts)
+- [C:\project21\konsensus\src\lib\ai.ts](/C:/project21/konsensus/src/lib/ai.ts)
+- [C:\project21\konsensus\src\lib\actions.ts](/C:/project21/konsensus/src/lib/actions.ts)
 - [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
 - [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
 - [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 
 Результат шага:
+- в Opik появляются traces после реальных AI-сценариев (`evaluateArgument`, `submitArgument`, arena commentary, editorial draft);
+- подтверждён safe no-op режим: при проблемах с Opik основной продуктовый flow не ломается;
 - Mini App проверен в реальном Telegram-контейнере на телефоне;
 - safe-area, back/close, deep-link возврат и Telegram auth session creation подтверждены уже не через браузерную эмуляцию;
 - после этого остаётся только короткий `docs alignment pass`, если расхождения между roadmap и status ещё останутся.

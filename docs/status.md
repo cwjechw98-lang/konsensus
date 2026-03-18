@@ -1,10 +1,11 @@
 # Статус проекта Konsensus
 
 > Живой статус проекта. Обновляется после каждой согласованной итерации.
-> Последнее обновление: 2026-03-17
+> Последнее обновление: 2026-03-18
 
 ## Последние изменения
 
+- 2026-03-18 — выполнен пакет `Opik observability bootstrap`: в проект добавлен неинвазивный TypeScript SDK helper для Opik, ключевые AI-flow и LLM-вызовы начали логировать traces/spans, а локальный smoke-test и production build подтверждены без изменения бизнес-логики.
 - 2026-03-17 — выполнен пакет `Dashboard card cleanup`: карточки споров получили один доминирующий следующий шаг, reminder-слой стал короче, а mobile educational block на `Спорах` перенесён под список карточек.
 - 2026-03-17 — выполнен пакет `Secondary mobile QA sweep`: на авторизованных мобильных экранах схлопнуты тяжёлые вводные блоки, educational panel на `Спорах` перестала съедать первый экран, а форма нового спора очищена от дубля exit-CTA.
 - 2026-03-17 — выполнен пакет `Mobile QA pass`: на мобильном отключён scroll-reveal как обязательное условие видимости секций, footer упрощён до компактного формата, а login/register приведены к верхнему ритму с корректным `autocomplete`.
@@ -170,9 +171,11 @@
 
 ## Следующий практический шаг
 
-**Telegram container verification**
+**Opik trace verification, затем возврат к Telegram container verification**
 
 Следующий шаг:
+- открыть Opik UI и проверить, что после реального вызова `evaluateArgument`, `submitArgument`, `challenge`-flow и editorial draft появляются traces в проекте `konsensus`;
+- если traces видны стабильно, решить отдельным внутренним пакетом, нужен ли lightweight review-script по последним ошибочным/медленным AI traces;
 - пройти Mini App в реальном Telegram-контейнере на телефоне;
 - проверить safe-area, back/close, deep-link возврат, shell-переход и Telegram auth session creation уже не через браузерную эмуляцию;
 - если контейнер чистый, затем сделать короткий `docs alignment pass` по status/roadmap.

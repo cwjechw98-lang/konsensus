@@ -9,6 +9,13 @@ import { generateRoundInsights, generateWaitingInsight, generatePublicRoundSumma
 import { awardAchievement } from "@/lib/achievements";
 import type { Database } from "@/types/database";
 import { getDisplayName } from "@/lib/display-name";
+import {
+  endOpikEntity,
+  getOpikErrorInfo,
+  startOpikSpan,
+  startOpikTrace,
+  updateOpikEntity,
+} from "@/lib/opik";
 import { getAppUrl } from "@/lib/url";
 import {
   fetchTrustTierState,
@@ -494,6 +501,13 @@ export async function joinDisputeFromMatchmaking(formData: FormData) {
 }
 
 export async function submitArgument(formData: FormData) {
+  const trace = startOpikTrace({
+    name: "actions.submitArgument",
+    input: {
+      disputeId: formData.get("dispute_id"),
+    },
+    tags: ["opik", "actions", "dispute"],
+  });
   const supabase = await createClient();
   const {
     data: { user },
@@ -508,6 +522,8 @@ export async function submitArgument(formData: FormData) {
     .map((v) => (v as string).trim())
     .filter(Boolean);
   const evidence = evidenceLinks.length > 0 ? evidenceLinks.join("\n") : null;
+
+  try {
 
   const { data: dispute } = await supabase
     .from("disputes")
@@ -536,6 +552,13 @@ export async function submitArgument(formData: FormData) {
     existingArgs?.filter((a) => a.author_id === opponentId) ?? [];
   const currentRound = myArgs.length + 1;
 
+  updateOpikEntity(trace, {
+    metadata: {
+      currentRound,
+      hasEvidence: Boolean(evidence),
+    },
+  });
+
   if (currentRound > dispute.max_rounds) redirect(`/dispute/${disputeId}`);
 
   if (myArgs.length > opponentArgs.length) {
@@ -544,6 +567,14 @@ export async function submitArgument(formData: FormData) {
     );
   }
 
+  const insertSpan = startOpikSpan(trace, {
+    name: "supabase.insert.argument",
+    input: {
+      disputeId,
+      currentRound,
+    },
+    tags: ["opik", "db", "dispute"],
+  });
   const { error } = await supabase.from("arguments").insert({
     dispute_id: disputeId,
     author_id: user.id,
@@ -552,6 +583,13 @@ export async function submitArgument(formData: FormData) {
     reasoning,
     evidence,
   } as never);
+  updateOpikEntity(insertSpan, {
+    output: {
+      inserted: !error,
+    },
+    endTime: new Date(),
+  });
+  endOpikEntity(insertSpan);
 
   if (error) {
     redirect(
@@ -745,6 +783,9 @@ export async function submitArgument(formData: FormData) {
   }
 
   redirect(`/dispute/${disputeId}`);
+  } finally {
+    endOpikEntity(trace);
+  }
 }
 
 export async function triggerMediation(formData: FormData) {
@@ -1536,6 +1577,30 @@ export async function evaluateArgument(
   const rea = reasoning.trim();
   if (!pos || !rea) return null;
 
+  const trace = startOpikTrace({
+    name: "actions.evaluateArgument",
+    input: {
+      disputeTitle,
+      positionLength: pos.length,
+      reasoningLength: rea.length,
+      hasDescription: Boolean(disputeDescription),
+    },
+    tags: ["opik", "actions", "evaluation"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      disputeTitle,
+      positionLength: pos.length,
+      reasoningLength: rea.length,
+      maxTokens: 200,
+      responseFormat: "json_object",
+    },
+    model: "llama-3.3-70b-versatile",
+    provider: "groq",
+    tags: ["opik", "groq", "evaluation", "json"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1574,15 +1639,39 @@ export async function evaluateArgument(
     });
 
     const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-    return {
+    const payload = {
       score: Math.min(5, Math.max(1, Math.round(Number(result.score) || 3))),
       strengths: Array.isArray(result.strengths) ? result.strengths.slice(0, 2) : [],
       suggestion: (result.suggestion as string) ?? "",
       escalation_risk: Math.min(3, Math.max(0, Math.round(Number(result.escalation_risk) || 0))),
       escalation_warning: (result.escalation_warning as string) ?? "",
     };
-  } catch {
+    updateOpikEntity(span, {
+      output: {
+        score: payload.score,
+        escalationRisk: payload.escalation_risk,
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        score: payload.score,
+        escalationRisk: payload.escalation_risk,
+      },
+    });
+    return payload;
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return null;
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 

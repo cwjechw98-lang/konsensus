@@ -1,6 +1,13 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  endOpikEntity,
+  getOpikErrorInfo,
+  startOpikSpan,
+  startOpikTrace,
+  updateOpikEntity,
+} from "@/lib/opik";
 
 /**
  * After a dispute is resolved, ask AI to generate a unique achievement
@@ -19,6 +26,29 @@ export async function generateUniqueAchievement(
     toneLevel?: number;
   }
 ): Promise<{ title: string; desc: string; icon: string } | null> {
+  const trace = startOpikTrace({
+    name: "ai.generateUniqueAchievement",
+    input: {
+      title: disputeData.title,
+      roundCount: disputeData.roundCount,
+      hadEvidence: disputeData.hadEvidence,
+      reachedConsensus: disputeData.reachedConsensus,
+    },
+    tags: ["opik", "ai", "achievement"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      title: disputeData.title,
+      roundCount: disputeData.roundCount,
+      maxTokens: 150,
+      responseFormat: "json_object",
+    },
+    model: "llama-3.3-70b-versatile",
+    provider: "groq",
+    tags: ["opik", "groq", "achievement", "json"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -59,13 +89,36 @@ export async function generateUniqueAchievement(
     if (result.skip) return null;
     if (!result.title || !result.desc || !result.icon) return null;
 
-    return {
+    const achievement = {
       title: String(result.title).slice(0, 50),
       desc: String(result.desc).slice(0, 100),
       icon: String(result.icon).slice(0, 4),
     };
-  } catch {
+    updateOpikEntity(span, {
+      output: {
+        skipped: false,
+        hasIcon: Boolean(achievement.icon),
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        skipped: false,
+      },
+    });
+    return achievement;
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return null;
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 

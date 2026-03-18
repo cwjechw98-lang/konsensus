@@ -1,6 +1,13 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  endOpikEntity,
+  getOpikErrorInfo,
+  startOpikSpan,
+  startOpikTrace,
+  updateOpikEntity,
+} from "@/lib/opik";
 
 type ArgumentRow = {
   author_id: string;
@@ -141,18 +148,74 @@ async function runJsonPrompt(
   messages: Array<{ role: "system" | "user"; content: string }>,
   maxTokens: number
 ): Promise<JsonRecord> {
-  const groq = await createGroqClient();
-  const response = await groq.chat.completions.create({
+  const trace = startOpikTrace({
+    name: "ai.runJsonPrompt",
+    input: {
+      messageCount: messages.length,
+      maxTokens,
+    },
+    tags: ["opik", "ai", "groq"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      messageCount: messages.length,
+      maxTokens,
+      responseFormat: "json_object",
+    },
     model: GROQ_MODEL,
-    max_tokens: maxTokens,
-    response_format: { type: "json_object" },
-    messages,
+    provider: "groq",
+    tags: ["opik", "groq", "json"],
   });
 
   try {
-    return JSON.parse(response.choices[0]?.message?.content ?? "{}");
-  } catch {
+    const groq = await createGroqClient();
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      max_tokens: maxTokens,
+      response_format: { type: "json_object" },
+      messages,
+    });
+    const content = response.choices[0]?.message?.content ?? "{}";
+
+    updateOpikEntity(span, {
+      output: {
+        choiceCount: response.choices.length,
+        contentLength: content.length,
+      },
+      endTime: new Date(),
+    });
+
+    try {
+      const parsed = JSON.parse(content);
+      updateOpikEntity(trace, {
+        output: {
+          parsed: true,
+          keyCount: Object.keys(parsed).length,
+        },
+      });
+      return parsed;
+    } catch {
+      updateOpikEntity(trace, {
+        output: {
+          parsed: false,
+        },
+      });
+      return {};
+    }
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return {};
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1145,6 +1208,26 @@ export async function generateChallengeInsight(
   messages: { author: string; content: string }[],
   topic: string
 ): Promise<string> {
+  const trace = startOpikTrace({
+    name: "ai.generateChallengeInsight",
+    input: {
+      topic,
+      messageCount: messages.length,
+    },
+    tags: ["opik", "ai", "challenge"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      topic,
+      messageCount: messages.length,
+      maxTokens: 150,
+    },
+    model: GROQ_MODEL,
+    provider: "groq",
+    tags: ["opik", "groq", "challenge"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1168,9 +1251,31 @@ ${history}
       messages: [{ role: "user", content: prompt }],
     });
 
-    return response.choices[0]?.message?.content?.trim() ?? "";
-  } catch {
+    const content = response.choices[0]?.message?.content?.trim() ?? "";
+    updateOpikEntity(span, {
+      output: {
+        contentLength: content.length,
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        hasContent: Boolean(content),
+      },
+    });
+    return content;
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return "";
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1178,6 +1283,27 @@ export async function generateChallengeMediation(
   messages: { author: string; content: string }[],
   topic: string
 ): Promise<{ summary: string; commonGround: string; solutions: string[] }> {
+  const trace = startOpikTrace({
+    name: "ai.generateChallengeMediation",
+    input: {
+      topic,
+      messageCount: messages.length,
+    },
+    tags: ["opik", "ai", "challenge", "mediation"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      topic,
+      messageCount: messages.length,
+      maxTokens: 500,
+      responseFormat: "json_object",
+    },
+    model: GROQ_MODEL,
+    provider: "groq",
+    tags: ["opik", "groq", "challenge", "json"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1211,13 +1337,35 @@ ${history}
     });
 
     const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    updateOpikEntity(span, {
+      output: {
+        solutionCount: Array.isArray(result.solutions) ? result.solutions.length : 0,
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        hasSummary: Boolean(result.summary),
+        hasCommonGround: Boolean(result.commonGround),
+      },
+    });
     return {
       summary: (result.summary as string) ?? "",
       commonGround: (result.commonGround as string) ?? "",
       solutions: (result.solutions as string[]) ?? [],
     };
-  } catch {
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return { summary: "", commonGround: "", solutions: [] };
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1225,6 +1373,25 @@ export async function moderateChallengeOpinion(content: string): Promise<{
   approved: boolean;
   reason: string;
 }> {
+  const trace = startOpikTrace({
+    name: "ai.moderateChallengeOpinion",
+    input: {
+      contentLength: content.length,
+    },
+    tags: ["opik", "ai", "moderation"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      contentLength: content.length,
+      maxTokens: 120,
+      responseFormat: "json_object",
+    },
+    model: GROQ_MODEL,
+    provider: "groq",
+    tags: ["opik", "groq", "moderation", "json"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1257,15 +1424,36 @@ export async function moderateChallengeOpinion(content: string): Promise<{
     });
 
     const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
+    updateOpikEntity(span, {
+      output: {
+        approved: Boolean(result.approved),
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        approved: Boolean(result.approved),
+      },
+    });
     return {
       approved: Boolean(result.approved),
       reason: (result.reason as string) ?? "",
     };
-  } catch {
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return {
       approved: true,
       reason: "Мнение принято без ИИ-модерации",
     };
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1277,6 +1465,31 @@ export async function generateChallengeObserverHint(
 ): Promise<string> {
   if (opinions.length === 0) return "";
 
+  const trace = startOpikTrace({
+    name: "ai.generateChallengeObserverHint",
+    input: {
+      topic,
+      round,
+      messageCount: messages.length,
+      opinionCount: opinions.length,
+    },
+    tags: ["opik", "ai", "challenge", "observer"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      topic,
+      round,
+      messageCount: messages.length,
+      opinionCount: opinions.length,
+      maxTokens: 220,
+      responseFormat: "json_object",
+    },
+    model: GROQ_MODEL,
+    provider: "groq",
+    tags: ["opik", "groq", "observer", "json"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1317,9 +1530,31 @@ ${crowd}
     });
 
     const result = JSON.parse(response.choices[0]?.message?.content ?? "{}");
-    return (result.hint as string) ?? "";
-  } catch {
+    const hint = (result.hint as string) ?? "";
+    updateOpikEntity(span, {
+      output: {
+        hintLength: hint.length,
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        hasHint: Boolean(hint),
+      },
+    });
+    return hint;
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return "";
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1434,6 +1669,26 @@ const VALID_CATEGORIES = ["politics", "technology", "philosophy", "lifestyle", "
 export type TopicCategory = typeof VALID_CATEGORIES[number];
 
 export async function categorizeTopicAI(topic: string, description?: string): Promise<TopicCategory> {
+  const trace = startOpikTrace({
+    name: "ai.categorizeTopicAI",
+    input: {
+      topic,
+      hasDescription: Boolean(description),
+    },
+    tags: ["opik", "ai", "categorization"],
+  });
+  const span = startOpikSpan(trace, {
+    name: "groq.chat.completions.create",
+    type: "llm",
+    input: {
+      topic,
+      hasDescription: Boolean(description),
+      maxTokens: 50,
+    },
+    model: GROQ_MODEL,
+    provider: "groq",
+    tags: ["opik", "groq", "categorization"],
+  });
   try {
     const Groq = (await import("groq-sdk")).default;
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -1456,9 +1711,30 @@ Category:`,
 
     const raw = (response.choices[0]?.message?.content ?? "").trim().toLowerCase();
     const cat = VALID_CATEGORIES.find((c) => raw.includes(c));
+    updateOpikEntity(span, {
+      output: {
+        category: cat ?? "other",
+      },
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      output: {
+        category: cat ?? "other",
+      },
+    });
     return cat ?? "other";
-  } catch {
+  } catch (error) {
+    updateOpikEntity(span, {
+      errorInfo: getOpikErrorInfo(error),
+      endTime: new Date(),
+    });
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return "other";
+  } finally {
+    endOpikEntity(span);
+    endOpikEntity(trace);
   }
 }
 
@@ -1472,6 +1748,15 @@ export async function reviewAutomaticAppeal(params: {
   confidence: number;
   rationale: string;
 }> {
+  const trace = startOpikTrace({
+    name: "ai.reviewAutomaticAppeal",
+    input: {
+      itemType: params.itemType,
+      itemLabel: params.itemLabel,
+      appealLength: params.appealText.length,
+    },
+    tags: ["opik", "ai", "appeals"],
+  });
   try {
     const result = await runJsonPrompt(
       [
@@ -1520,12 +1805,17 @@ ${params.appealText}
       confidence,
       rationale: rationale || "Вывод скрыт, потому что автоматическая уверенность оказалась недостаточно надёжной.",
     };
-  } catch {
+  } catch (error) {
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return {
       decision: "hidden",
       confidence: 30,
       rationale: "Вывод скрыт, потому что автоматический пересмотр не дал достаточно надёжного результата.",
     };
+  } finally {
+    endOpikEntity(trace);
   }
 }
 
@@ -1549,6 +1839,16 @@ export async function generateEditorialReleaseDraft(input: {
     userFacingScore: number;
   };
 }): Promise<EditorialDraftResult> {
+  const trace = startOpikTrace({
+    name: "ai.generateEditorialReleaseDraft",
+    input: {
+      scope: input.scope,
+      commitCount: input.changes.commitCount,
+      changedFileCount: input.changes.changedFiles.length,
+      userFacingScore: input.changes.userFacingScore,
+    },
+    tags: ["opik", "ai", "editorial"],
+  });
   try {
     const result = await runJsonPrompt(
       [
@@ -1612,6 +1912,12 @@ ${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) =>
     const reasonIfSkipped = String(result.reasonIfSkipped ?? "").trim();
 
     if (!shouldPublish || !title || !summary || features.length === 0) {
+      updateOpikEntity(trace, {
+        output: {
+          shouldPublish: false,
+          featureCount: features.length,
+        },
+      });
       return {
         shouldPublish: false,
         title: "",
@@ -1622,6 +1928,12 @@ ${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) =>
       };
     }
 
+    updateOpikEntity(trace, {
+      output: {
+        shouldPublish: true,
+        featureCount: features.length,
+      },
+    });
     return {
       shouldPublish: true,
       title,
@@ -1629,7 +1941,10 @@ ${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) =>
       features,
       notes: notes || undefined,
     };
-  } catch {
+  } catch (error) {
+    updateOpikEntity(trace, {
+      errorInfo: getOpikErrorInfo(error),
+    });
     return {
       shouldPublish: false,
       title: "",
@@ -1637,5 +1952,7 @@ ${input.changes.statusLines.length > 0 ? input.changes.statusLines.map((line) =>
       features: [],
       reasonIfSkipped: "Не удалось собрать AI-черновик релиза.",
     };
+  } finally {
+    endOpikEntity(trace);
   }
 }
