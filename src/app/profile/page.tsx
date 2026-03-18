@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { updateProfile, disconnectTelegram } from "./actions";
 import { TelegramConnect } from "@/components/TelegramConnect";
-import PageContextCard from "@/components/PageContextCard";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import SubmitButton from "@/components/SubmitButton";
 import {
@@ -168,8 +167,8 @@ export default async function ProfilePage({
   }));
 
   const tabs = [
-    { id: "overview", label: "Обзор", icon: "📊" },
-    { id: "ai-profile", label: "ИИ-профиль", icon: "🧠" },
+    { id: "overview", label: "Профиль", icon: "📊" },
+    { id: "ai-profile", label: "Стиль диалога", icon: "🧠" },
     { id: "settings", label: "Настройки", icon: "⚙️" },
   ];
 
@@ -233,26 +232,17 @@ export default async function ProfilePage({
       </div>
 
       <div className="mb-6">
-        <PageContextCard
-          dataTour="profile-intro"
-          eyebrow="Ваш профиль"
-          title="Здесь собраны ваш AI-профиль, архив и настройки"
-          description="Профиль показывает, как вы ведёте диалог, к каким темам возвращаетесь и что можно улучшить дальше."
-          bullets={[
-            "Обзор споров и тем",
-            "ИИ-профиль и публичные бейджи",
-            "Настройки и Telegram",
-          ]}
-          tone="amber"
-          mobileTerse
-          actions={
-            <OnboardingTour
-              page="profile"
-              showReplayButton
-              buttonLabel="Подсказки по профилю"
-            />
-          }
-        />
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
+          <p className="text-sm text-gray-300">
+            Здесь видно ваши споры, стиль диалога и настройки.
+          </p>
+          <OnboardingTour
+            page="profile"
+            showReplayButton
+            buttonLabel="?"
+            className="h-9 w-9 rounded-full px-0 text-sm"
+          />
+        </div>
       </div>
 
       {errorMsg ? (
@@ -314,7 +304,7 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Коротко о вашем стиле
+              Коротко о вас
             </h2>
             {overviewSummary ? (
               <p className="whitespace-pre-line text-sm leading-relaxed text-gray-300">
@@ -366,7 +356,7 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6 lg:col-span-2">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Контрагенты
+              С кем вы уже спорили
             </h2>
             {counterparts.length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -412,7 +402,7 @@ export default async function ProfilePage({
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              ИИ-анализ вашего стиля
+              Ваш стиль диалога
             </h2>
             {aiProfile ? (
               <div className="space-y-4">
@@ -478,7 +468,7 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Резюме от ИИ
+              Короткое резюме
             </h2>
             {aiProfile?.ai_summary ? (
               <div className="space-y-4">
@@ -502,8 +492,8 @@ export default async function ProfilePage({
               <div className="py-8 text-center">
                 <span className="text-4xl">📝</span>
                 <p className="mt-3 text-sm text-gray-500">
-                  После нескольких споров ИИ соберёт персональное резюме вашего
-                  стиля диалога.
+                  После нескольких споров здесь появится короткий разбор того,
+                  как вы обычно ведёте разговор.
                 </p>
               </div>
             )}
@@ -527,7 +517,7 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Публичные бейджи
+              Сигналы для открытых тем
             </h2>
             {profileBadgeCards.length > 0 ? (
               <div className="space-y-4">
@@ -569,9 +559,8 @@ export default async function ProfilePage({
                   })}
                 </div>
                 <p className="text-xs leading-relaxed text-gray-500">
-                  Это безопасный публичный слой репутации. Он показывает, как вы
-                  обычно ведёте диалог, но не выставляет общий балл и не вешает
-                  негативные ярлыки.
+                  Здесь показываются только нейтральные сигналы о вашем стиле
+                  общения. Никаких общих баллов и публичных ярлыков.
                 </p>
                 {reputationBadges.length === 0 ? (
                   <p className="text-xs leading-relaxed text-cyan-200">
@@ -582,8 +571,8 @@ export default async function ProfilePage({
               </div>
             ) : (
               <p className="text-sm text-gray-500">
-                Когда накопится больше сигналов по спорным темам, здесь появятся
-                первые публичные стилевые бейджи.
+                Когда накопится больше данных по спорам, здесь появятся первые
+                сигналы о вашем стиле общения.
               </p>
             )}
           </div>
@@ -638,19 +627,19 @@ export default async function ProfilePage({
             <EducationRecommendationsPanel
               userId={user.id}
               title="Что добрать по навыкам"
-              description="Материалы подбираются по AI-профилю, стилю споров и уже пройденным коротким сценариям. Это не курс, а следующий точный шаг."
+              description="Короткие материалы, которые могут помочь в следующем споре."
             />
           </div>
 
           <div className="glass rounded-2xl p-6 lg:col-span-2">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Как ИИ использует ваш профиль
+              Как работают подсказки
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl bg-white/3 p-4">
                 <span className="text-2xl">🎯</span>
                 <p className="mt-2 text-sm font-semibold text-white">
-                  Адаптивные подсказки
+                  Подсказки по ходу спора
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   ИИ подстраивает тон и стиль подсказок под ваш способ вести диалог.
@@ -659,7 +648,7 @@ export default async function ProfilePage({
               <div className="rounded-xl bg-white/3 p-4">
                 <span className="text-2xl">🔬</span>
                 <p className="mt-2 text-sm font-semibold text-white">
-                  Точнее видит напряжение
+                  Видит, где спор застрял
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   Медиатор учитывает профили обеих сторон и точнее объясняет, где спор застрял.
@@ -668,7 +657,7 @@ export default async function ProfilePage({
               <div className="rounded-xl bg-white/3 p-4">
                 <span className="text-2xl">📈</span>
                 <p className="mt-2 text-sm font-semibold text-white">
-                  Показывает рост
+                  Показывает изменения
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
                   История споров постепенно показывает, как меняется ваш стиль общения.
@@ -757,8 +746,11 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Telegram-уведомления
+              Telegram
             </h2>
+            <p className="mb-4 text-sm text-gray-400">
+              Подключите бота, чтобы получать напоминания и открывать Mini App из Telegram.
+            </p>
             <TelegramConnect
               isConnected={!!profile?.telegram_chat_id}
               botUsername={process.env.TELEGRAM_BOT_USERNAME ?? null}
@@ -768,12 +760,11 @@ export default async function ProfilePage({
 
           <div className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Публичный слой
+              Что видно другим
             </h2>
             <p className="text-sm leading-relaxed text-gray-300">
-              Вне личного кабинета показываются только безопасные сигналы:
-              доверительный уровень и ограниченный набор публичных бейджей
-              диалога.
+              В открытых темах другим людям видны только нейтральные сигналы:
+              уровень доверия и несколько коротких признаков вашего стиля общения.
             </p>
             {reputationBadges.length > 0 ? (
               <div className="mt-4 border-t border-white/8 pt-4">
@@ -781,7 +772,7 @@ export default async function ProfilePage({
               </div>
             ) : (
               <p className="mt-4 text-sm text-gray-500">
-                Публичные бейджи появятся, когда накопится больше данных по спорам.
+                Когда накопится больше данных по спорам, здесь появятся первые сигналы.
               </p>
             )}
           </div>

@@ -129,19 +129,21 @@
 
 Следующий пакет по плану:
 
-**Opik trace verification, затем Telegram container verification**
+**Deep smoke test**
 
 Фокус:
-- [C:\project21\konsensus\src\lib\opik.ts](/C:/project21/konsensus/src/lib/opik.ts)
-- [C:\project21\konsensus\src\lib\ai.ts](/C:/project21/konsensus/src/lib/ai.ts)
-- [C:\project21\konsensus\src\lib\actions.ts](/C:/project21/konsensus/src/lib/actions.ts)
+- [C:\project21\konsensus\src\app\dashboard\page.tsx](/C:/project21/konsensus/src/app/dashboard/page.tsx)
+- [C:\project21\konsensus\src\components\DashboardDisputeCard.tsx](/C:/project21/konsensus/src/components/DashboardDisputeCard.tsx)
+- [C:\project21\konsensus\src\app\profile\page.tsx](/C:/project21/konsensus/src/app/profile/page.tsx)
+- [C:\project21\konsensus\src\app\learn\page.tsx](/C:/project21/konsensus/src/app/learn/page.tsx)
+- [C:\project21\konsensus\src\app\learn\[slug]\page.tsx](/C:/project21/konsensus/src/app/learn/[slug]/page.tsx)
+- [C:\project21\konsensus\src\app\dispute\[id]\argue\page.tsx](/C:/project21/konsensus/src/app/dispute/[id]/argue/page.tsx)
 - [C:\project21\konsensus\src\components\TelegramShellSync.tsx](/C:/project21/konsensus/src/components/TelegramShellSync.tsx)
 - [C:\project21\konsensus\src\app\tg\page.tsx](/C:/project21/konsensus/src/app/tg/page.tsx)
 - [C:\project21\konsensus\src\app\layout.tsx](/C:/project21/konsensus/src/app/layout.tsx)
 
 Результат шага:
-- в Opik появляются traces после реальных AI-сценариев (`evaluateArgument`, `submitArgument`, arena commentary, editorial draft);
-- подтверждён safe no-op режим: при проблемах с Opik основной продуктовый flow не ломается;
-- Mini App проверен в реальном Telegram-контейнере на телефоне;
-- safe-area, back/close, deep-link возврат, Telegram auth session creation и исправленный сценарий `Открыть спор / Продолжить спор` подтверждены уже не через браузерную эмуляцию;
-- после этого остаётся только короткий `docs alignment pass`, если расхождения между roadmap и status ещё останутся.
+- ключевые пользовательские сценарии пройдены end-to-end;
+- клики и переходы не дают неожиданных побочных действий вроде архивации вместо открытия;
+- Mini App дополнительно проверен в реальном Telegram-контейнере на телефоне;
+- после этого остаётся только короткий список реальных багов и при необходимости `docs alignment pass`.

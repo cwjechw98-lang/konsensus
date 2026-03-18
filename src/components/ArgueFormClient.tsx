@@ -148,7 +148,7 @@ export default function ArgueFormClient({
           <input type="hidden" name="dispute_id" value={disputeId} />
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-gray-300">Ваша позиция</span>
+            <span className="text-sm font-medium text-gray-300">Коротко</span>
             <input
               data-tour="position"
               ref={positionRef}
@@ -160,8 +160,8 @@ export default function ArgueFormClient({
                 if (evalResult) setEvalResult(null);
                 scheduleTyping();
               }}
-              className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors"
-              placeholder="«Я считаю, что...»"
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder:text-gray-600 transition-colors focus:border-purple-500/50 focus:outline-none"
+              placeholder="Сформулируйте позицию в одной строке"
             />
           </label>
 
@@ -179,8 +179,8 @@ export default function ArgueFormClient({
                 scheduleTyping();
               }}
               onBlur={() => void emitTypingEvent(false)}
-              className="border border-white/10 bg-white/5 rounded-lg px-3 py-2.5 text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors resize-y"
-              placeholder="Подробно объясните свою позицию..."
+              className="resize-y rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-white placeholder:text-gray-600 transition-colors focus:border-purple-500/50 focus:outline-none"
+              placeholder="Объясните свою позицию простыми словами..."
             />
           </label>
 
@@ -240,9 +240,6 @@ export default function ArgueFormClient({
               </div>
             </div>
           </div>
-          <p className="text-xs text-cyan-100/70 mt-2 px-1">
-            Предмет спора остаётся выше на странице, а здесь показан именно последний ответ оппонента.
-          </p>
         </div>
       )}
 
@@ -272,7 +269,7 @@ export default function ArgueFormClient({
                 }}
                 onBlur={() => void emitTypingEvent(false)}
                 className="w-full bg-transparent text-white placeholder:text-gray-600 focus:outline-none resize-y text-sm leading-relaxed"
-                placeholder="Ваш ответ..."
+                placeholder="Ответьте по сути..."
               />
             </div>
 

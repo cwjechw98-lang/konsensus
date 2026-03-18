@@ -168,14 +168,17 @@
    - продовый `/tg` повторно проверен после деплоя;
    - shell-cookie сценарий подтверждён без Telegram SDK warning;
    - route-based back semantics для deep-link экранов зафиксированы как текущая рабочая модель.
+13. Завершён `Core UX cleanup`:
+   - верхние экраны `dashboard`, `profile`, `learn`, `argue`, `arena` очищены от тяжёлых объяснялок;
+   - trust-tier, education и profile copy переведены на более человеческий язык;
+   - основной вход в спор выпрямлен: активная карточка больше не архивирует спор и ведёт в рабочий сценарий.
 
 ## Следующий практический шаг
 
-**Opik trace verification, затем возврат к Telegram container verification**
+**Deep smoke test**
 
 Следующий шаг:
-- открыть Opik UI и проверить, что после реального вызова `evaluateArgument`, `submitArgument`, `challenge`-flow и editorial draft появляются traces в проекте `konsensus`;
-- если traces видны стабильно, решить отдельным внутренним пакетом, нужен ли lightweight review-script по последним ошибочным/медленным AI traces;
-- пройти Mini App в реальном Telegram-контейнере на телефоне;
-- проверить safe-area, back/close, deep-link возврат, shell-переход, Telegram auth session creation и исправленный сценарий `Открыть спор / Продолжить спор` уже не через браузерную эмуляцию;
-- если контейнер чистый, затем сделать короткий `docs alignment pass` по status/roadmap.
+- пройти ключевые пользовательские сценарии end-to-end: регистрация, спор, архив/разархив, открытые темы, обучение, профиль, Telegram Mini App;
+- проверить клики, pending-state, переходы между экранами и отсутствие неожиданных побочных действий;
+- отдельно подтвердить в живом Telegram-контейнере safe-area, back/close, deep-link возврат и auth session creation;
+- после smoke-test зафиксировать уже только реальные остаточные баги, а не предположения по коду.

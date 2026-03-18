@@ -10,8 +10,8 @@ type EducationRecommendationsPanelProps = {
 
 export default async function EducationRecommendationsPanel({
   userId,
-  title = "Следующий полезный шаг",
-  description = "Короткие материалы подбираются по текущему AI-профилю и паттернам ваших споров.",
+  title = "Что почитать сейчас",
+  description = "Короткие материалы, которые могут помочь в следующем разговоре.",
   compact = false,
 }: EducationRecommendationsPanelProps) {
   const { recommendations, completedCount, totalCount } =
@@ -21,14 +21,11 @@ export default async function EducationRecommendationsPanel({
     <div className="glass rounded-2xl p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Образовательный слой
-          </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">{title}</h2>
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
           <p className="mt-2 max-w-2xl text-sm text-gray-400">{description}</p>
         </div>
         <div className="shrink-0 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-right">
-          <p className="text-xs text-cyan-100/80">Пройдено</p>
+          <p className="text-xs text-cyan-100/80">Изучено</p>
           <p className="text-sm font-semibold text-cyan-100">
             {completedCount}/{totalCount}
           </p>
@@ -63,9 +60,7 @@ export default async function EducationRecommendationsPanel({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-xs text-gray-500">
-          Рекомендации rule-based: без тяжёлой LMS и без отдельного AI-поиска.
-        </p>
+        <p className="text-xs text-gray-500">Подборка обновляется по мере ваших споров.</p>
         <Link href="/learn" className="text-xs font-medium text-cyan-300 hover:text-cyan-200">
           Все материалы →
         </Link>

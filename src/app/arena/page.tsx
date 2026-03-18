@@ -4,7 +4,6 @@ import { fetchTrustTierState, hasMinimumTrustTier } from "@/lib/trust-tier";
 import ChallengeBoard from "@/components/ChallengeBoard";
 import ArenaLiveBoard from "@/components/ArenaLiveBoard";
 import { OnboardingTour } from "@/components/OnboardingTour";
-import PageContextCard from "@/components/PageContextCard";
 
 export const revalidate = 0;
 
@@ -108,22 +107,20 @@ export default async function ArenaPage({
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="mb-6">
-        <PageContextCard
-          dataTour="arena-intro"
-          eyebrow="Открытые диспуты"
-          title="Публичный слой без лишнего шума"
-          description="Здесь можно открыть тему, подключиться к обсуждению или просто наблюдать за ходом открытого диспута."
-          bullets={["Активные диспуты", "Темы в ожидании", "Наблюдение за ходом обсуждения"]}
-          tone="amber"
-          compact
-          actions={
-            <OnboardingTour
-              page="arena"
-              showReplayButton
-              buttonLabel="Как устроен открытый слой"
-            />
-          }
-        />
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Диспуты</h1>
+            <p className="mt-1 text-sm text-gray-400">
+              Здесь можно открыть тему, подключиться к обсуждению или просто посмотреть, как идёт разговор.
+            </p>
+          </div>
+          <OnboardingTour
+            page="arena"
+            showReplayButton
+            buttonLabel="?"
+            className="h-9 w-9 rounded-full px-0 text-sm"
+          />
+        </div>
       </div>
 
       {error && (
@@ -131,9 +128,9 @@ export default async function ArenaPage({
           {error === "challenge_unavailable"
             ? "Тема недоступна или к ней уже подключился второй участник"
             : error === "trust_tier_trusted_required"
-              ? "Для открытия публичной темы нужен уровень Trusted."
+              ? "Чтобы открыть тему для всех, нужно немного больше истории участия."
               : error === "trust_tier_linked_required"
-                ? "Для участия в открытых диспутах нужен уровень Linked."
+                ? "Чтобы подключаться к открытым темам, сначала нужно немного поучаствовать в спорах."
                 : error}
         </div>
       )}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import PageContextCard from "@/components/PageContextCard";
 import SubmitButton from "@/components/SubmitButton";
 import EducationMarkdown from "@/components/EducationMarkdown";
 import {
@@ -46,22 +45,26 @@ export default async function EducationMaterialPage({
           ← Все материалы
         </Link>
         <Link href="/profile?tab=ai-profile" className="text-sm text-gray-400 hover:text-white">
-          Вернуться в AI-профиль
+          К профилю
         </Link>
       </div>
 
       <div className="mb-6">
-        <PageContextCard
-          eyebrow="Короткий материал"
-          title={material.title}
-          description={material.summary}
-          bullets={[
-            `Фокус: ${material.focus}`,
-            `Длительность: ${material.duration}`,
-            isCompleted ? "Статус: уже отмечен как изученный" : "Статус: ещё не отмечен как изученный",
-          ]}
-          tone="cyan"
-        />
+        <h1 className="text-2xl font-bold text-white">{material.title}</h1>
+        <p className="mt-2 text-sm text-gray-400">{material.summary}</p>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
+          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+            {material.focus}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+            {material.duration}
+          </span>
+          {isCompleted ? (
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-200">
+              Уже изучено
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {recommendation && (
@@ -75,7 +78,7 @@ export default async function EducationMaterialPage({
 
       {completed && (
         <div className="mb-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-          Материал отмечен как изученный. Рекомендации на dashboard и в профиле уже обновлены.
+          Материал отмечен как изученный. Следующие рекомендации уже обновлены.
         </div>
       )}
       {error && (
@@ -87,19 +90,7 @@ export default async function EducationMaterialPage({
       <article className="glass rounded-2xl p-6">
         <EducationMarkdown markdown={material.body} />
       </article>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {material.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-gray-400"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
         {isCompleted ? (
           <span className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200">
             Уже изучено

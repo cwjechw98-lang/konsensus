@@ -26,7 +26,7 @@ export default function TrustTierCard({ state }: { state: TrustTierState }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Trust tier
+            Уровень доверия
           </p>
           <h2 className="mt-2 text-lg font-semibold text-white">{state.label}</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-400">{state.description}</p>
@@ -50,7 +50,7 @@ export default function TrustTierCard({ state }: { state: TrustTierState }) {
       {state.nextTier && state.nextStep && (
         <div className="mt-5 rounded-xl border border-white/8 bg-black/10 p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Следующий уровень: {state.nextTierLabel}
+            Что нужно дальше
           </p>
           <p className="mt-2 text-sm text-gray-300">{state.nextStep}</p>
         </div>

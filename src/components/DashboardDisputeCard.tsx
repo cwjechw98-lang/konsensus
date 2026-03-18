@@ -58,7 +58,19 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
         minute: "2-digit",
       })
     : null;
-  const primaryActionLabel = archived ? "Продолжить спор" : "Открыть спор";
+  const primaryHref =
+    status === "in_progress"
+      ? `/dispute/${id}/argue`
+      : status === "mediation" || status === "resolved"
+        ? `/dispute/${id}/mediation`
+        : `/dispute/${id}`;
+  const primaryActionLabel = archived
+    ? "Продолжить спор"
+    : status === "in_progress"
+      ? "Продолжить спор"
+      : status === "mediation" || status === "resolved"
+        ? "Открыть итог"
+        : "Открыть спор";
   const primaryPendingText = archived ? "Возвращаем..." : "Открываем...";
 
   return (
@@ -121,8 +133,8 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
             </form>
           ) : (
             <Link
-              href={`/dispute/${id}`}
-              className="w-full rounded-lg bg-purple-600/20 px-4 py-2 text-center text-sm font-medium text-purple-200 transition-colors hover:bg-purple-600/30 sm:w-auto sm:flex-shrink-0"
+              href={primaryHref}
+              className="w-full rounded-lg bg-purple-600/20 px-4 py-2 text-center text-sm font-medium text-purple-200 transition-colors hover:bg-purple-600/30 active:scale-[0.98] sm:w-auto sm:flex-shrink-0"
             >
               {primaryActionLabel}
             </Link>
@@ -156,9 +168,9 @@ export default function DashboardDisputeCard(props: DashboardDisputeCardProps) {
 
             <Link
               href={`/dispute/${id}`}
-              className="text-gray-500 hover:text-white transition-colors"
+              className="text-gray-500 transition-colors hover:text-white"
             >
-              Открыть детали
+              Карточка спора
             </Link>
           </div>
         </div>

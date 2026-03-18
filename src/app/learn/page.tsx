@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import PageContextCard from "@/components/PageContextCard";
 import EducationRecommendationsPanel from "@/components/EducationRecommendationsPanel";
 import { fetchLearningProgress, listEducationMaterials } from "@/lib/education";
 
@@ -23,24 +22,17 @@ export default async function LearnPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6">
-        <PageContextCard
-          eyebrow="Короткие материалы"
-          title="Здесь собраны короткие материалы по спору и переговорам"
-          description="Без длинного курса: выбираете нужную тему, читаете несколько минут и идёте дальше."
-          bullets={[
-            "Короткие тексты вместо длинного курса",
-            "Рекомендации под ваш стиль",
-            "Прогресс без бюрократии",
-          ]}
-          tone="cyan"
-        />
+        <h1 className="text-2xl font-bold text-white">Материалы</h1>
+        <p className="mt-2 text-sm text-gray-400">
+          Короткие тексты по спору и переговорам. Выбираете нужную тему, читаете несколько минут и идёте дальше.
+        </p>
       </div>
 
       <div className="mb-6">
         <EducationRecommendationsPanel
           userId={user.id}
-          title="Что читать сейчас"
-          description="Сначала показываются материалы, которые полезнее всего именно сейчас."
+          title="С чего начать"
+          description="Сначала показаны материалы, которые сейчас полезнее всего."
         />
       </div>
 
@@ -66,18 +58,6 @@ export default async function LearnPage() {
                   {isCompleted ? "Пройдено" : material.duration}
                 </span>
               </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {material.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-gray-400"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
               <div className="mt-5 flex items-center justify-between gap-3">
                 <span className="text-xs text-gray-500">{material.focus}</span>
                 <Link

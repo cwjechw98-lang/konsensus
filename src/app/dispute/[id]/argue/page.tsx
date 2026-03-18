@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ArgueFormClient from "@/components/ArgueFormClient";
 import WaitingAmbient from "@/components/WaitingAmbient";
-import PageContextCard from "@/components/PageContextCard";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import type { Database } from "@/types/database";
 import { getDisplayName } from "@/lib/display-name";
@@ -81,58 +80,31 @@ export default async function ArguePage({
         &larr; К спору
       </Link>
 
-      {/* Dispute context */}
-      <div className="mb-6">
-        <PageContextCard
-          dataTour="argue-context"
-          eyebrow={isWaiting ? "Фаза ожидания" : "Текущий ход"}
-          title={
-            isWaiting
-              ? "Ваш ход отправлен. Теперь ждём ответ второй стороны"
-              : isFirstRound
-              ? "Первый ход задаёт тон всему спору"
-              : "Ответьте по теме и держите в фокусе последний ход"
-          }
-          description={
-            isWaiting
-              ? "Ниже останется контекст спора и личная подсказка, пока оппонент не вернётся."
-              : "Сверху — тема спора, ниже — аргумент оппонента и ваша форма ответа."
-          }
-          bullets={
-            isWaiting
-              ? [
-                  "Ход уже сохранён",
-                  "Подсказка только для вас",
-                  "Спор вернётся в работу сам",
-                ]
-              : [
-                  "Тема всегда перед глазами",
-                  "Последний ответ вынесен отдельно",
-                  "Аргумент можно быстро проверить",
-                ]
-          }
-          tone={isWaiting ? "cyan" : "purple"}
-          actions={
-            !isWaiting ? (
-              <OnboardingTour
-                page="argue"
-                showReplayButton
-                buttonLabel="Подсказки по этому ходу"
-              />
-            ) : null
-          }
-        />
-      </div>
-
       <div className="glass rounded-xl p-4 mb-6" data-tour="argue-context">
-        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Предмет спора</p>
-        <p className="font-semibold text-white mb-1">{dispute.title}</p>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Тема спора</p>
+            <p className="font-semibold text-white">{dispute.title}</p>
+          </div>
+          {!isWaiting ? (
+            <OnboardingTour
+              page="argue"
+              showReplayButton
+              buttonLabel="?"
+              className="h-9 w-9 rounded-full px-0 text-sm"
+            />
+          ) : null}
+        </div>
         <p className="text-sm text-gray-400 line-clamp-3">{dispute.description}</p>
       </div>
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">
-          {isFirstRound ? "Ваша позиция" : `Раунд ${currentRound}`}
+          {isWaiting
+            ? "Ждём ответ"
+            : isFirstRound
+              ? "Ваш первый аргумент"
+              : `Ваш ответ · Раунд ${currentRound}`}
         </h1>
         <span className="text-sm text-gray-500">из {dispute.max_rounds}</span>
       </div>
@@ -149,12 +121,6 @@ export default async function ArguePage({
             <p className="text-2xl mb-3">✓</p>
             <p className="font-semibold text-white mb-2">Аргумент принят</p>
             <p className="text-gray-400 text-sm">Ожидаем ответа оппонента...</p>
-          </div>
-          <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.05] px-4 py-3">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 mb-1">Приватная фаза ожидания</p>
-            <p className="text-sm text-cyan-100/90">
-              Пока идёт пауза между ходами, ИИ готовит личную подсказку только для вас.
-            </p>
           </div>
           <WaitingAmbient />
         </div>
