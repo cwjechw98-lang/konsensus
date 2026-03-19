@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/keepalive/supabase",
+      "schedule": "0 9 * * *"
+    },
+    {
       "path": "/api/telegram/editorial/run",
       "schedule": "0 6 * * *"
     }

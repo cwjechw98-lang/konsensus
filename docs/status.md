@@ -183,6 +183,11 @@
    - после деплоя на production подтверждено, что `login?redirect=/dispute/join?...` после входа приводит прямо в invite-screen;
    - regression-проверка выполнена на живых временных аккаунтах без локальных обходов;
    - QA-пользователи и тестовый production-спор удалены после проверки.
+16. Завершён `Supabase keepalive`:
+   - добавлен защищённый cron-route `/api/keepalive/supabase`;
+   - keepalive делает лёгкий server-side read-запрос в `profiles` через service role;
+   - в [vercel.json](/C:/project21/konsensus/vercel.json) добавлен daily Vercel Cron;
+   - `.env.example` и `docs/ops/local-only.md` синхронизированы по `CRON_SECRET` и keepalive flow.
 
 ## Следующий практический шаг
 
@@ -192,3 +197,8 @@
 - пройти Mini App внутри реального Telegram-контейнера на телефоне;
 - подтвердить safe-area, back/close, deep-link возврат и создание auth session;
 - если Telegram-контейнер покажет новые дефекты, зафиксировать уже только их как отдельный узкий пакет.
+
+## Ops note
+
+- для free-проекта Supabase keepalive теперь идёт через `/api/keepalive/supabase`;
+- перед следующим деплоем в Vercel должен быть задан `CRON_SECRET`, иначе keepalive и editorial cron не авторизуются.

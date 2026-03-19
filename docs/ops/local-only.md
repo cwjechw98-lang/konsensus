@@ -38,9 +38,17 @@
 - `TELEGRAM_BOT_USERNAME` в env должен совпадать с текущим username бота
 
 ### Scheduled editorial flow
-- `CRON_SECRET` нужен для Vercel Cron и ручного вызова `/api/telegram/editorial/run`
+- `CRON_SECRET` нужен для Vercel Cron и ручного вызова:
+  - `/api/telegram/editorial/run`
+  - `/api/keepalive/supabase`
 - в текущей конфигурации [vercel.json](/C:/project21/konsensus/vercel.json) cron запускается раз в день
 - на Hobby-плане Vercel cron ограничен одним daily вызовом; если нужен более частый editorial sweep, это уже следующий инфраструктурный шаг
+
+### Supabase keepalive
+- `/api/keepalive/supabase` делает лёгкий server-side read-запрос к `profiles`
+- маршрут не публичный: он принимает только `Authorization: Bearer <CRON_SECRET>`
+- это технический keepalive для free-проекта Supabase, а не пользовательский endpoint
+- если Supabase снова пишет про low activity, сначала проверить, что Vercel Cron реально включён и `CRON_SECRET` задан в Project Settings
 
 ### Telegram-канал релизов
 - бот должен быть администратором канала

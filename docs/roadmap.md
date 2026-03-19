@@ -114,6 +114,11 @@
 - [x] Подтвердить на production invite login redirect после деплоя
 - [x] Очистить временные QA-данные после проверки
 
+### Пакет 13. Supabase keepalive
+- [x] Добавить защищённый cron-route для лёгкого server-side запроса в Supabase
+- [x] Подключить daily Vercel Cron без фейковых регистраций и synthetic auth-шума
+- [x] Синхронизировать env/docs по `CRON_SECRET` и keepalive flow
+
 ## Parked / internal backlog
 
 Эти блоки не удаляются из репозитория, но больше не двигают основной пользовательский roadmap:
@@ -150,3 +155,7 @@
 - Mini App пройден уже внутри реального Telegram-контейнера на телефоне;
 - safe-area, back/close и deep-link возврат подтверждены в живой среде;
 - после этого останутся только точечные container-specific дефекты, если они реально проявятся.
+
+## Ops note
+
+- free Supabase теперь поддерживается живым через [C:\project21\konsensus\src\app\api\keepalive\supabase\route.ts](/C:/project21/konsensus/src/app/api/keepalive/supabase/route.ts) и daily cron в [C:\project21\konsensus\vercel.json](/C:/project21/konsensus/vercel.json)
